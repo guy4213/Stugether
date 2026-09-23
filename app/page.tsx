@@ -1,8 +1,15 @@
+import { SiteNav } from "@/components/landing/site-nav";
+import { HeroSection } from "@/components/landing/hero-section";
+import { StatsRow } from "@/components/landing/stats-row";
+import { FeaturesRow } from "@/components/landing/features-row";
+
 export default function HomePage() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-2 p-8">
-      <h1 className="text-3xl font-bold">Stugether</h1>
-      <p className="text-muted-foreground">חדרי למידה קבוצתיים עם עוזר AI</p>
+    <main className="flex flex-1 flex-col">
+      <SiteNav />
+      <HeroSection />
+      <StatsRow />
+      <FeaturesRow />
     </main>
   );
 }

@@ -13,19 +13,19 @@
 
 ## התקדמות
 
-| Milestone                 | שעות   | מצב                                             |
-| ------------------------- | ------ | ----------------------------------------------- |
-| מסמכים                    | —      | ✅ הושלם                                        |
-| M0 Foundation             | 6.25   | 🟡 כמעט — חסר `supabase start` (Docker)         |
-| M1 DB + Auth + Onboarding | 11.5   | 🟡 DB הושלם ונבדק · Auth + Onboarding לא התחילו |
-| M2 Dashboard & Courses    | 7      |                                                 |
-| M3 Invitations            | 6.5    |                                                 |
-| M4 Room Realtime          | 10     |                                                 |
-| M5 AI in Room             | 12     |                                                 |
-| M6 Profile & Super Admin  | 7.75   |                                                 |
-| M7 QA & Launch            | 9      |                                                 |
-| **שלב 1**                 | **70** |                                                 |
-| S1-S5 שלב 2               | 22     |                                                 |
+| Milestone                 | שעות   | מצב                                                  |
+| ------------------------- | ------ | ---------------------------------------------------- |
+| מסמכים                    | —      | ✅ הושלם                                             |
+| M0 Foundation             | 6.25   | 🟡 כמעט — חסר `supabase start` (Docker)              |
+| M1 DB + Auth + Onboarding | 11.5   | 🟡 DB הושלם ונבדק · Auth backend הושלם · UI לא התחיל |
+| M2 Dashboard & Courses    | 7      |                                                      |
+| M3 Invitations            | 6.5    |                                                      |
+| M4 Room Realtime          | 10     |                                                      |
+| M5 AI in Room             | 12     |                                                      |
+| M6 Profile & Super Admin  | 7.75   |                                                      |
+| M7 QA & Launch            | 9      |                                                      |
+| **שלב 1**                 | **70** |                                                      |
+| S1-S5 שלב 2               | 22     |                                                      |
 
 **נוצל עד כה: 0 / 70**
 
@@ -81,8 +81,9 @@
 - [x] **1.25ש׳** — בדיקות RLS 1-10
 - [x] **נוסף** — בדיקות 11-16 (הזמנות, AI, stale, אטומיות) ברמת ה-DB + בדיקות ל-fixes מה-review. **39/39 עוברות** (`npm run db:test`)
 - [x] **נוסף** — RPCs: `decline/revoke_room_invitation`, `get_pending_invitations`, `mark_room_read`, `leave_room`, `remove_room_member`, `set_room_status`, `update_room`, `admin_room_stats`, `admin_global_stats` · view `public_profiles`. פירוט: `TECHNICAL_SPEC.md` §12
-- [ ] **2ש׳** — Auth: הרשמה, התחברות, התנתקות, אימות מייל, middleware, עברית
-- [ ] **1.5ש׳** — Onboarding: מוסד → מחלקה → שנה → רישום לקורסים
+- [x] **backend** — `lib/auth/actions.ts` (signUp/signIn/signOut/resendVerificationEmail, שגיאות בעברית) · `proxy.ts` + `lib/supabase/middleware.ts` (רענון session — שים לב: Next 16.3.5 בפרויקט הזה קורא לזה `proxy.ts` ולא `middleware.ts`) · `app/auth/callback/route.ts`
+- [ ] **~1ש׳ נותר** — מסכי הרשמה/התחברות בפועל (טפסים שקוראים ל-actions למעלה) — פרונטאנד
+- [ ] **1.5ש׳** — Onboarding: מוסד → מחלקה → שנה → רישום לקורסים (UI). ה-repositories שזה נשען עליהם כבר קיימים: `catalog.ts`, `profiles.updateOwnProfile`, `enrollments.ts`
 
 ---
 
@@ -91,6 +92,39 @@
 - נבנה ב-workflow של 10 agents: סכמה → RLS/RPCs/seed/harness במקביל → אינטגרציה → בדיקות → review אבטחה + התאמה לספק → תיקונים
 - ה-review מצא 13 בעיות ותוקנו, בהן: `messages` לא היה ב-publication של Realtime (הצ'אט לא היה מתעדכן), פרופיל מלא נחשף לחברים לכיתה, בעל חדר יכול היה לבטל ארכוב של אדמין, תוכן הודעה מחוקה נשאר גלוי
 - **הבדיקות רצות ב-PGlite ולא ב-Supabase** — Docker לא מותקן
+
+---
+
+## ✅ ליבת הבקאנד — נבנתה (18.09.2026)
+
+חוצה את M1/M3/M4/M5/M6: כל שכבת השרת שאינה תלויה במסכים. **לא UI, לא Docker.**
+
+| קובץ/תיקייה                                                                           | מה יש                                                                                                            |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `proxy.ts` + `lib/supabase/middleware.ts`                                             | רענון session בכל בקשה                                                                                           |
+| `lib/auth/actions.ts`                                                                 | signUp/signIn/signOut/resendVerificationEmail, שגיאות בעברית, **הגנה מפני email enumeration**                    |
+| `app/auth/callback/route.ts`                                                          | אימות מייל                                                                                                       |
+| `lib/repositories/{catalog,profiles,enrollments,rooms,invitations,messages,admin}.ts` | עטיפה טיפוסית סביב כל ה-RPCs וה-SELECTs. **חתימה אחידה:** כל פונקציה מקבלת client כפרמטר ראשון (לא בונה אחד לבד) |
+| `lib/storage/index.ts`                                                                | **באג מ-M1 תוקן** — `uploadAvatar` מחזיר נתיב, לא URL                                                            |
+| `lib/ai/gemini.ts`                                                                    | לקוח Gemini עם streaming, דרך `@google/genai`                                                                    |
+| `lib/ai/context.ts`                                                                   | בניית ה-prompt: system prompt מ-`app_settings`, שם קורס/חדר/משתתפים, N הודעות אחרונות עם קיצוץ לפי תקרת tokens   |
+| `app/api/rooms/[id]/messages/route.ts`                                                | ה-route היחיד: הכנסת הודעה → זיהוי `@AI` → `start_ai_run` → תשובה מיידית → `after()` מריץ את Gemini ברקע         |
+
+**איך זה נבנה:** תזמור ידני עם Agent (כלי ה-Workflow מנוטרל בסשן) — Auth ו-Repositories במקביל → AI Core (תלוי בחוזה של ה-repositories) → אינטגרציה (lint/typecheck/build על הכול ביחד) → סקירת אבטחה אדוורסרית.
+
+**תוצאות:**
+
+- `lint` + `typecheck` + `build` **נקיים לגמרי**, כולל build מלא עם env מדומה
+- סקירת אבטחה: **ממצא אחד, חומרה נמוכה** — הודעת השגיאה בהרשמה חשפה אם מייל כבר רשום במערכת (email enumeration). **תוקן ואומת** (`signUp` מחזיר תשובה זהה בין אם המייל קיים ובין אם לא)
+- כל שאר הנתיבים שנבדקו (`start_ai_run`, הרשאות אדמין, refresh token, avatar upload, redirect ב-callback) — **ללא ממצאים**
+
+**מה נשאר פתוח מהבנייה הזו:**
+
+- `after()` מ-`next/server` **אומת שקיים ועובד** בגרסת ה-Next הזו (נבדק מול `node_modules/next`, לא הונח) — אין fallback, לא היה צריך
+- `GEMINI_MODEL` ברירת מחדל: `gemini-2.5-flash`. מגבלות קצב ברירת מחדל: 30/שעה למשתמש, 60/שעה לחדר — ב-`.env.example`
+- **לא נבדק על Gemini אמיתי** — אין `GEMINI_API_KEY`. הקוד עבר typecheck ובדיקות סטטיות בלבד
+- **לא נבדק על Supabase אמיתי** — עדיין אין Docker. אותה מגבלה כמו ב-DB
+- `app/api/rooms/[id]/messages/route.ts` הוא ה-route האחד שקיים. שאר ה-repositories (הזמנות, פרופיל, קטלוג, אדמין) **כתובים אבל לא מחוברים לשום route/UI עדיין**
 
 ---
 
@@ -126,13 +160,15 @@
 
 ## M5 — AI in Room ⭐ · 12ש׳
 
-- [ ] **2.5ש׳** — Gemini client · system prompt · context builder (N הודעות + תקרת tokens)
-- [ ] **3.25ש׳** — `POST /api/rooms/[id]/messages`: זיהוי trigger, קריאה ל-`start_ai_run`, `after()`, `maxDuration=60`
-- [ ] **1.75ש׳** — צבירת stream + UPDATE סופי + **`onChunk` hook (no-op)**
-- [ ] **2ש׳** — שגיאות: שמירת טקסט חלקי + "(נקטע)", `status='failed'`, כפתור "נסה שוב"
-- [ ] **1.25ש׳** — Rate limiting (בתוך ה-RPC) + UX
+- [x] **2.5ש׳** — Gemini client · system prompt · context builder (N הודעות + תקרת tokens) — `lib/ai/gemini.ts` + `lib/ai/context.ts`
+- [x] **3.25ש׳** — `POST /api/rooms/[id]/messages`: זיהוי trigger, קריאה ל-`start_ai_run`, `after()`, `maxDuration=60`
+- [x] **1.75ש׳** — צבירת stream + UPDATE סופי + **`onChunk` hook (no-op)**
+- [x] **backend** — שמירת טקסט חלקי + "(נקטע)", `status='failed'`, דיווח ל-Sentry
+- [ ] **~0.5ש׳ נותר** — כפתור "נסה שוב" — פרונטאנד
+- [x] **backend** — Rate limiting (בתוך ה-RPC, נקרא מה-route)
+- [ ] **~0.5ש׳ נותר** — UX של הודעת חריגה — פרונטאנד
 - [ ] **1.25ש׳** — רינדור הודעת AI: markdown, סגנון נבדל, "העוזר כותב…"
-- [ ] בדיקות 13-16 (concurrency AI, stale `running` ו-`queued`, אטומיות)
+- [x] בדיקות 13-16 — **כבר עוברות** ב-`supabase/tests/rpc.test.mjs` (נבנו ב-M1). מה שעדיין לא נבדק: אותו תרחיש דרך ה-route האמיתי, לא רק דרך ה-RPC ישירות — חסום עד Docker
 
 ---
 
@@ -245,8 +281,9 @@
 
 ## יומן
 
-| תאריך      | שלב     | שעות | הערות                                                                                           |
-| ---------- | ------- | ---- | ----------------------------------------------------------------------------------------------- |
-| 11.09.2026 | מסמכים  | —    | `SPEC`, `TECHNICAL_SPEC`, `TASKS`, `PHASE3` נכתבו                                               |
-| 13.09.2026 | M0      | —    | scaffold, RTL, shadcn, Sentry, CI, גבולות. חסר Docker ל-`supabase start`                        |
-| 13.09.2026 | M1 (DB) | —    | 4 migrations, seed, 15 RPCs, RLS מלא, 39/39 בדיקות ב-PGlite. review: 13 תיקונים. נעצר לפני Auth |
+| תאריך      | שלב        | שעות | הערות                                                                                                                          |
+| ---------- | ---------- | ---- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 11.09.2026 | מסמכים     | —    | `SPEC`, `TECHNICAL_SPEC`, `TASKS`, `PHASE3` נכתבו                                                                              |
+| 13.09.2026 | M0         | —    | scaffold, RTL, shadcn, Sentry, CI, גבולות. חסר Docker ל-`supabase start`                                                       |
+| 13.09.2026 | M1 (DB)    | —    | 4 migrations, seed, 15 RPCs, RLS מלא, 39/39 בדיקות ב-PGlite. review: 13 תיקונים. נעצר לפני Auth                                |
+| 18.09.2026 | ליבת בקאנד | —    | Auth actions, 7 repositories, Gemini client, AI route. lint/typecheck/build נקיים. review: ממצא אחד (email enumeration) — תוקן |

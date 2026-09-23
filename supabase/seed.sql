@@ -59,9 +59,13 @@ INSERT INTO public.institutions (id, name, city, is_active) VALUES
   ('00000000-0000-0000-0001-000000000001', 'המכללה האקדמית לדוגמה', 'תל אביב', true)
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO public.departments (id, institution_id, name, is_active) VALUES
-  ('00000000-0000-0000-0002-000000000001', '00000000-0000-0000-0001-000000000001', 'מדעי המחשב', true),
-  ('00000000-0000-0000-0002-000000000002', '00000000-0000-0000-0001-000000000001', 'מתמטיקה וסטטיסטיקה', true)
+INSERT INTO public.faculties (id, institution_id, name, is_active) VALUES
+  ('00000000-0000-0000-0009-000000000001', '00000000-0000-0000-0001-000000000001', 'הפקולטה למדעים מדויקים', true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.departments (id, institution_id, faculty_id, name, is_active) VALUES
+  ('00000000-0000-0000-0002-000000000001', '00000000-0000-0000-0001-000000000001', '00000000-0000-0000-0009-000000000001', 'מדעי המחשב', true),
+  ('00000000-0000-0000-0002-000000000002', '00000000-0000-0000-0001-000000000001', '00000000-0000-0000-0009-000000000001', 'מתמטיקה וסטטיסטיקה', true)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.courses (id, institution_id, department_id, code, name, year_level, semester, is_active) VALUES
@@ -135,14 +139,15 @@ UPDATE public.profiles p
        department_id  = v.department_id,
        study_year     = v.study_year,
        bio            = v.bio,
+       city           = v.city,
        last_seen_at   = now() - interval '1 hour'
   FROM (VALUES
-    ('00000000-0000-0000-0000-0000000000a1'::uuid, '00000000-0000-0000-0002-000000000001'::uuid, 2::smallint, 'אוהבת מבני נתונים וקפה שחור.'),
-    ('00000000-0000-0000-0000-0000000000a2'::uuid, '00000000-0000-0000-0002-000000000001'::uuid, 2::smallint, NULL),
-    ('00000000-0000-0000-0000-0000000000a3'::uuid, '00000000-0000-0000-0002-000000000001'::uuid, 2::smallint, 'מחפשת שותפים ללמידה לקראת המבחנים.'),
-    ('00000000-0000-0000-0000-0000000000a4'::uuid, '00000000-0000-0000-0002-000000000001'::uuid, 3::smallint, NULL),
-    ('00000000-0000-0000-0000-0000000000a5'::uuid, '00000000-0000-0000-0002-000000000002'::uuid, 1::smallint, NULL)
-  ) AS v (id, department_id, study_year, bio)
+    ('00000000-0000-0000-0000-0000000000a1'::uuid, '00000000-0000-0000-0002-000000000001'::uuid, 2::smallint, 'אוהבת מבני נתונים וקפה שחור.', 'תל אביב'),
+    ('00000000-0000-0000-0000-0000000000a2'::uuid, '00000000-0000-0000-0002-000000000001'::uuid, 2::smallint, NULL, 'רמת גן'),
+    ('00000000-0000-0000-0000-0000000000a3'::uuid, '00000000-0000-0000-0002-000000000001'::uuid, 2::smallint, 'מחפשת שותפים ללמידה לקראת המבחנים.', 'תל אביב'),
+    ('00000000-0000-0000-0000-0000000000a4'::uuid, '00000000-0000-0000-0002-000000000001'::uuid, 3::smallint, NULL, 'חולון'),
+    ('00000000-0000-0000-0000-0000000000a5'::uuid, '00000000-0000-0000-0002-000000000002'::uuid, 1::smallint, NULL, 'בת ים')
+  ) AS v (id, department_id, study_year, bio, city)
  WHERE p.id = v.id;
 
 UPDATE public.profiles
