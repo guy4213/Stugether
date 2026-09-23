@@ -28,6 +28,7 @@ export interface PublicProfile {
   institution_id: string | null;
   department_id: string | null;
   study_year: number | null;
+  city: string | null;
 }
 
 export async function getOwnProfile(

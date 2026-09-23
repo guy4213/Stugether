@@ -34,10 +34,7 @@ export async function getRoom(client: SupabaseClient, roomId: string): Promise<R
 
 // Rooms the caller is an ACTIVE member of (left_at IS NULL), most recently
 // active first (rooms with no messages yet sort last).
-export async function listMyActiveRooms(
-  client: SupabaseClient,
-  userId: string,
-): Promise<Room[]> {
+export async function listMyActiveRooms(client: SupabaseClient, userId: string): Promise<Room[]> {
   const { data, error } = await client
     .from("room_members")
     .select("room:rooms(*)")
@@ -46,6 +43,28 @@ export async function listMyActiveRooms(
     .order("last_message_at", { foreignTable: "rooms", ascending: false, nullsFirst: false });
   if (error) throw error;
   return (data as unknown as { room: Room }[]).map((row) => row.room);
+}
+
+// Active room counts per course, for the catalog page's "N active rooms"
+// badge. rooms_select_member_or_admin RLS hides rooms from non-members, so a
+// plain SELECT on "rooms" would undercount for a browsing (not-yet-joined)
+// student — this wraps count_active_rooms_by_course(), which exposes only
+// the aggregate (see 20260923000002_favorites_progress_tests.sql).
+export async function countActiveRoomsByCourseIds(
+  client: SupabaseClient,
+  courseIds: string[],
+): Promise<Record<string, number>> {
+  if (courseIds.length === 0) return {};
+  const { data, error } = await client.rpc("count_active_rooms_by_course", {
+    p_course_ids: courseIds,
+  });
+  if (error) throw error;
+
+  const counts: Record<string, number> = {};
+  for (const row of data as { course_id: string; room_count: number }[]) {
+    counts[row.course_id] = row.room_count;
+  }
+  return counts;
 }
 
 // INSERT into rooms only — a DB trigger (handle_new_room) auto-adds the

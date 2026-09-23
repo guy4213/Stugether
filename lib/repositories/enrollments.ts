@@ -17,6 +17,8 @@ export interface EnrollmentWithCourse {
   user_id: string;
   course_id: string;
   status: "active" | "archived";
+  progress_percent: number;
+  completed_at: string | null;
   created_at: string;
   course: Course;
 }
@@ -60,4 +62,52 @@ export async function unenroll(
     .eq("user_id", userId)
     .eq("course_id", courseId);
   if (error) throw error;
+}
+
+// For the analytics page: per-course progress bars + "completed courses"
+// count (replacing "certificates" in the mockup).
+export async function updateProgress(
+  client: SupabaseClient,
+  userId: string,
+  courseId: string,
+  input: { progressPercent: number; completedAt?: string | null },
+): Promise<void> {
+  const patch: Record<string, unknown> = { progress_percent: input.progressPercent };
+  if (input.completedAt !== undefined) patch.completed_at = input.completedAt;
+
+  const { error } = await client
+    .from("enrollments")
+    .update(patch)
+    .eq("user_id", userId)
+    .eq("course_id", courseId);
+  if (error) throw error;
+}
+
+// Distinct classmates across the caller's actively-enrolled courses (the
+// dashboard's "Active Students" stat). enrollments_select_own_admin_or_same_course
+// RLS already scopes visible rows to courses the caller is themselves active
+// in, so this is a plain query + client-side dedupe, no admin client needed.
+export async function countActiveClassmates(
+  client: SupabaseClient,
+  userId: string,
+): Promise<number> {
+  const { data: mine, error: mineError } = await client
+    .from("enrollments")
+    .select("course_id")
+    .eq("user_id", userId)
+    .eq("status", "active");
+  if (mineError) throw mineError;
+
+  const courseIds = (mine as { course_id: string }[]).map((row) => row.course_id);
+  if (courseIds.length === 0) return 0;
+
+  const { data, error } = await client
+    .from("enrollments")
+    .select("user_id")
+    .in("course_id", courseIds)
+    .eq("status", "active")
+    .neq("user_id", userId);
+  if (error) throw error;
+
+  return new Set((data as { user_id: string }[]).map((row) => row.user_id)).size;
 }

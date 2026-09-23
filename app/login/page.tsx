@@ -25,7 +25,7 @@ export default function LoginPage() {
         toast.error(result.error);
         return;
       }
-      router.push("/profile");
+      router.push("/dashboard");
       router.refresh();
     });
   }

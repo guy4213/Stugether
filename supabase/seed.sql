@@ -274,3 +274,31 @@ INSERT INTO public.room_invitations (id, room_id, inviter_id, invitee_user_id, s
    '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000a5',
    'pending', now() - interval '1 day', now() - interval '8 days')
 ON CONFLICT (id) DO NOTHING;
+
+-- -----------------------------------------------------------------------------
+-- Favorites, progress and tests (a1 = noa@stugether.test, the primary demo
+-- account — enrolled in CS-201 active/MATH-110 active, see enrollments above).
+-- -----------------------------------------------------------------------------
+INSERT INTO public.course_favorites (user_id, course_id) VALUES
+  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0003-000000000001'), -- CS-101
+  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0003-000000000003')  -- CS-305
+ON CONFLICT (user_id, course_id) DO NOTHING;
+
+UPDATE public.enrollments
+   SET progress_percent = 65
+ WHERE user_id = '00000000-0000-0000-0000-0000000000a1'
+   AND course_id = '00000000-0000-0000-0003-000000000002'; -- CS-201, in progress
+
+UPDATE public.enrollments
+   SET progress_percent = 100, completed_at = now() - interval '10 days'
+ WHERE user_id = '00000000-0000-0000-0000-0000000000a1'
+   AND course_id = '00000000-0000-0000-0003-000000000004'; -- MATH-110, completed
+
+INSERT INTO public.tests (id, course_id, title, description, due_at, created_by) VALUES
+  ('00000000-0000-0000-000a-000000000001', '00000000-0000-0000-0003-000000000002',
+   'מבחן אמצע — עצי חיפוש', 'עצי AVL, רוטציות וסיבוכיות', now() + interval '5 days',
+   '00000000-0000-0000-0000-0000000000a1'),
+  ('00000000-0000-0000-000a-000000000002', '00000000-0000-0000-0003-000000000004',
+   'בוחן גבולות', 'גבולות וכלל לופיטל', now() + interval '2 days',
+   '00000000-0000-0000-0000-0000000000a2')
+ON CONFLICT (id) DO NOTHING;

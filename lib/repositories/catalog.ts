@@ -80,6 +80,12 @@ export async function listDepartments(
   return data as Department[];
 }
 
+export async function getCourse(client: SupabaseClient, courseId: string): Promise<Course | null> {
+  const { data, error } = await client.from("courses").select("*").eq("id", courseId).maybeSingle();
+  if (error) throw error;
+  return data as Course | null;
+}
+
 export async function listActiveCourses(
   client: SupabaseClient,
   filters: { institutionId?: string; departmentId?: string } = {},
