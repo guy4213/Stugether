@@ -329,3 +329,132 @@ SELECT '00000000-0000-0000-0005-000000000001',
        now() - make_interval(days => v.wk * 7 + 1, hours => n * 13)
   FROM (VALUES (7, 1), (6, 2), (5, 2), (4, 4), (3, 3), (2, 5), (1, 6)) AS v (wk, cnt),
        generate_series(1, v.cnt) AS n;
+
+-- =============================================================================
+-- Mockup features (20260925000001_mockup_features.sql)
+--   * course topics for every course; a1 progress drives CS-201 = 65% (13/20
+--     mastered, "AVL" in progress) and MATH-110 = 100%
+--   * a2 progress on MATH-110 (2 of 5 mastered, derivatives in progress)
+--   * "available now": a3 (CS-201), a2 + a5 (MATH-110)
+--   * events: MATH-110 workshop (Thu-ish), CS-201 study marathon (today 18:00)
+--   * open room in MATH-110 opened by a5 a few minutes ago
+--   * system + course-recommendation notifications; older ones marked read
+-- Room / invitation / test inserts above already produced notifications via
+-- the notify_* triggers.
+-- =============================================================================
+INSERT INTO public.course_topics (course_id, position, title)
+SELECT '00000000-0000-0000-0003-000000000002'::uuid, t.pos, t.title
+  FROM (VALUES
+    (1, 'מבוא וסיבוכיות'), (2, 'מערכים דינמיים'), (3, 'רשימות מקושרות'),
+    (4, 'מחסניות ותורים'), (5, 'ניתוח לשיעורין'), (6, 'רקורסיה'),
+    (7, 'עצים — מושגי יסוד'), (8, 'עצי חיפוש בינאריים'), (9, 'סריקות עצים'),
+    (10, 'ערימות'), (11, 'מיון ערימה'), (12, 'טבלאות גיבוב'),
+    (13, 'פתרון התנגשויות'), (14, 'עצי AVL ורוטציות'), (15, 'עצים אדומים-שחורים'),
+    (16, 'עצי B'), (17, 'גרפים — ייצוג'), (18, 'BFS ו-DFS'),
+    (19, 'Union-Find'), (20, 'חזרה למבחן')
+  ) AS t (pos, title)
+UNION ALL
+SELECT '00000000-0000-0000-0003-000000000004'::uuid, t.pos, t.title
+  FROM (VALUES (1, 'גבולות'), (2, 'רציפות'), (3, 'נגזרות'), (4, 'לופיטל'), (5, 'אינטגרלים')) AS t (pos, title)
+UNION ALL
+SELECT '00000000-0000-0000-0003-000000000001'::uuid, t.pos, t.title
+  FROM (VALUES (1, 'משתנים וטיפוסים'), (2, 'תנאים ולולאות'), (3, 'פונקציות'),
+               (4, 'מערכים ומחרוזות'), (5, 'רקורסיה'), (6, 'מבוא לאובייקטים')) AS t (pos, title)
+UNION ALL
+SELECT '00000000-0000-0000-0003-000000000003'::uuid, t.pos, t.title
+  FROM (VALUES (1, 'הפרד ומשול'), (2, 'אלגוריתמים חמדניים'), (3, 'תכנון דינמי'),
+               (4, 'מסלולים קצרים'), (5, 'זרימה ברשתות'), (6, 'NP-שלמות')) AS t (pos, title)
+UNION ALL
+SELECT '00000000-0000-0000-0003-000000000005'::uuid, t.pos, t.title
+  FROM (VALUES (1, 'מרחבי הסתברות'), (2, 'הסתברות מותנית'), (3, 'משתנים מקריים'),
+               (4, 'תוחלת ושונות'), (5, 'התפלגויות נפוצות')) AS t (pos, title)
+ON CONFLICT (course_id, position) DO NOTHING;
+
+-- a1: CS-201 topics 1-13 mastered, 14 in progress; MATH-110 all mastered.
+INSERT INTO public.topic_progress (user_id, topic_id, status, updated_at)
+SELECT '00000000-0000-0000-0000-0000000000a1'::uuid, ct.id,
+       CASE WHEN ct.position <= 13 THEN 'mastered' ELSE 'in_progress' END,
+       now() - make_interval(days => 20 - ct.position)
+  FROM public.course_topics ct
+ WHERE ct.course_id = '00000000-0000-0000-0003-000000000002' AND ct.position <= 14
+UNION ALL
+SELECT '00000000-0000-0000-0000-0000000000a1'::uuid, ct.id, 'mastered', now() - interval '10 days'
+  FROM public.course_topics ct
+ WHERE ct.course_id = '00000000-0000-0000-0003-000000000004'
+ON CONFLICT (user_id, topic_id) DO NOTHING;
+
+-- a2: MATH-110 limits + continuity mastered, derivatives in progress.
+INSERT INTO public.topic_progress (user_id, topic_id, status)
+SELECT '00000000-0000-0000-0000-0000000000a2'::uuid, ct.id,
+       CASE WHEN ct.position <= 2 THEN 'mastered' ELSE 'in_progress' END
+  FROM public.course_topics ct
+ WHERE ct.course_id = '00000000-0000-0000-0003-000000000004' AND ct.position <= 3
+ON CONFLICT (user_id, topic_id) DO NOTHING;
+
+-- Availability. Seed runs as postgres, so the 3-hour cap in the RLS policy
+-- does not apply; 12 hours keeps the local demo "live" for a working day.
+INSERT INTO public.study_availability (user_id, course_id, mode, duration_minutes, activity, topic_id, expires_at)
+SELECT v.user_id, v.course_id, v.mode, v.duration, v.activity,
+       (SELECT ct.id FROM public.course_topics ct WHERE ct.course_id = v.course_id AND ct.position = v.topic_pos),
+       now() + interval '12 hours'
+  FROM (VALUES
+    ('00000000-0000-0000-0000-0000000000a3'::uuid, '00000000-0000-0000-0003-000000000002'::uuid, 'online', 90::smallint, 'review', 14),
+    ('00000000-0000-0000-0000-0000000000a2'::uuid, '00000000-0000-0000-0003-000000000004'::uuid, 'online', 60::smallint, 'summaries', 3),
+    ('00000000-0000-0000-0000-0000000000a5'::uuid, '00000000-0000-0000-0003-000000000004'::uuid, 'campus', 60::smallint, 'exercises', 5)
+  ) AS v (user_id, course_id, mode, duration, activity, topic_pos)
+ON CONFLICT (user_id, course_id) DO NOTHING;
+
+UPDATE public.profiles SET last_seen_at = now() - interval '2 minutes'
+ WHERE id IN ('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a3');
+
+-- Events. The marathon is today at 18:00 Israel time (tomorrow if already past).
+INSERT INTO public.tests (id, course_id, title, description, due_at, created_by, kind, location) VALUES
+  ('00000000-0000-0000-000a-000000000003', '00000000-0000-0000-0003-000000000004',
+   'סדנת לופיטל', 'תרגול מודרך בכלל לופיטל', 
+   (date_trunc('day', now() AT TIME ZONE 'Asia/Jerusalem') + interval '2 days 16 hours') AT TIME ZONE 'Asia/Jerusalem',
+   '00000000-0000-0000-0000-0000000000a2', 'workshop', 'בניין 2, חדר 204'),
+  ('00000000-0000-0000-000a-000000000004', '00000000-0000-0000-0003-000000000002',
+   'מרתון רקורסיה', 'פותרים יחד שאלות ממבחני עבר',
+   CASE
+     WHEN (date_trunc('day', now() AT TIME ZONE 'Asia/Jerusalem') + interval '18 hours') AT TIME ZONE 'Asia/Jerusalem' > now()
+       THEN (date_trunc('day', now() AT TIME ZONE 'Asia/Jerusalem') + interval '18 hours') AT TIME ZONE 'Asia/Jerusalem'
+     ELSE (date_trunc('day', now() AT TIME ZONE 'Asia/Jerusalem') + interval '1 day 18 hours') AT TIME ZONE 'Asia/Jerusalem'
+   END,
+   '00000000-0000-0000-0000-0000000000a3', 'study_session', 'אונליין')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.event_registrations (event_id, user_id) VALUES
+  ('00000000-0000-0000-000a-000000000003', '00000000-0000-0000-0000-0000000000a2'),
+  ('00000000-0000-0000-000a-000000000003', '00000000-0000-0000-0000-0000000000a5'),
+  ('00000000-0000-0000-000a-000000000004', '00000000-0000-0000-0000-0000000000a2'),
+  ('00000000-0000-0000-000a-000000000004', '00000000-0000-0000-0000-0000000000a3'),
+  ('00000000-0000-0000-000a-000000000004', '00000000-0000-0000-0000-0000000000a4'),
+  ('00000000-0000-0000-000a-000000000004', '00000000-0000-0000-0000-0000000000a5')
+ON CONFLICT (event_id, user_id) DO NOTHING;
+
+-- Open room (announced to MATH-110 classmates by notify_room_opened).
+INSERT INTO public.rooms (id, course_id, created_by, name, topic, status, ai_enabled, is_open, created_at) VALUES
+  ('00000000-0000-0000-0005-000000000003', '00000000-0000-0000-0003-000000000004', '00000000-0000-0000-0000-0000000000a5',
+   'פתרון תרגילים — נגזרות', 'גיליון 5, שאלות 1-6', 'active', true, true, now() - interval '2 minutes')
+ON CONFLICT (id) DO NOTHING;
+
+UPDATE public.room_members SET joined_at = now() - interval '2 minutes', last_read_at = now()
+ WHERE room_id = '00000000-0000-0000-0005-000000000003';
+
+INSERT INTO public.messages (id, room_id, sender_id, sender_type, content, status, created_at) VALUES
+  ('00000000-0000-0000-0006-000000000021', '00000000-0000-0000-0005-000000000003', '00000000-0000-0000-0000-0000000000a5',
+   'user', 'פתחתי חדר לגיליון 5 — מי מצטרף?', 'complete', now() - interval '1 minute')
+ON CONFLICT (id) DO NOTHING;
+
+-- System + recommendation notifications (inserted directly as the seed owner).
+INSERT INTO public.notifications (user_id, type, course_id, title, body, created_at)
+SELECT p.id, 'system', NULL::uuid, 'עדכון מערכת', 'פיצ׳רים חדשים זמינים באפליקציה', now() - interval '5 days'
+  FROM public.profiles p
+ WHERE p.role = 'student'
+UNION ALL
+SELECT '00000000-0000-0000-0000-0000000000a1'::uuid, 'course_recommendation', '00000000-0000-0000-0003-000000000003'::uuid,
+       'המלצת קורס', 'מצאנו קורס חדש שעשוי לעניין אותך: אלגוריתמים', now() - interval '3 days';
+
+-- Everything older than 12 hours has been seen.
+UPDATE public.notifications SET read_at = created_at + interval '1 hour'
+ WHERE created_at < now() - interval '12 hours';

@@ -29,6 +29,7 @@ export interface PublicProfile {
   department_id: string | null;
   study_year: number | null;
   city: string | null;
+  last_seen_at: string | null;
 }
 
 export async function getOwnProfile(
@@ -90,6 +91,16 @@ export async function getPublicProfile(
     .maybeSingle();
   if (error) throw error;
   return data as PublicProfile | null;
+}
+
+// Presence heartbeat for "online" badges. Throttled by the caller (the app
+// shell) so a page view writes at most once every couple of minutes.
+export async function touchLastSeen(client: SupabaseClient, userId: string): Promise<void> {
+  const { error } = await client
+    .from("profiles")
+    .update({ last_seen_at: new Date().toISOString() })
+    .eq("id", userId);
+  if (error) throw error;
 }
 
 export async function listPublicProfiles(
