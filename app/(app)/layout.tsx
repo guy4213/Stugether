@@ -11,7 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const shell = await getShellData(user.id);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-muted/40 lg:flex-row">
       <AppNav {...shell} />
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>
     </div>

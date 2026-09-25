@@ -1,17 +1,21 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { CameraIcon } from "lucide-react";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { uploadAvatar, getAvatarUrl } from "@/lib/storage";
 import { updateAvatarPath } from "@/lib/profile/actions";
-import { initials } from "@/lib/ui/people";
 
-// The file input is addressable by id so other controls (the completion
-// card's "העלאת תמונה") can open it with <label htmlFor>.
-export const AVATAR_INPUT_ID = "avatar-upload-input";
+function initials(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/);
+  return parts
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
+}
 
-// 132px avatar in a blue→teal ring with a camera button (Profile.dc.html).
 export function AvatarUploader({
   userId,
   fullName,
@@ -21,6 +25,7 @@ export function AvatarUploader({
   fullName: string;
   avatarPath: string | null;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(
     avatarPath ? getAvatarUrl(avatarPath) : null,
   );
@@ -59,29 +64,27 @@ export function AvatarUploader({
   }
 
   return (
-    <div className="relative size-[132px] shrink-0 rounded-full bg-brand-diag p-1 shadow-[0_14px_28px_-12px_rgba(37,99,235,.55)]">
-      <span className="flex size-full items-center justify-center overflow-hidden rounded-full border-5 border-white bg-primary-tint text-[40px] font-extrabold text-primary-strong">
-        {previewUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- public storage URL / local blob preview
-          <img src={previewUrl} alt={fullName} className="size-full object-cover" />
-        ) : (
-          initials(fullName)
-        )}
-      </span>
-      <label
-        htmlFor={AVATAR_INPUT_ID}
-        aria-label="העלאת תמונת פרופיל"
-        aria-disabled={isPending}
-        className="absolute bottom-1 left-1 flex size-10 cursor-pointer items-center justify-center rounded-full border-3 border-white bg-primary-strong text-white hover:bg-primary has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50"
+    <div className="relative w-fit shrink-0">
+      <Avatar className="size-24 shadow-md ring-4 ring-card sm:size-28">
+        {previewUrl && <AvatarImage src={previewUrl} alt={fullName} />}
+        <AvatarFallback className="bg-[oklch(0.94_0.04_250)] text-2xl font-semibold text-primary">
+          {initials(fullName)}
+        </AvatarFallback>
+      </Avatar>
+      <button
+        type="button"
+        disabled={isPending}
+        onClick={() => inputRef.current?.click()}
+        className="absolute end-0.5 bottom-0.5 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow ring-2 ring-card transition-opacity hover:opacity-90 disabled:opacity-50"
+        aria-label="שינוי תמונת פרופיל"
       >
-        <CameraIcon className="size-[18px]" strokeWidth={2} aria-hidden />
-      </label>
+        <CameraIcon className="size-4" />
+      </button>
       <input
-        id={AVATAR_INPUT_ID}
+        ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
-        className="sr-only"
-        disabled={isPending}
+        className="hidden"
         onChange={handleFileChange}
       />
     </div>

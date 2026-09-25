@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LockIcon, CheckIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -100,65 +99,40 @@ export function ProfileForm({
     setDepartmentId("");
   }
 
-  // "ביטול": back to the saved values (the native reset handles fullName).
-  function resetFields() {
-    setInstitutionId(profile.institution_id ?? "");
-    setFacultyId(
-      initialDepartments.find((d) => d.id === profile.department_id)?.faculty_id ?? "",
-    );
-    setDepartmentId(profile.department_id ?? "");
-    setCity(profile.city ?? "");
-    setStudyYear(profile.study_year ? String(profile.study_year) : "");
-    setBio(profile.bio ?? "");
-    setFaculties(initialFaculties);
-    setDepartments(initialDepartments);
-  }
-
   const departmentsForFaculty = departments.filter((d) => d.faculty_id === facultyId);
 
   return (
-    <form onSubmit={handleSubmit} onReset={resetFields} className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <input type="hidden" name="institutionId" value={institutionId} />
       <input type="hidden" name="departmentId" value={departmentId} />
       <input type="hidden" name="city" value={city} />
       <input type="hidden" name="studyYear" value={studyYear} />
 
-      <div className="grid grid-cols-1 gap-x-5 gap-y-[18px] sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="fullName" className="text-sm font-semibold">שם מלא</Label>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="fullName">שם מלא</Label>
           <Input
             id="fullName"
             name="fullName"
             defaultValue={profile.full_name}
             required
             maxLength={120}
-            className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none"
           />
           {state.fieldErrors?.fullName?.[0] && (
             <p className="text-xs text-destructive">{state.fieldErrors.fullName[0]}</p>
           )}
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="email" className="text-sm font-semibold">אימייל</Label>
-          <span className="flex h-[50px] items-center gap-2.5 rounded-[14px] bg-muted px-4 text-muted-foreground">
-            <LockIcon className="size-4 shrink-0" strokeWidth={2} aria-hidden />
-            <input
-              id="email"
-              value={email}
-              disabled
-              readOnly
-              dir="ltr"
-              className="min-w-0 grow border-0 bg-transparent text-right text-[15px] text-muted-foreground"
-            />
-          </span>
+        <div className="space-y-1.5">
+          <Label htmlFor="email">אימייל</Label>
+          <Input id="email" value={email} disabled readOnly />
           <p className="text-xs text-muted-foreground">לא ניתן לשנות את כתובת האימייל</p>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label className="text-sm font-semibold">מוסד לימודים</Label>
+        <div className="space-y-1.5">
+          <Label>מוסד לימודים</Label>
           <Select value={institutionId} onValueChange={handleInstitutionChange}>
-            <SelectTrigger className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none data-[size=default]:h-[50px]">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="בחר/י מוסד לימודים" />
             </SelectTrigger>
             <SelectContent>
@@ -171,14 +145,14 @@ export function ProfileForm({
           </Select>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label className="text-sm font-semibold">פקולטה</Label>
+        <div className="space-y-1.5">
+          <Label>פקולטה</Label>
           <Select
             value={facultyId}
             onValueChange={handleFacultyChange}
             disabled={!institutionId || isCatalogLoading}
           >
-            <SelectTrigger className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none data-[size=default]:h-[50px]">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="בחר/י פקולטה" />
             </SelectTrigger>
             <SelectContent>
@@ -191,10 +165,10 @@ export function ProfileForm({
           </Select>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label className="text-sm font-semibold">מחלקה</Label>
+        <div className="space-y-1.5">
+          <Label>מחלקה</Label>
           <Select value={departmentId} onValueChange={(v) => v && setDepartmentId(v)} disabled={!facultyId}>
-            <SelectTrigger className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none data-[size=default]:h-[50px]">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="בחר/י מחלקה" />
             </SelectTrigger>
             <SelectContent>
@@ -207,10 +181,10 @@ export function ProfileForm({
           </Select>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label className="text-sm font-semibold">עיר</Label>
+        <div className="space-y-1.5">
+          <Label>עיר</Label>
           <Select value={city} onValueChange={(v) => v && setCity(v)}>
-            <SelectTrigger className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none data-[size=default]:h-[50px]">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="בחר/י עיר" />
             </SelectTrigger>
             <SelectContent>
@@ -223,10 +197,10 @@ export function ProfileForm({
           </Select>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label className="text-sm font-semibold">שנת לימודים</Label>
+        <div className="space-y-1.5">
+          <Label>שנת לימודים</Label>
           <Select value={studyYear} onValueChange={(v) => v && setStudyYear(v)}>
-            <SelectTrigger className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none data-[size=default]:h-[50px]">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="בחר/י שנה" />
             </SelectTrigger>
             <SelectContent>
@@ -240,9 +214,9 @@ export function ProfileForm({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <Label htmlFor="bio" className="text-sm font-semibold">אודות</Label>
+          <Label htmlFor="bio">אודות</Label>
           <span className="text-xs text-muted-foreground">
             {bio.length}/{BIO_MAX_LENGTH}
           </span>
@@ -253,25 +227,20 @@ export function ProfileForm({
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           maxLength={BIO_MAX_LENGTH}
-          rows={3}
+          rows={4}
           placeholder="ספר/י קצת על עצמך..."
-          className="min-h-24 resize-y rounded-[14px] border-[1.5px] border-border bg-white px-4 py-3.5 text-[15px] leading-normal shadow-none"
         />
       </div>
 
-      <div className="flex items-center gap-2.5 border-t border-divider pt-5">
+      <div className="flex justify-end">
         <Button
           type="submit"
-          variant="brand"
-          size="xl"
-          className="rounded-[15px] px-7 text-base"
+          variant="gradient"
+          size="lg"
+          className="h-11 px-8"
           disabled={isSubmitting}
         >
-          <CheckIcon strokeWidth={2.6} />
           {isSubmitting ? "שומר..." : "שמירת שינויים"}
-        </Button>
-        <Button type="reset" variant="quiet" size="xl" className="rounded-[15px] px-[22px]">
-          ביטול
         </Button>
       </div>
     </form>

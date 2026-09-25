@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { enroll, unenroll } from "@/lib/repositories/enrollments";
 import { createRoom } from "@/lib/repositories/rooms";
-import { createTest, type EventKind } from "@/lib/repositories/tests";
+import { createTest } from "@/lib/repositories/tests";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export type ActionResult = { ok: boolean; error?: string };
@@ -20,10 +20,6 @@ export async function enrollInCourse(courseId: string): Promise<ActionResult> {
     return { ok: false, error: "לא ניתן להירשם לקורס" };
   }
   revalidatePath(`/courses/${courseId}`);
-  revalidatePath("/courses");
-  revalidatePath("/dashboard");
-  revalidatePath("/analytics");
-  revalidatePath("/profile");
   return { ok: true };
 }
 
@@ -37,10 +33,6 @@ export async function unenrollFromCourse(courseId: string): Promise<ActionResult
     return { ok: false, error: "משהו השתבש" };
   }
   revalidatePath(`/courses/${courseId}`);
-  revalidatePath("/courses");
-  revalidatePath("/dashboard");
-  revalidatePath("/analytics");
-  revalidatePath("/profile");
   return { ok: true };
 }
 
@@ -50,7 +42,6 @@ export async function createRoomForCourse(
   courseId: string,
   name: string,
   topic: string,
-  isOpen = false,
 ): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
@@ -63,7 +54,6 @@ export async function createRoomForCourse(
       name,
       topic: topic || null,
       createdBy: user.id,
-      isOpen,
     });
   } catch {
     return { ok: false, error: "לא ניתן ליצור חדר לימוד" };
@@ -76,12 +66,7 @@ export async function addTestForCourse(
   courseId: string,
   title: string,
   dueAt: string,
-  kind: EventKind = "test",
-  location = "",
 ): Promise<ActionResult> {
-  if (!["test", "workshop", "study_session"].includes(kind)) {
-    return { ok: false, error: "סוג אירוע לא חוקי" };
-  }
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
@@ -91,11 +76,9 @@ export async function addTestForCourse(
       title,
       dueAt: dueAt || null,
       createdBy: user.id,
-      kind,
-      location: location.trim() || null,
     });
   } catch {
-    return { ok: false, error: "לא ניתן להוסיף את האירוע" };
+    return { ok: false, error: "לא ניתן להוסיף מבחן" };
   }
   revalidatePath(`/courses/${courseId}`);
   revalidatePath("/dashboard");

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 export function ShareButton({ completedCount }: { completedCount: number }) {
   async function handleShare() {
-    const text = `סיימתי ${completedCount} קורסים ב-StuGether!`;
+    const text = `סיימתי ${completedCount} קורסים ב-StuGether! 🎓`;
     const url = typeof window !== "undefined" ? window.location.origin : "";
 
     if (navigator.share) {
@@ -27,8 +27,8 @@ export function ShareButton({ completedCount }: { completedCount: number }) {
   }
 
   return (
-    <Button variant="quiet" size="md" onClick={handleShare} className="rounded-[13px] px-[18px] text-sm font-semibold">
-      <Share2Icon className="size-[18px] text-primary" strokeWidth={2} />
+    <Button variant="outline" size="sm" onClick={handleShare}>
+      <Share2Icon data-icon="inline-start" />
       שיתוף
     </Button>
   );

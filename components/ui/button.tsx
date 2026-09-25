@@ -22,21 +22,6 @@ const buttonVariants = cva(
         // than --secondary so white text keeps >=4.5:1 across the gradient.
         gradient:
           "rounded-full bg-linear-to-l from-primary to-[oklch(0.55_0.11_180)] text-white shadow-sm hover:opacity-90",
-        // StuGether Dashboard mockup buttons (rounded rectangles, 12–16px).
-        brand:
-          "rounded-[14px] bg-brand font-bold text-white shadow-glow-teal hover:brightness-105 active:brightness-95",
-        solid: "rounded-xl bg-primary font-semibold text-white hover:bg-primary-strong",
-        soft: "rounded-xl bg-primary-soft font-semibold text-primary-strong hover:bg-primary-tint",
-        "outline-primary":
-          "rounded-xl border-[1.5px] border-primary bg-white font-semibold text-primary hover:bg-primary-soft",
-        quiet:
-          "rounded-xl border-border bg-white font-medium text-foreground hover:bg-surface-2",
-        glass:
-          "rounded-[13px] border-white/40 bg-white/14 font-semibold text-white hover:bg-white/22",
-        white:
-          "rounded-[15px] bg-white font-bold text-primary-strong shadow-[0_10px_20px_-10px_rgba(15,27,51,.4)] hover:bg-primary-soft",
-        danger:
-          "rounded-[15px] border-danger-line bg-danger-soft font-semibold text-destructive hover:bg-[#ffeceb]",
       },
       size: {
         default:
@@ -50,12 +35,6 @@ const buttonVariants = cva(
         "icon-sm":
           "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
         "icon-lg": "size-9",
-        // Mockup sizes: 38 / 44 / 50 / 56px tall.
-        chip: "h-[38px] gap-1.5 px-3.5 text-[13px]",
-        md: "h-11 gap-2 px-4 text-[15px]",
-        xl: "h-[50px] gap-2 px-6 text-[15px] [&_svg:not([class*='size-'])]:size-[18px]",
-        cta: "h-14 gap-2.5 px-6 text-[17px] [&_svg:not([class*='size-'])]:size-5",
-        "icon-md": "size-11 [&_svg:not([class*='size-'])]:size-[18px]",
       },
     },
     defaultVariants: {

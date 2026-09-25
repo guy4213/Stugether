@@ -1,75 +1,66 @@
-import { CheckIcon } from "lucide-react";
-import { ProgressRing } from "@/components/ui/progress-ring";
-import { AVATAR_INPUT_ID } from "@/components/profile/avatar-uploader";
+import { CheckCircle2Icon, CircleIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface CompletionItem {
   label: string;
   done: boolean;
-  hint?: string;
 }
 
-// Mockup's "השלמת פרופיל": ring + next step + ✓/dashed chips, computed from
-// what's actually saved.
+// Mockup's "Profile Completion" ring, computed from what's actually saved.
 export function ProfileCompletion({ items }: { items: CompletionItem[] }) {
   const done = items.filter((i) => i.done).length;
   const percent = Math.round((done / items.length) * 100);
-  const missing = items.filter((i) => !i.done);
-  const next = missing[0];
-  const photoMissing = missing.some((i) => i.label === "תמונת פרופיל");
+  const radius = 52;
+  const circumference = 2 * Math.PI * radius;
 
   return (
-    <div className="flex flex-col gap-4 rounded-[22px] border border-border bg-card p-6">
-      <h2 className="text-lg font-bold">השלמת פרופיל</h2>
-      <div className="flex items-center gap-5">
-        <ProgressRing
-          value={percent}
-          size={120}
-          stroke={12}
-          label={`הפרופיל הושלם ב-${percent} אחוזים`}
-        >
-          <span className="text-[30px] font-extrabold">{percent}%</span>
-        </ProgressRing>
-        <div className="flex flex-col gap-2.5">
-          <span className="text-[15px] font-semibold">
-            {missing.length === 0
-              ? "הפרופיל מלא"
-              : missing.length === 1
-                ? "עוד צעד אחד"
-                : `עוד ${missing.length} צעדים`}
-          </span>
-          {next?.hint && <span className="text-[13px] text-muted-foreground">{next.hint}</span>}
-          {photoMissing && (
-            <label
-              htmlFor={AVATAR_INPUT_ID}
-              className="flex h-[38px] cursor-pointer items-center self-start rounded-[11px] bg-primary-soft px-3.5 text-[13px] font-semibold text-primary-strong hover:bg-primary-tint"
-            >
-              העלאת תמונה
-            </label>
-          )}
+    <Card className="border-0 shadow-sm ring-0">
+      <CardHeader>
+        <CardTitle className="text-base font-semibold">השלמת פרופיל</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="relative mx-auto size-36">
+          <svg viewBox="0 0 120 120" className="size-full -rotate-90" aria-hidden>
+            <defs>
+              <linearGradient id="completion-gradient" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="var(--primary)" />
+                <stop offset="100%" stopColor="var(--secondary)" />
+              </linearGradient>
+            </defs>
+            <circle cx="60" cy="60" r={radius} fill="none" stroke="var(--muted)" strokeWidth="10" />
+            <circle
+              cx="60"
+              cy="60"
+              r={radius}
+              fill="none"
+              stroke="url(#completion-gradient)"
+              strokeWidth="10"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={circumference * (1 - percent / 100)}
+            />
+          </svg>
+          <p
+            className="absolute inset-0 flex items-center justify-center text-3xl font-bold"
+            aria-label={`הפרופיל הושלם ב-${percent} אחוזים`}
+          >
+            {percent}%
+          </p>
         </div>
-      </div>
-      <ul className="flex flex-wrap gap-2">
-        {items.map((item) =>
-          item.done ? (
-            <li
-              key={item.label}
-              className="flex h-8 items-center gap-[5px] rounded-full bg-success-soft px-3 text-[13px] font-semibold text-success-ink"
-            >
-              <CheckIcon className="size-[13px]" strokeWidth={3} aria-hidden />
-              {item.label}
+
+        <ul className="space-y-2.5">
+          {items.map((item) => (
+            <li key={item.label} className="flex items-center gap-2.5 text-sm">
+              {item.done ? (
+                <CheckCircle2Icon className="size-5 shrink-0 text-[oklch(0.55_0.13_165)]" />
+              ) : (
+                <CircleIcon className="size-5 shrink-0 text-muted-foreground/50" />
+              )}
+              <span className={item.done ? "" : "text-muted-foreground"}>{item.label}</span>
             </li>
-          ) : (
-            <li
-              key={item.label}
-              className="flex h-8 items-center gap-[5px] rounded-full border-[1.5px] border-dashed border-switch-off px-3 text-[13px] font-semibold text-muted-foreground"
-            >
-              <span aria-hidden className="size-[11px] rounded-full border-2 border-switch-off" />
-              {item.label}
-              <span className="sr-only">(חסר)</span>
-            </li>
-          ),
-        )}
-      </ul>
-    </div>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }
