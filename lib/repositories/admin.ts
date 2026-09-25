@@ -87,9 +87,7 @@ export async function listAllRooms(
   client: SupabaseClient,
   filters: { search?: string; status?: "active" | "archived" | "closed" } = {},
 ): Promise<AdminRoomListItem[]> {
-  let query = client
-    .from("rooms")
-    .select("id, name, status, course:courses(id, name, code)");
+  let query = client.from("rooms").select("id, name, status, course:courses(id, name, code)");
   if (filters.search) query = query.ilike("name", `%${filters.search}%`);
   if (filters.status) query = query.eq("status", filters.status);
 

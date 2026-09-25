@@ -21,6 +21,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         {/* Radix reads direction from context, not from the html attribute. */}
         <DirectionProvider dir="rtl">
+          <a
+            href="#main-content"
+            className="sr-only rounded-lg bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:inset-s-4 focus:top-4 focus:z-50"
+          >
+            דילוג לתוכן הראשי
+          </a>
           {children}
           <Toaster dir="rtl" position="bottom-left" />
         </DirectionProvider>

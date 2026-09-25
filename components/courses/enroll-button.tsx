@@ -19,7 +19,12 @@ export function EnrollButton({ courseId, isEnrolled }: { courseId: string; isEnr
   }
 
   return (
-    <Button onClick={handleClick} disabled={isPending} variant={isEnrolled ? "outline" : "default"}>
+    <Button
+      onClick={handleClick}
+      disabled={isPending}
+      variant={isEnrolled ? "outline" : "gradient"}
+      className="h-10 rounded-full px-6"
+    >
       {isEnrolled ? "ביטול הרשמה" : "הרשמה לקורס"}
     </Button>
   );

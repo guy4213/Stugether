@@ -64,19 +64,21 @@ export function AvatarUploader({
   }
 
   return (
-    <div className="relative ms-6 -mt-10 w-fit sm:ms-8 sm:-mt-12">
-      <Avatar size="lg" className="size-20 ring-4 ring-background sm:size-24">
+    <div className="relative w-fit shrink-0">
+      <Avatar className="size-24 shadow-md ring-4 ring-card sm:size-28">
         {previewUrl && <AvatarImage src={previewUrl} alt={fullName} />}
-        <AvatarFallback className="text-lg">{initials(fullName)}</AvatarFallback>
+        <AvatarFallback className="bg-[oklch(0.94_0.04_250)] text-2xl font-semibold text-primary">
+          {initials(fullName)}
+        </AvatarFallback>
       </Avatar>
       <button
         type="button"
         disabled={isPending}
         onClick={() => inputRef.current?.click()}
-        className="absolute end-0 bottom-0 flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-background transition-opacity hover:opacity-90 disabled:opacity-50"
-        aria-label="שנה תמונת פרופיל"
+        className="absolute end-0.5 bottom-0.5 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow ring-2 ring-card transition-opacity hover:opacity-90 disabled:opacity-50"
+        aria-label="שינוי תמונת פרופיל"
       >
-        <CameraIcon className="size-3.5" />
+        <CameraIcon className="size-4" />
       </button>
       <input
         ref={inputRef}

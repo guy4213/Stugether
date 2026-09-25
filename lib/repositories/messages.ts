@@ -49,9 +49,7 @@ export async function listRoomMessages(
   if (options.before) {
     const { createdAt, id } = options.before;
     // Keyset predicate for (created_at, id) < (createdAt, id) under DESC order.
-    query = query.or(
-      `created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`,
-    );
+    query = query.or(`created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`);
   }
 
   const { data, error } = await query;
@@ -81,11 +79,26 @@ export async function createUserMessage(
   return data as Message;
 }
 
-// Wraps soft_delete_message(p_message_id): own message, within 5 minutes.
-export async function softDeleteMessage(
+// Timestamps of the caller's own messages since a date — the analytics
+// "learning activity" chart buckets these by week.
+export async function listMyMessageTimestamps(
   client: SupabaseClient,
-  messageId: string,
-): Promise<void> {
+  userId: string,
+  sinceIso: string,
+): Promise<string[]> {
+  const { data, error } = await client
+    .from("messages")
+    .select("created_at")
+    .eq("sender_id", userId)
+    .eq("sender_type", "user")
+    .gte("created_at", sinceIso)
+    .order("created_at");
+  if (error) throw error;
+  return (data as { created_at: string }[]).map((row) => row.created_at);
+}
+
+// Wraps soft_delete_message(p_message_id): own message, within 5 minutes.
+export async function softDeleteMessage(client: SupabaseClient, messageId: string): Promise<void> {
   const { error } = await client.rpc("soft_delete_message", { p_message_id: messageId });
   if (error) throw error;
 }

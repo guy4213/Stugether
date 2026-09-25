@@ -2,15 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { signIn } from "@/lib/auth/actions";
 
-// Minimal login screen so /profile is reachable for manual testing.
-// Full onboarding/signup UI is separate (unstarted) scope — see TASKS.md M1.
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -26,44 +25,51 @@ export default function LoginPage() {
         return;
       }
       router.push("/dashboard");
-      router.refresh();
     });
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>התחברות</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="email">אימייל</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="password">סיסמה</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending ? "מתחבר..." : "התחברות"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </main>
+    <AuthShell title="ברוכים השבים 👋" subtitle="התחברו כדי להמשיך ללמוד ביחד">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="email">אימייל</Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="h-11"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="password">סיסמה</Label>
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="h-11"
+          />
+        </div>
+        <Button
+          type="submit"
+          variant="gradient"
+          className="h-12 w-full text-base"
+          disabled={isPending}
+        >
+          {isPending ? "מתחבר..." : "התחברות"}
+        </Button>
+      </form>
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        עדיין אין לך חשבון?{" "}
+        <Link href="/signup" className="font-medium text-primary hover:underline">
+          הרשמה
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

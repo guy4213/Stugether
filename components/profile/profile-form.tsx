@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,7 @@ export function ProfileForm({
 }) {
   const [state, formAction, isSubmitting] = useActionState(updateProfile, initialState);
   const [isCatalogLoading, startCatalogTransition] = useTransition();
+  const [, startSaveTransition] = useTransition();
 
   const [institutionId, setInstitutionId] = useState(profile.institution_id ?? "");
   // Derived once from the profile's already-persisted department_id — only
@@ -56,29 +57,44 @@ export function ProfileForm({
   const [faculties, setFaculties] = useState(initialFaculties);
   const [departments, setDepartments] = useState(initialDepartments);
 
-  const isFirstRender = useRef(true);
+  // useActionState hands back the same initialState object until an action
+  // completes — a ref-based "first render" guard breaks under StrictMode's
+  // double-run effects, so compare identity instead.
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+    if (state === initialState) return;
     if (state.ok === false && state.error) toast.error(state.error);
     if (state.ok === true) toast.success("הפרופיל עודכן בהצלחה");
   }, [state]);
 
+  // Submitting via onSubmit (not <form action>) opts out of React 19's
+  // automatic form reset after an action, which made the Radix selects fire
+  // onValueChange("") — clearing the saved values on screen and sending
+  // getCatalogForInstitution("") (a Postgres uuid error).
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    startSaveTransition(() => formAction(formData));
+  }
+
   function handleInstitutionChange(newInstitutionId: string) {
+    if (!newInstitutionId || newInstitutionId === institutionId) return;
     setInstitutionId(newInstitutionId);
     setFacultyId("");
     setDepartmentId("");
     startCatalogTransition(async () => {
-      const { faculties: newFaculties, departments: newDepartments } =
-        await getCatalogForInstitution(newInstitutionId);
-      setFaculties(newFaculties);
-      setDepartments(newDepartments);
+      try {
+        const { faculties: newFaculties, departments: newDepartments } =
+          await getCatalogForInstitution(newInstitutionId);
+        setFaculties(newFaculties);
+        setDepartments(newDepartments);
+      } catch {
+        toast.error("טעינת הפקולטות נכשלה. נסו שוב");
+      }
     });
   }
 
   function handleFacultyChange(newFacultyId: string) {
+    if (!newFacultyId || newFacultyId === facultyId) return;
     setFacultyId(newFacultyId);
     setDepartmentId("");
   }
@@ -86,7 +102,7 @@ export function ProfileForm({
   const departmentsForFaculty = departments.filter((d) => d.faculty_id === facultyId);
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <input type="hidden" name="institutionId" value={institutionId} />
       <input type="hidden" name="departmentId" value={departmentId} />
       <input type="hidden" name="city" value={city} />
@@ -151,7 +167,7 @@ export function ProfileForm({
 
         <div className="space-y-1.5">
           <Label>מחלקה</Label>
-          <Select value={departmentId} onValueChange={setDepartmentId} disabled={!facultyId}>
+          <Select value={departmentId} onValueChange={(v) => v && setDepartmentId(v)} disabled={!facultyId}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="בחר/י מחלקה" />
             </SelectTrigger>
@@ -167,14 +183,14 @@ export function ProfileForm({
 
         <div className="space-y-1.5">
           <Label>עיר</Label>
-          <Select value={city} onValueChange={setCity}>
+          <Select value={city} onValueChange={(v) => v && setCity(v)}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="בחר/י עיר" />
             </SelectTrigger>
             <SelectContent>
               {ISRAELI_CITIES.map((c) => (
-                <SelectItem key={c.value} value={c.value}>
-                  {c.label}
+                <SelectItem key={c} value={c}>
+                  {c}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -183,7 +199,7 @@ export function ProfileForm({
 
         <div className="space-y-1.5">
           <Label>שנת לימודים</Label>
-          <Select value={studyYear} onValueChange={setStudyYear}>
+          <Select value={studyYear} onValueChange={(v) => v && setStudyYear(v)}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="בחר/י שנה" />
             </SelectTrigger>
@@ -217,8 +233,14 @@ export function ProfileForm({
       </div>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "שומר..." : "שמור שינויים"}
+        <Button
+          type="submit"
+          variant="gradient"
+          size="lg"
+          className="h-11 px-8"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "שומר..." : "שמירת שינויים"}
         </Button>
       </div>
     </form>

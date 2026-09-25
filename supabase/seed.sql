@@ -302,3 +302,30 @@ INSERT INTO public.tests (id, course_id, title, description, due_at, created_by)
    'בוחן גבולות', 'גבולות וכלל לופיטל', now() + interval '2 days',
    '00000000-0000-0000-0000-0000000000a2')
 ON CONFLICT (id) DO NOTHING;
+
+-- -----------------------------------------------------------------------------
+-- Demo activity history (analytics "learning activity" chart): room 1 has
+-- been running for ~8 weeks, with a1 (noa) posting a growing number of
+-- messages per week.
+-- -----------------------------------------------------------------------------
+UPDATE public.rooms SET created_at = now() - interval '56 days'
+ WHERE id = '00000000-0000-0000-0005-000000000001';
+UPDATE public.room_members SET joined_at = now() - interval '56 days'
+ WHERE room_id = '00000000-0000-0000-0005-000000000001';
+
+INSERT INTO public.messages (room_id, sender_id, sender_type, content, status, created_at)
+SELECT '00000000-0000-0000-0005-000000000001',
+       '00000000-0000-0000-0000-0000000000a1',
+       'user',
+       (ARRAY[
+         'מישהו פתר את תרגיל 3 בגיליון?',
+         'נפגשים מחר בספרייה לחזרה?',
+         'העליתי סיכום של ההרצאה האחרונה',
+         'תודה! זה ממש עזר',
+         'מה הסיבוכיות של מיון מהיר במקרה הגרוע?',
+         'מישהו יכול להסביר שוב ערימה בינארית?'
+       ])[1 + ((v.wk + n) % 6)],
+       'complete',
+       now() - make_interval(days => v.wk * 7 + 1, hours => n * 13)
+  FROM (VALUES (7, 1), (6, 2), (5, 2), (4, 4), (3, 3), (2, 5), (1, 6)) AS v (wk, cnt),
+       generate_series(1, v.cnt) AS n;

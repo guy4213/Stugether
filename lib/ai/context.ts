@@ -90,9 +90,7 @@ export async function buildRoomAiContext(roomId: string): Promise<RoomAiContext>
     .filter((name): name is string => Boolean(name && name.trim().length > 0))
     .join(", ");
 
-  const nameByUserId = new Map(
-    allMembers.map((m) => [m.user_id, m.profile?.full_name ?? "משתתף"]),
-  );
+  const nameByUserId = new Map(allMembers.map((m) => [m.user_id, m.profile?.full_name ?? "משתתף"]));
 
   const systemPrompt = renderSystemPrompt(settingsResult.data?.ai_system_prompt ?? "", {
     courseName: courseRow?.name ?? "הקורס",

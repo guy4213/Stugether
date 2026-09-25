@@ -66,9 +66,7 @@ export async function revokeInvitation(
 }
 
 // Wraps get_pending_invitations() — already filtered to the caller.
-export async function listPendingInvitations(
-  client: SupabaseClient,
-): Promise<PendingInvitation[]> {
+export async function listPendingInvitations(client: SupabaseClient): Promise<PendingInvitation[]> {
   const { data, error } = await client.rpc("get_pending_invitations");
   if (error) throw error;
   return data as PendingInvitation[];

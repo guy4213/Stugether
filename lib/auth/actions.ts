@@ -21,7 +21,11 @@ async function getOrigin(): Promise<string> {
 // normal success instead of calling mapAuthError, so the response is the
 // same whether or not the email was already registered — otherwise an
 // anonymous caller could enumerate real users' emails one guess at a time.
-const EMAIL_ENUMERATION_CODES = new Set(["user_already_exists", "email_exists", "identity_already_exists"]);
+const EMAIL_ENUMERATION_CODES = new Set([
+  "user_already_exists",
+  "email_exists",
+  "identity_already_exists",
+]);
 
 // Maps Supabase Auth error codes to short, Hebrew-friendly messages so
 // forms can render `error` directly without knowing about Supabase.

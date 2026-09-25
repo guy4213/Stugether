@@ -64,6 +64,25 @@ export async function unenroll(
   if (error) throw error;
 }
 
+// Catalog "N students" per course. Wraps count_active_students_by_course()
+// (aggregate only) because RLS hides rosters of courses the caller isn't in.
+export async function countActiveStudentsByCourseIds(
+  client: SupabaseClient,
+  courseIds: string[],
+): Promise<Record<string, number>> {
+  if (courseIds.length === 0) return {};
+  const { data, error } = await client.rpc("count_active_students_by_course", {
+    p_course_ids: courseIds,
+  });
+  if (error) throw error;
+
+  const counts: Record<string, number> = {};
+  for (const row of data as { course_id: string; student_count: number }[]) {
+    counts[row.course_id] = Number(row.student_count);
+  }
+  return counts;
+}
+
 // For the analytics page: per-course progress bars + "completed courses"
 // count (replacing "certificates" in the mockup).
 export async function updateProgress(
