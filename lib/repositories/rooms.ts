@@ -9,6 +9,7 @@ export interface Room {
   topic: string | null;
   status: "active" | "archived" | "closed";
   ai_enabled: boolean;
+  is_open: boolean;
   last_message_at: string | null;
   created_at: string;
   archived_at: string | null;
@@ -71,7 +72,13 @@ export async function countActiveRoomsByCourseIds(
 // creator as the 'owner' room_members row; do not insert that row here.
 export async function createRoom(
   client: SupabaseClient,
-  input: { courseId: string; name: string; topic?: string | null; createdBy: string },
+  input: {
+    courseId: string;
+    name: string;
+    topic?: string | null;
+    createdBy: string;
+    isOpen?: boolean;
+  },
 ): Promise<Room> {
   const { data, error } = await client
     .from("rooms")
@@ -80,6 +87,7 @@ export async function createRoom(
       name: input.name,
       topic: input.topic ?? null,
       created_by: input.createdBy,
+      is_open: input.isOpen ?? false,
     })
     .select("*")
     .single();
@@ -162,4 +170,37 @@ export async function removeMember(
     p_user_id: userId,
   });
   if (error) throw error;
+}
+
+export interface OpenRoom {
+  room_id: string;
+  course_id: string;
+  name: string;
+  topic: string | null;
+  created_by: string;
+  creator_name: string;
+  member_count: number;
+  is_member: boolean;
+  last_message_at: string | null;
+  created_at: string;
+}
+
+// Open rooms of courses the caller is enrolled in. Wraps list_open_rooms():
+// rooms RLS hides rooms from non-members, see 20260925000001_mockup_features.sql.
+export async function listOpenRooms(
+  client: SupabaseClient,
+  courseIds: string[],
+): Promise<OpenRoom[]> {
+  if (courseIds.length === 0) return [];
+  const { data, error } = await client.rpc("list_open_rooms", { p_course_ids: courseIds });
+  if (error) throw error;
+  return (data as OpenRoom[]).map((r) => ({ ...r, member_count: Number(r.member_count) }));
+}
+
+// Wraps join_open_room(p_room_id): enrolled classmate, active open room,
+// fewer than 4 active members. Returns the room id.
+export async function joinOpenRoom(client: SupabaseClient, roomId: string): Promise<string> {
+  const { data, error } = await client.rpc("join_open_room", { p_room_id: roomId });
+  if (error) throw error;
+  return data as string;
 }

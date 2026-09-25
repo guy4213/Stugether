@@ -102,6 +102,23 @@ export async function updateProgress(
   if (error) throw error;
 }
 
+// Active rosters of the given courses. RLS returns rows only for courses the
+// caller is actively enrolled in (enrollments_select_own_admin_or_same_course).
+export async function listCourseRosters(
+  client: SupabaseClient,
+  courseIds: string[],
+): Promise<{ course_id: string; user_id: string }[]> {
+  if (courseIds.length === 0) return [];
+  const { data, error } = await client
+    .from("enrollments")
+    .select("course_id, user_id")
+    .in("course_id", courseIds)
+    .eq("status", "active")
+    .order("created_at");
+  if (error) throw error;
+  return data as { course_id: string; user_id: string }[];
+}
+
 // Distinct classmates across the caller's actively-enrolled courses (the
 // dashboard's "Active Students" stat). enrollments_select_own_admin_or_same_course
 // RLS already scopes visible rows to courses the caller is themselves active

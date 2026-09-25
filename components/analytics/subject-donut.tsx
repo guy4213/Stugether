@@ -1,8 +1,8 @@
-// Part-to-whole of the student's active courses by department. Categorical
-// palette validated with the dataviz validator (fixed order, never cycled;
-// >5 subjects fold into "אחר"). Legend always shows name + count + %, so
-// identity never relies on color alone (orange is low-contrast on white).
-const PALETTE = ["#1f6fd1", "#14a38b", "#8b5cf6", "#e8870e", "#d9467b"];
+// Part-to-whole of the student's active courses by department
+// (Progress.dc.html "פילוח לפי מחלקה"). Fixed palette order, never cycled;
+// >5 subjects fold into "אחר". The legend carries name + %, so identity never
+// relies on color alone.
+const PALETTE = ["#2563EB", "#0D9488", "#6D4AFF", "#F59E0B", "#0369A1"];
 
 export function SubjectDonut({ subjects }: { subjects: { name: string; count: number }[] }) {
   const sorted = [...subjects].sort((a, b) => b.count - a.count);
@@ -22,10 +22,9 @@ export function SubjectDonut({ subjects }: { subjects: { name: string; count: nu
     return <p className="text-sm text-muted-foreground">הירשמו לקורס כדי לראות פילוח.</p>;
   }
 
-  const r = 42;
+  const r = 56;
   const c = 2 * Math.PI * r;
-  // 2px surface gap between segments (only when there's >1 segment)
-  const gap = folded.length > 1 ? 1.2 : 0;
+  const gap = folded.length > 1 ? 5.9 : 0;
   const segments = folded.map((s, i) => {
     const len = (s.count / total) * c;
     const start = folded.slice(0, i).reduce((sum, x) => sum + (x.count / total) * c, 0);
@@ -33,38 +32,38 @@ export function SubjectDonut({ subjects }: { subjects: { name: string; count: nu
   });
 
   return (
-    <div className="flex flex-col items-center gap-6 sm:flex-row">
-      <div className="relative size-40 shrink-0">
-        <svg viewBox="0 0 100 100" className="size-full -rotate-90" aria-hidden>
+    <div className="flex flex-col items-center gap-7 sm:flex-row">
+      <div className="relative size-[140px] shrink-0">
+        <svg width="140" height="140" viewBox="0 0 140 140" aria-hidden>
+          <circle cx="70" cy="70" r={r} fill="none" stroke="#EEF2F8" strokeWidth="18" />
           {segments.map((seg) => (
             <circle
               key={seg.name}
-              cx="50"
-              cy="50"
+              cx="70"
+              cy="70"
               r={r}
               fill="none"
               stroke={seg.color}
-              strokeWidth="14"
-              strokeDasharray={`${seg.drawn} ${c - seg.drawn}`}
+              strokeWidth="18"
+              strokeDasharray={`${seg.drawn} ${c}`}
               strokeDashoffset={-seg.start}
+              transform="rotate(-90 70 70)"
             />
           ))}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold">{total}</span>
+          <span className="text-[32px] leading-none font-extrabold">{total}</span>
           <span className="text-xs text-muted-foreground">קורסים</span>
         </div>
       </div>
 
-      <ul className="w-full space-y-2" aria-label="פילוח קורסים לפי מחלקה">
+      <ul className="flex w-full grow flex-col gap-3.5" aria-label="פילוח קורסים לפי מחלקה">
         {folded.map((s, i) => (
-          <li key={s.name} className="flex items-center gap-2 text-sm">
-            <span className="size-3 shrink-0 rounded-sm" style={{ background: PALETTE[i] }} />
-            <span className="flex-1">{s.name}</span>
-            <span className="text-muted-foreground tabular-nums">{s.count}</span>
-            <span className="w-10 text-end font-medium tabular-nums">
-              {Math.round((s.count / total) * 100)}%
-            </span>
+          <li key={s.name} className="flex items-center gap-2.5 text-[15px]">
+            <span className="size-3 shrink-0 rounded" style={{ background: PALETTE[i] }} />
+            <span className="grow">{s.name}</span>
+            <span className="sr-only">{s.count} קורסים,</span>
+            <span className="font-bold tabular-nums">{Math.round((s.count / total) * 100)}%</span>
           </li>
         ))}
       </ul>

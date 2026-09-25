@@ -30,7 +30,7 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
   return (
     <main
       id="main-content"
-      className="mx-auto flex h-[calc(100dvh-57px)] w-full max-w-4xl flex-col px-0 sm:px-6 sm:py-6 lg:h-dvh"
+      className="mx-auto flex h-[calc(100dvh-73px)] w-full max-w-4xl flex-col px-0 sm:px-6 sm:py-6"
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card shadow-sm sm:rounded-2xl">
         <div className="flex items-center gap-3 border-b border-border px-4 py-3 sm:px-5">
