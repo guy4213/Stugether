@@ -120,9 +120,7 @@ export function TopicStepper({
                 step
               )}
             </li>
-            {next && (
-              <li aria-hidden className={cn("h-[3px] min-w-6 grow rounded-sm", line)} />
-            )}
+            {next && <li aria-hidden className={cn("h-[3px] min-w-6 grow rounded-sm", line)} />}
           </Fragment>
         );
       })}

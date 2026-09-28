@@ -100,7 +100,9 @@ function HeroBody({ hero }: { hero: Hero }) {
           </span>
           {hero.total > 0 && (
             <span className="shrink-0 text-sm font-medium text-muted-foreground">
-              {hero.currentIndex ? `נושא ${hero.currentIndex}/${hero.total}` : `${hero.total} נושאים`}
+              {hero.currentIndex
+                ? `נושא ${hero.currentIndex}/${hero.total}`
+                : `${hero.total} נושאים`}
             </span>
           )}
         </div>
@@ -148,7 +150,13 @@ function HeroBody({ hero }: { hero: Hero }) {
       </div>
 
       {/* ring */}
-      <ProgressRing value={hero.progress} size={150} stroke={14} className="hidden md:block" label={`${hero.progress}% מהקורס`}>
+      <ProgressRing
+        value={hero.progress}
+        size={150}
+        stroke={14}
+        className="hidden md:block"
+        label={`${hero.progress}% מהקורס`}
+      >
         <span className="text-[40px] leading-none font-extrabold tracking-[-1px]">
           {hero.progress}%
         </span>

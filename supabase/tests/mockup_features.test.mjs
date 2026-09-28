@@ -167,9 +167,13 @@ test("notifications: preferences gate the triggers (live_rooms off -> no room_op
 
 test("notifications: joining a room notifies the other members (insert and re-join)", async (t) => {
   const db = await fresh(t);
-  await db.asUser(U.a4, (tx) => tx.query("select public.accept_room_invitation($1)", [INV.i1_a4_valid]), {
-    commit: true,
-  });
+  await db.asUser(
+    U.a4,
+    (tx) => tx.query("select public.accept_room_invitation($1)", [INV.i1_a4_valid]),
+    {
+      commit: true,
+    },
+  );
   const rows = await db.query(
     "select user_id::text from public.notifications where type = 'room_joined' and room_id = $1 and actor_id = $2 order by user_id",
     [ROOM.r1, U.a4],
@@ -187,9 +191,10 @@ test("open rooms: listed only for enrolled users; join respects enrollment and c
   const db = await fresh(t);
 
   await db.asUser(U.a1, async (tx) => {
-    const r = await tx.query("select room_id::text, member_count, is_member from public.list_open_rooms($1)", [
-      [COURSE.math110, COURSE.cs201],
-    ]);
+    const r = await tx.query(
+      "select room_id::text, member_count, is_member from public.list_open_rooms($1)",
+      [[COURSE.math110, COURSE.cs201]],
+    );
     assert.deepEqual(r.rows, [{ room_id: OPEN_ROOM, member_count: 1, is_member: false }]);
   });
   // a3 is not enrolled in MATH-110: nothing listed, join looks like "not found".
@@ -241,10 +246,10 @@ test("open rooms: listed only for enrolled users; join respects enrollment and c
 test("topics: seed progress derives enrollment percent; changes recompute it", async (t) => {
   const pct = (db, user, course) =>
     db
-      .one("select progress_percent p, completed_at from public.enrollments where user_id = $1 and course_id = $2", [
-        user,
-        course,
-      ])
+      .one(
+        "select progress_percent p, completed_at from public.enrollments where user_id = $1 and course_id = $2",
+        [user, course],
+      )
       .then((r) => r);
 
   assert.equal((await pct(base, U.a1, COURSE.cs201)).p, 65);
@@ -259,10 +264,10 @@ test("topics: seed progress derives enrollment percent; changes recompute it", a
   await db.asUser(
     U.a1,
     (tx) =>
-      tx.query("update public.topic_progress set status = 'mastered' where user_id = $1 and topic_id = $2", [
-        U.a1,
-        topic14.id,
-      ]),
+      tx.query(
+        "update public.topic_progress set status = 'mastered' where user_id = $1 and topic_id = $2",
+        [U.a1, topic14.id],
+      ),
     { commit: true },
   );
   assert.equal((await pct(db, U.a1, COURSE.cs201)).p, 70);
@@ -275,7 +280,10 @@ test("topics: seed progress derives enrollment percent; changes recompute it", a
   await db.asUser(
     U.a1,
     (tx) =>
-      tx.query("delete from public.topic_progress where user_id = $1 and topic_id = $2", [U.a1, limits.id]),
+      tx.query("delete from public.topic_progress where user_id = $1 and topic_id = $2", [
+        U.a1,
+        limits.id,
+      ]),
     { commit: true },
   );
   const after = await pct(db, U.a1, COURSE.math110);
@@ -285,7 +293,9 @@ test("topics: seed progress derives enrollment percent; changes recompute it", a
 
 test("topics: progress is private and only for enrolled courses; topics are admin-managed", async () => {
   await base.asUser(U.a2, async (tx) => {
-    const r = await tx.one("select count(*)::int n from public.topic_progress where user_id = $1", [U.a1]);
+    const r = await tx.one("select count(*)::int n from public.topic_progress where user_id = $1", [
+      U.a1,
+    ]);
     assert.equal(r.n, 0);
   });
   // a4 is not enrolled in MATH-110.
@@ -333,9 +343,10 @@ test("availability: visible to classmates only while not expired; capped at 3 ho
   const db = await fresh(t);
   await db.asOwner(
     (tx) =>
-      tx.query("update public.study_availability set expires_at = now() - interval '1 minute' where user_id = $1", [
-        U.a3,
-      ]),
+      tx.query(
+        "update public.study_availability set expires_at = now() - interval '1 minute' where user_id = $1",
+        [U.a3],
+      ),
     { commit: true },
   );
   await db.asUser(U.a4, async (tx) => {
@@ -373,9 +384,10 @@ test("events: kind stored; registration only by enrolled users; new event notifi
   await base.asUser(U.a1, async (tx) => {
     const ev = await tx.one("select kind from public.tests where id = $1", [MARATHON]);
     assert.equal(ev.kind, "study_session");
-    const regs = await tx.one("select count(*)::int n from public.event_registrations where event_id = $1", [
-      MARATHON,
-    ]);
+    const regs = await tx.one(
+      "select count(*)::int n from public.event_registrations where event_id = $1",
+      [MARATHON],
+    );
     assert.equal(regs.n, 4);
     await tx.query("insert into public.event_registrations (event_id, user_id) values ($1, $2)", [
       MARATHON,

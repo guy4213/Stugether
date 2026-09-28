@@ -83,7 +83,10 @@ export async function getCourseDetailData(userId: string, courseId: string) {
     })
     .sort((a, b) => {
       const rank = { available: 0, online: 1, offline: 2 } as const;
-      return rank[a.status] - rank[b.status] || a.profile.full_name.localeCompare(b.profile.full_name, "he");
+      return (
+        rank[a.status] - rank[b.status] ||
+        a.profile.full_name.localeCompare(b.profile.full_name, "he")
+      );
     });
 
   const availableNow = others

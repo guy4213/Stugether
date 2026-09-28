@@ -82,9 +82,16 @@ export function NotificationRow({ item, time }: { item: NotificationItem; time: 
       )}
       <span
         aria-hidden
-        className={cn("flex size-[50px] shrink-0 items-center justify-center rounded-2xl", meta.tile)}
+        className={cn(
+          "flex size-[50px] shrink-0 items-center justify-center rounded-2xl",
+          meta.tile,
+        )}
       >
-        <Icon className="size-[22px]" strokeWidth={2} fill={meta.filled ? "currentColor" : "none"} />
+        <Icon
+          className="size-[22px]"
+          strokeWidth={2}
+          fill={meta.filled ? "currentColor" : "none"}
+        />
       </span>
       <div className="flex min-w-0 grow basis-40 flex-col gap-[3px]">
         <span className={cn("text-base", unread ? "font-bold" : "font-semibold")}>
@@ -125,7 +132,11 @@ export function NotificationRow({ item, time }: { item: NotificationItem; time: 
           </Button>
         )}
         {item.action?.kind === "course" && (
-          <Button asChild variant={item.type === "event_scheduled" ? "outline-primary" : "soft"} size="chip">
+          <Button
+            asChild
+            variant={item.type === "event_scheduled" ? "outline-primary" : "soft"}
+            size="chip"
+          >
             <Link href={`/courses/${item.action.courseId}`} onClick={markRead}>
               {item.action.label}
             </Link>

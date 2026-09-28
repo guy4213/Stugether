@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { MenuIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/brand/logo";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -19,53 +20,78 @@ const NAV_LINKS = [
   { href: "/courses", label: "קורסים" },
 ] as const;
 
-export function SiteNav() {
+const AQUA_BUTTON =
+  "flex h-11 items-center rounded-[13px] bg-[linear-gradient(90deg,#2dd4bf,#38bdf8)] px-[22px] text-[15px] font-bold whitespace-nowrap text-[#06244a] shadow-[0_10px_24px_-10px_rgba(45,212,191,.8)] hover:brightness-105";
+
+// Transparent public nav that sits inside the landing hero (Landing.dc.html).
+export function SiteNav({ isAuthed }: { isAuthed: boolean }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur">
+    <header className="relative z-20">
       <nav
         aria-label="ניווט ראשי"
-        className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6"
+        className="mx-auto flex h-20 max-w-[1440px] items-center justify-between px-5 md:px-10 xl:px-16"
       >
-        <Link href="/" className="text-2xl font-bold text-primary">
-          StuGether
-        </Link>
+        <div className="flex items-center gap-12">
+          <Link href="/" aria-label="StuGether — דף הבית" className="rounded-lg">
+            <Logo variant="inverse" size={36} className="[&>span]:text-[25px]" />
+          </Link>
+          <ul className="hidden items-center gap-8 text-[15px] font-medium lg:flex">
+            {NAV_LINKS.map((link, i) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  aria-current={i === 0 ? "page" : undefined}
+                  className={i === 0 ? "text-white" : "text-white/80 hover:text-white"}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
 
-        <ul className="hidden items-center gap-8 text-sm font-medium text-foreground/80 md:flex">
-          {NAV_LINKS.map((link) => (
-            <li key={link.href}>
-              <Link href={link.href} className="transition-colors hover:text-primary">
-                {link.label}
+        <div className="flex items-center gap-2.5">
+          {isAuthed ? (
+            <Link href="/dashboard" className={AQUA_BUTTON}>
+              לדשבורד
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="hidden h-11 items-center rounded-[13px] border-[1.5px] border-white/40 px-5 text-[15px] font-semibold text-white hover:bg-white/10 sm:flex"
+              >
+                התחברות
               </Link>
-            </li>
-          ))}
-        </ul>
+              <Link href="/signup" className={AQUA_BUTTON}>
+                הרשמה חינם
+              </Link>
+            </>
+          )}
 
-        <div className="flex items-center gap-2">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden" aria-label="תפריט ניווט">
-                <MenuIcon />
-              </Button>
+            <DropdownMenuTrigger
+              aria-label="תפריט ניווט"
+              className="flex size-11 items-center justify-center rounded-xl text-white outline-none hover:bg-white/10 focus-visible:ring-3 focus-visible:ring-white/60 lg:hidden"
+            >
+              <MenuIcon className="size-5" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-52">
               {NAV_LINKS.map((link) => (
                 <DropdownMenuItem key={link.href} asChild>
                   <Link href={link.href}>{link.label}</Link>
                 </DropdownMenuItem>
               ))}
+              {!isAuthed && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/login">התחברות</Link>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <Button
-            asChild
-            variant="outline"
-            className="h-9 rounded-full border-primary px-5 text-primary hover:bg-primary/5"
-          >
-            <Link href="/login">התחברות</Link>
-          </Button>
-          <Button asChild variant="gradient" className="h-9 px-5">
-            <Link href="/signup">הרשמה</Link>
-          </Button>
         </div>
       </nav>
     </header>

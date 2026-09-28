@@ -103,9 +103,7 @@ export function ProfileForm({
   // "ביטול": back to the saved values (the native reset handles fullName).
   function resetFields() {
     setInstitutionId(profile.institution_id ?? "");
-    setFacultyId(
-      initialDepartments.find((d) => d.id === profile.department_id)?.faculty_id ?? "",
-    );
+    setFacultyId(initialDepartments.find((d) => d.id === profile.department_id)?.faculty_id ?? "");
     setDepartmentId(profile.department_id ?? "");
     setCity(profile.city ?? "");
     setStudyYear(profile.study_year ? String(profile.study_year) : "");
@@ -125,7 +123,9 @@ export function ProfileForm({
 
       <div className="grid grid-cols-1 gap-x-5 gap-y-[18px] sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="fullName" className="text-sm font-semibold">שם מלא</Label>
+          <Label htmlFor="fullName" className="text-sm font-semibold">
+            שם מלא
+          </Label>
           <Input
             id="fullName"
             name="fullName"
@@ -140,7 +140,9 @@ export function ProfileForm({
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="email" className="text-sm font-semibold">אימייל</Label>
+          <Label htmlFor="email" className="text-sm font-semibold">
+            אימייל
+          </Label>
           <span className="flex h-[50px] items-center gap-2.5 rounded-[14px] bg-muted px-4 text-muted-foreground">
             <LockIcon className="size-4 shrink-0" strokeWidth={2} aria-hidden />
             <input
@@ -193,7 +195,11 @@ export function ProfileForm({
 
         <div className="flex flex-col gap-2">
           <Label className="text-sm font-semibold">מחלקה</Label>
-          <Select value={departmentId} onValueChange={(v) => v && setDepartmentId(v)} disabled={!facultyId}>
+          <Select
+            value={departmentId}
+            onValueChange={(v) => v && setDepartmentId(v)}
+            disabled={!facultyId}
+          >
             <SelectTrigger className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none data-[size=default]:h-[50px]">
               <SelectValue placeholder="בחר/י מחלקה" />
             </SelectTrigger>
@@ -242,7 +248,9 @@ export function ProfileForm({
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="bio" className="text-sm font-semibold">אודות</Label>
+          <Label htmlFor="bio" className="text-sm font-semibold">
+            אודות
+          </Label>
           <span className="text-xs text-muted-foreground">
             {bio.length}/{BIO_MAX_LENGTH}
           </span>

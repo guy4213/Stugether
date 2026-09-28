@@ -25,7 +25,11 @@ import { courseTheme } from "@/lib/ui/course-theme";
 import { TONE_GRADIENT } from "@/lib/ui/tones";
 
 const ACHIEVEMENTS: { icon: LucideIcon; gradient: string; glow: string }[] = [
-  { icon: RocketIcon, gradient: "bg-brand-diag", glow: "shadow-[0_10px_18px_-10px_rgba(37,99,235,.7)]" },
+  {
+    icon: RocketIcon,
+    gradient: "bg-brand-diag",
+    glow: "shadow-[0_10px_18px_-10px_rgba(37,99,235,.7)]",
+  },
   {
     icon: FlagIcon,
     gradient: "bg-[linear-gradient(135deg,#6d4aff,#2563eb)]",
@@ -83,7 +87,8 @@ export default async function AnalyticsPage({
             ההתקדמות שלי
           </h1>
           <span className="text-[15px] text-muted-foreground">
-            מבט על הלמידה שלך {data.range === "semester" ? "בסמסטר האחרון" : `ב-${data.weeks} השבועות האחרונים`}
+            מבט על הלמידה שלך{" "}
+            {data.range === "semester" ? "בסמסטר האחרון" : `ב-${data.weeks} השבועות האחרונים`}
           </span>
         </div>
         <ShareButton completedCount={data.completedCourses.length} />
@@ -92,7 +97,10 @@ export default async function AnalyticsPage({
       {/* KPIs */}
       <section aria-label="מדדים" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div className="relative flex h-[132px] flex-col justify-between overflow-hidden rounded-[22px] bg-[linear-gradient(120deg,#2563eb,#0d9488)] px-6 py-[22px] text-white shadow-[0_18px_32px_-18px_rgba(37,99,235,.7)]">
-          <span aria-hidden className="absolute -top-[70px] -left-[50px] size-40 rounded-full bg-white/10" />
+          <span
+            aria-hidden
+            className="absolute -top-[70px] -left-[50px] size-40 rounded-full bg-white/10"
+          />
           <div className="relative flex items-center justify-between">
             <span className="text-sm text-white/90">הודעות {periodLabel}</span>
             <span className="flex size-10 items-center justify-center rounded-xl bg-white/20">
@@ -175,10 +183,7 @@ export default async function AnalyticsPage({
               <h2 className="text-[19px] font-bold">פעילות למידה</h2>
               <span className="text-[13px] text-muted-foreground">הודעות לפי שבוע</span>
             </div>
-            <nav
-              aria-label="טווח זמן"
-              className="flex gap-1 rounded-xl bg-muted p-1"
-            >
+            <nav aria-label="טווח זמן" className="flex gap-1 rounded-xl bg-muted p-1">
               <RangeLink href="/analytics" active={data.range === "8w"}>
                 8 שבועות
               </RangeLink>
@@ -217,7 +222,9 @@ export default async function AnalyticsPage({
                       strokeWidth: 2,
                     })}
                   </span>
-                  <span className={cn("text-[15px] font-bold", !a.earned && "text-muted-foreground")}>
+                  <span
+                    className={cn("text-[15px] font-bold", !a.earned && "text-muted-foreground")}
+                  >
                     {a.title}
                   </span>
                   <span className="text-xs text-muted-foreground">

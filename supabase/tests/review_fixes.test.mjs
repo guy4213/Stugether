@@ -6,7 +6,7 @@
 import test, { before, after } from "node:test";
 import assert from "node:assert/strict";
 import { createDb, expectError } from "./db.mjs";
-import { U, ROOM, MSG, INV, COURSE, become } from "./fixtures.mjs";
+import { U, ROOM, INV, COURSE, become } from "./fixtures.mjs";
 
 let db;
 before(async () => {
@@ -16,7 +16,16 @@ after(async () => {
   await db?.close();
 });
 
-const MINI_COLUMNS = ["id", "full_name", "avatar_url", "institution_id", "department_id", "study_year"];
+const MINI_COLUMNS = [
+  "id",
+  "full_name",
+  "avatar_url",
+  "institution_id",
+  "department_id",
+  "study_year",
+  "city", // 20260923000002 — match-percentage scoring
+  "last_seen_at", // 20260925000001 — online status in course member lists
+];
 
 test("fix: classmates get only the public mini profile, not the full profiles row", async () => {
   await db.asUser(U.a4, async (tx) => {
@@ -29,28 +38,44 @@ test("fix: classmates get only the public mini profile, not the full profiles ro
     const all = await tx.one("select count(*)::int n from public.profiles");
     assert.equal(all.n, 1, "only the caller's own row is visible in profiles");
 
-    const own = await tx.one("select bio, role, last_seen_at from public.profiles where id = $1", [U.a4]);
+    const own = await tx.one("select bio, role, last_seen_at from public.profiles where id = $1", [
+      U.a4,
+    ]);
     assert.equal(own.role, "student");
 
-    const { rows, fields } = await tx.query("select * from public.public_profiles where id = $1", [U.a1]);
+    const { rows, fields } = await tx.query("select * from public.public_profiles where id = $1", [
+      U.a1,
+    ]);
     assert.equal(rows.length, 1, "mini profile of a classmate is visible");
-    assert.deepEqual(fields.map((f) => f.name), MINI_COLUMNS);
+    assert.deepEqual(
+      fields.map((f) => f.name),
+      MINI_COLUMNS,
+    );
     await tx.expectError("select bio from public.public_profiles", "does not exist");
-    await tx.expectError("select last_seen_at from public.public_profiles", "does not exist");
+    await tx.expectError("select role from public.public_profiles", "does not exist");
 
     // No shared course / room with the admin -> not visible.
-    const adminRow = await tx.query("select 1 from public.public_profiles where id = $1", [U.admin]);
+    const adminRow = await tx.query("select 1 from public.public_profiles where id = $1", [
+      U.admin,
+    ]);
     assert.equal(adminRow.rows.length, 0);
   });
 
   // Super admin still reads full rows.
   await db.asUser(U.admin, async (tx) => {
-    const r = await tx.one("select bio, last_seen_at, role from public.profiles where id = $1", [U.a1]);
+    const r = await tx.one("select bio, last_seen_at, role from public.profiles where id = $1", [
+      U.a1,
+    ]);
     assert.ok(r.bio);
   });
 
-  const anon = await db.asAnon((tx) => tx.query("select 1 from public.public_profiles")).catch((e) => e);
-  assert.ok(anon instanceof Error && /permission denied/i.test(anon.message), "anon cannot read public_profiles");
+  const anon = await db
+    .asAnon((tx) => tx.query("select 1 from public.public_profiles"))
+    .catch((e) => e);
+  assert.ok(
+    anon instanceof Error && /permission denied/i.test(anon.message),
+    "anon cannot read public_profiles",
+  );
 });
 
 test("fix: roommates keep seeing each other's mini profile after the shared enrollment is archived", async () => {
@@ -75,29 +100,48 @@ test("fix: owner cannot reactivate a room archived by a super_admin; owner react
     await become(tx, U.admin);
     await tx.query("select public.set_room_status($1, 'archived')", [ROOM.r1]);
     await become(tx, "owner");
-    let row = await tx.one("select archived_by::text, archived_by_admin from public.rooms where id = $1", [ROOM.r1]);
+    let row = await tx.one(
+      "select archived_by::text, archived_by_admin from public.rooms where id = $1",
+      [ROOM.r1],
+    );
     assert.deepEqual(row, { archived_by: U.admin, archived_by_admin: true });
 
     await become(tx, U.a1);
-    await tx.expectError("select public.set_room_status($1, 'active')", [ROOM.r1], "ROOM_ARCHIVED_BY_ADMIN");
-    const forged = await tx.query("update public.rooms set archived_by_admin = false where id = $1", [ROOM.r1]).catch((e) => e);
-    if (forged instanceof Error) assert.match(forged.message, /permission denied|row-level security/i);
+    await tx.expectError(
+      "select public.set_room_status($1, 'active')",
+      [ROOM.r1],
+      "ROOM_ARCHIVED_BY_ADMIN",
+    );
+    const forged = await tx
+      .query("update public.rooms set archived_by_admin = false where id = $1", [ROOM.r1])
+      .catch((e) => e);
+    if (forged instanceof Error)
+      assert.match(forged.message, /permission denied|row-level security/i);
     else assert.equal(forged.affectedRows ?? 0, 0);
     await become(tx, "owner");
-    assert.equal((await tx.one("select status from public.rooms where id = $1", [ROOM.r1])).status, "archived");
+    assert.equal(
+      (await tx.one("select status from public.rooms where id = $1", [ROOM.r1])).status,
+      "archived",
+    );
 
     // Admin may reactivate; flags are cleared.
     await become(tx, U.admin);
     await tx.query("select public.set_room_status($1, 'active')", [ROOM.r1]);
     await become(tx, "owner");
-    row = await tx.one("select status, archived_by, archived_by_admin from public.rooms where id = $1", [ROOM.r1]);
+    row = await tx.one(
+      "select status, archived_by, archived_by_admin from public.rooms where id = $1",
+      [ROOM.r1],
+    );
     assert.deepEqual(row, { status: "active", archived_by: null, archived_by_admin: false });
 
     // Owner archive -> owner reactivate is fine.
     await become(tx, U.a1);
     await tx.query("select public.set_room_status($1, 'archived')", [ROOM.r1]);
     await become(tx, "owner");
-    row = await tx.one("select archived_by::text, archived_by_admin from public.rooms where id = $1", [ROOM.r1]);
+    row = await tx.one(
+      "select archived_by::text, archived_by_admin from public.rooms where id = $1",
+      [ROOM.r1],
+    );
     assert.deepEqual(row, { archived_by: U.a1, archived_by_admin: false });
     await become(tx, U.a1);
     await tx.query("select public.set_room_status($1, 'active')", [ROOM.r1]);
@@ -105,7 +149,10 @@ test("fix: owner cannot reactivate a room archived by a super_admin; owner react
     // Owner no longer enrolled -> cannot reactivate.
     await tx.query("select public.set_room_status($1, 'archived')", [ROOM.r1]);
     await become(tx, "owner");
-    await tx.query("update public.enrollments set status = 'archived' where user_id = $1 and course_id = $2", [U.a1, COURSE.cs201]);
+    await tx.query(
+      "update public.enrollments set status = 'archived' where user_id = $1 and course_id = $2",
+      [U.a1, COURSE.cs201],
+    );
     await become(tx, U.a1);
     await tx.expectError("select public.set_room_status($1, 'active')", [ROOM.r1], "NOT_ALLOWED");
 
@@ -131,9 +178,15 @@ test("fix: rooms SELECT — insert().select() works, but a creator who left lose
   });
 
   await db.asUser(U.a1, async (tx) => {
-    assert.equal((await tx.query("select 1 from public.rooms where id = $1", [ROOM.r1])).rows.length, 1);
+    assert.equal(
+      (await tx.query("select 1 from public.rooms where id = $1", [ROOM.r1])).rows.length,
+      1,
+    );
     await tx.query("select public.leave_room($1)", [ROOM.r1]);
-    const after = await tx.query("select name, topic, status, last_message_at from public.rooms where id = $1", [ROOM.r1]);
+    const after = await tx.query(
+      "select name, topic, status, last_message_at from public.rooms where id = $1",
+      [ROOM.r1],
+    );
     assert.equal(after.rows.length, 0, "creator who left must not see the room anymore");
   });
 });
@@ -154,9 +207,14 @@ test("fix: avatar_url only accepts an object path under the user's own avatars f
         "profiles_avatar_url_own_object_path",
       );
     }
-    const ok = await tx.query("update public.profiles set avatar_url = $1 where id = $2", [`${U.a4}/avatar-1.webp`, U.a4]);
+    const ok = await tx.query("update public.profiles set avatar_url = $1 where id = $2", [
+      `${U.a4}/avatar-1.webp`,
+      U.a4,
+    ]);
     assert.equal(ok.affectedRows, 1);
-    const cleared = await tx.query("update public.profiles set avatar_url = null where id = $1", [U.a4]);
+    const cleared = await tx.query("update public.profiles set avatar_url = null where id = $1", [
+      U.a4,
+    ]);
     assert.equal(cleared.affectedRows, 1);
   });
 });
@@ -169,18 +227,34 @@ test("fix: soft-deleted message is hidden from other members; deletion is broadc
       [ROOM.r1, U.a2],
     );
     await become(tx, U.a3);
-    assert.equal((await tx.query("select 1 from public.messages where id = $1", [m.id])).rows.length, 1, "control");
+    assert.equal(
+      (await tx.query("select 1 from public.messages where id = $1", [m.id])).rows.length,
+      1,
+      "control",
+    );
 
     await become(tx, U.a2);
     await tx.query("select public.soft_delete_message($1)", [m.id]);
-    const own = await tx.one("select content, deleted_at from public.messages where id = $1", [m.id]);
-    assert.equal(own.content, "secret by mistake", "content is immutable, sender still sees own row");
+    const own = await tx.one("select content, deleted_at from public.messages where id = $1", [
+      m.id,
+    ]);
+    assert.equal(
+      own.content,
+      "secret by mistake",
+      "content is immutable, sender still sees own row",
+    );
     assert.notEqual(own.deleted_at, null);
 
     await become(tx, U.a3);
-    const other = await tx.query("select content from public.messages where room_id = $1 and deleted_at is not null", [ROOM.r1]);
+    const other = await tx.query(
+      "select content from public.messages where room_id = $1 and deleted_at is not null",
+      [ROOM.r1],
+    );
     assert.equal(other.rows.length, 0, "other members cannot read deleted content");
-    assert.equal((await tx.query("select 1 from public.messages where id = $1", [m.id])).rows.length, 0);
+    assert.equal(
+      (await tx.query("select 1 from public.messages where id = $1", [m.id])).rows.length,
+      0,
+    );
 
     await become(tx, "owner");
     const { rows } = await tx.query(
@@ -195,9 +269,17 @@ test("fix: soft-deleted message is hidden from other members; deletion is broadc
     // The broadcast is receivable by room members only.
     await tx.query(`select set_config('realtime.topic', $1, true)`, [`room:${ROOM.r1}`]);
     await become(tx, U.a3);
-    assert.equal((await tx.query("select 1 from realtime.messages where event = 'message_deleted'")).rows.length, 1);
+    assert.equal(
+      (await tx.query("select 1 from realtime.messages where event = 'message_deleted'")).rows
+        .length,
+      1,
+    );
     await become(tx, U.a4);
-    assert.equal((await tx.query("select 1 from realtime.messages where event = 'message_deleted'")).rows.length, 0);
+    assert.equal(
+      (await tx.query("select 1 from realtime.messages where event = 'message_deleted'")).rows
+        .length,
+      0,
+    );
   });
 });
 
@@ -211,9 +293,16 @@ test("fix: public.messages is in the supabase_realtime publication", async () =>
 test("fix: update_room — owner renames / toggles AI; member, non-member and archived room are refused", async () => {
   await db.asOwner(async (tx) => {
     await become(tx, U.a1);
-    await tx.query("select public.update_room($1, $2, $3, $4)", [ROOM.r1, "  שם חדש  ", "נושא חדש", false]);
+    await tx.query("select public.update_room($1, $2, $3, $4)", [
+      ROOM.r1,
+      "  שם חדש  ",
+      "נושא חדש",
+      false,
+    ]);
     await become(tx, "owner");
-    let r = await tx.one("select name, topic, ai_enabled, status from public.rooms where id = $1", [ROOM.r1]);
+    let r = await tx.one("select name, topic, ai_enabled, status from public.rooms where id = $1", [
+      ROOM.r1,
+    ]);
     assert.deepEqual(r, { name: "שם חדש", topic: "נושא חדש", ai_enabled: false, status: "active" });
 
     // NULL = unchanged; blank topic clears.
@@ -224,20 +313,42 @@ test("fix: update_room — owner renames / toggles AI; member, non-member and ar
     assert.deepEqual(r, { name: "שם חדש", topic: null, ai_enabled: false });
 
     await become(tx, U.a1);
-    await tx.expectError("select public.update_room($1, '   ', null, null)", [ROOM.r1], "INVALID_ARGUMENT");
+    await tx.expectError(
+      "select public.update_room($1, '   ', null, null)",
+      [ROOM.r1],
+      "INVALID_ARGUMENT",
+    );
     await become(tx, U.a2); // member, not owner of R1
-    await tx.expectError("select public.update_room($1, 'x', null, true)", [ROOM.r1], "NOT_ALLOWED");
+    await tx.expectError(
+      "select public.update_room($1, 'x', null, true)",
+      [ROOM.r1],
+      "NOT_ALLOWED",
+    );
     await become(tx, U.a4); // not a member
-    await tx.expectError("select public.update_room($1, 'x', null, true)", [ROOM.r1], "NOT_ALLOWED");
+    await tx.expectError(
+      "select public.update_room($1, 'x', null, true)",
+      [ROOM.r1],
+      "NOT_ALLOWED",
+    );
     await become(tx, U.a2); // owner of archived R2
-    await tx.expectError("select public.update_room($1, 'x', null, null)", [ROOM.r2], "ROOM_NOT_ACTIVE");
+    await tx.expectError(
+      "select public.update_room($1, 'x', null, null)",
+      [ROOM.r2],
+      "ROOM_NOT_ACTIVE",
+    );
 
     await become(tx, U.admin);
     await tx.query("select public.update_room($1, null, null, true)", [ROOM.r2]);
     await become(tx, "owner");
-    assert.equal((await tx.one("select ai_enabled from public.rooms where id = $1", [ROOM.r1])).ai_enabled, false);
+    assert.equal(
+      (await tx.one("select ai_enabled from public.rooms where id = $1", [ROOM.r1])).ai_enabled,
+      false,
+    );
   });
-  await expectError(db.asAnon((tx) => tx.query("select public.update_room($1, 'x')", [ROOM.r1])), "permission denied");
+  await expectError(
+    db.asAnon((tx) => tx.query("select public.update_room($1, 'x')", [ROOM.r1])),
+    "permission denied",
+  );
 });
 
 test("fix: admin stats RPCs return aggregates to super_admin only", async () => {
@@ -249,21 +360,27 @@ test("fix: admin stats RPCs return aggregates to super_admin only", async () => 
     const { rows, fields } = await tx.query(
       "select room_id::text, member_count::int, message_count::int, last_message_at from public.admin_room_stats()",
     );
-    assert.deepEqual(fields.map((f) => f.name), ["room_id", "member_count", "message_count", "last_message_at"]);
+    assert.deepEqual(
+      fields.map((f) => f.name),
+      ["room_id", "member_count", "message_count", "last_message_at"],
+    );
     const byRoom = Object.fromEntries(rows.map((r) => [r.room_id, r]));
-    assert.equal(byRoom[ROOM.r1].message_count, 5);
+    assert.equal(byRoom[ROOM.r1].message_count, 28);
     assert.equal(byRoom[ROOM.r1].member_count, 3);
     assert.equal(byRoom[ROOM.r2].message_count, 3);
     assert.equal(byRoom[ROOM.r2].member_count, 2);
 
     const g = (await tx.one("select public.admin_global_stats() s")).s;
-    assert.equal(Number(g.messages_total), 8);
-    assert.equal(Number(g.rooms_total), 2);
+    assert.equal(Number(g.messages_total), 32);
+    assert.equal(Number(g.rooms_total), 3);
     assert.equal(Number(g.users_total), 6);
     // Still no raw message access for the admin.
     assert.equal((await tx.one("select count(*)::int n from public.messages")).n, 0);
   });
-  await expectError(db.asAnon((tx) => tx.query("select public.admin_global_stats()")), "permission denied");
+  await expectError(
+    db.asAnon((tx) => tx.query("select public.admin_global_stats()")),
+    "permission denied",
+  );
 });
 
 test("fix: deactivating a profile frees its room seats, hands off ownership and revokes its invitations", async () => {
@@ -273,12 +390,19 @@ test("fix: deactivating a profile frees its room seats, hands off ownership and 
     await tx.query("select public.accept_room_invitation($1)", [INV.i1_a4_valid]);
     await become(tx, "owner");
     assert.equal(
-      (await tx.one("select count(*)::int n from public.room_members where room_id = $1 and left_at is null", [ROOM.r1])).n,
+      (
+        await tx.one(
+          "select count(*)::int n from public.room_members where room_id = $1 and left_at is null",
+          [ROOM.r1],
+        )
+      ).n,
       4,
     );
     // a1 (owner R1) sent a still-'pending' invitation (I2, expired by date).
     await become(tx, U.admin);
-    const upd = await tx.query("update public.profiles set is_active = false where id = $1", [U.a1]);
+    const upd = await tx.query("update public.profiles set is_active = false where id = $1", [
+      U.a1,
+    ]);
     assert.equal(upd.affectedRows, 1);
 
     await become(tx, "owner");
@@ -289,8 +413,14 @@ test("fix: deactivating a profile frees its room seats, hands off ownership and 
     assert.equal(members.rows.length, 3, "deactivated owner no longer occupies a seat");
     assert.ok(!members.rows.some((m) => m.user_id === U.a1));
     const owners = members.rows.filter((m) => m.role === "owner");
-    assert.deepEqual(owners, [{ user_id: U.a2, role: "owner" }], "ownership handed to longest-standing active member");
-    const inv = await tx.one("select status from public.room_invitations where id = $1", [INV.i2_a5_expired]);
+    assert.deepEqual(
+      owners,
+      [{ user_id: U.a2, role: "owner" }],
+      "ownership handed to longest-standing active member",
+    );
+    const inv = await tx.one("select status from public.room_invitations where id = $1", [
+      INV.i2_a5_expired,
+    ]);
     assert.equal(inv.status, "revoked");
 
     // The new owner can manage the room and a new member can be invited into the freed seat.
@@ -305,9 +435,13 @@ test("fix: deactivating a profile frees its room seats, hands off ownership and 
   // Mechanism: leave_room hand-off also skips inactive profiles.
   await db.asOwner(async (tx) => {
     // Make a2 inactive without the trigger path to simulate a legacy row.
-    await tx.exec("alter table public.profiles disable trigger profiles_release_rooms_on_deactivation");
+    await tx.exec(
+      "alter table public.profiles disable trigger profiles_release_rooms_on_deactivation",
+    );
     await tx.query("update public.profiles set is_active = false where id = $1", [U.a2]);
-    await tx.exec("alter table public.profiles enable trigger profiles_release_rooms_on_deactivation");
+    await tx.exec(
+      "alter table public.profiles enable trigger profiles_release_rooms_on_deactivation",
+    );
     await become(tx, U.a1);
     await tx.query("select public.leave_room($1)", [ROOM.r1]);
     await become(tx, "owner");

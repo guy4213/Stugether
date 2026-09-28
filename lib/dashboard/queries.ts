@@ -30,10 +30,7 @@ import type { StackPerson } from "@/components/ui/avatar-stack";
 const DAY_MS = 86_400_000;
 
 export type CourseBadge =
-  | { kind: "live" }
-  | { kind: "test" }
-  | { kind: "learners"; count: number }
-  | null;
+  { kind: "live" } | { kind: "test" } | { kind: "learners"; count: number } | null;
 
 export interface DashboardCourse {
   id: string;
@@ -105,8 +102,14 @@ export async function getDashboardData(userId: string) {
   // Catalog recommendations: my institution's courses I'm not enrolled in.
   const candidateCourses = institutionCourses.filter((c) => !courseIds.includes(c.id));
   const [studentCounts, roomCounts, registrations] = await Promise.all([
-    countActiveStudentsByCourseIds(supabase, candidateCourses.map((c) => c.id)),
-    countActiveRoomsByCourseIds(supabase, candidateCourses.map((c) => c.id)),
+    countActiveStudentsByCourseIds(
+      supabase,
+      candidateCourses.map((c) => c.id),
+    ),
+    countActiveRoomsByCourseIds(
+      supabase,
+      candidateCourses.map((c) => c.id),
+    ),
     listEventRegistrations(supabase, nextEventRaw ? [nextEventRaw.id] : []),
   ]);
 
@@ -120,8 +123,7 @@ export async function getDashboardData(userId: string) {
   const people = await listPublicProfiles(supabase, [...personIds]);
   const personById = new Map(people.map((p) => [p.id, { id: p.id, name: p.full_name }]));
   const person = (id: string): StackPerson | null => personById.get(id) ?? null;
-  const toPeople = (ids: string[]) =>
-    ids.map(person).filter((p): p is StackPerson => p !== null);
+  const toPeople = (ids: string[]) => ids.map(person).filter((p): p is StackPerson => p !== null);
 
   // --- per-course derived state ----------------------------------------------
   const topicsByCourse = new Map<string, typeof topics>();
@@ -131,7 +133,10 @@ export async function getDashboardData(userId: string) {
   const classmatesByCourse = new Map<string, string[]>();
   for (const r of rosters) {
     if (r.user_id === userId) continue;
-    classmatesByCourse.set(r.course_id, [...(classmatesByCourse.get(r.course_id) ?? []), r.user_id]);
+    classmatesByCourse.set(r.course_id, [
+      ...(classmatesByCourse.get(r.course_id) ?? []),
+      r.user_id,
+    ]);
   }
   const availableByCourse = new Map<string, string[]>();
   for (const a of availability) {
@@ -140,7 +145,8 @@ export async function getDashboardData(userId: string) {
   }
   const myActiveRooms = myRooms.filter((r) => r.status === "active");
   const myRoomByCourse = new Map<string, (typeof myActiveRooms)[number]>();
-  for (const r of myActiveRooms) if (!myRoomByCourse.has(r.course_id)) myRoomByCourse.set(r.course_id, r);
+  for (const r of myActiveRooms)
+    if (!myRoomByCourse.has(r.course_id)) myRoomByCourse.set(r.course_id, r);
   const openRoomByCourse = new Map<string, (typeof openRooms)[number]>();
   for (const r of openRooms) {
     if (!r.is_member && r.member_count < 4 && !openRoomByCourse.has(r.course_id)) {
@@ -202,10 +208,7 @@ export async function getDashboardData(userId: string) {
     openRoomId: string | null;
   } | null = null;
   if (heroEnrollment) {
-    const summary = summarizeTopics(
-      topicsByCourse.get(heroEnrollment.course_id) ?? [],
-      progress,
-    );
+    const summary = summarizeTopics(topicsByCourse.get(heroEnrollment.course_id) ?? [], progress);
     hero = {
       courseId: heroEnrollment.course_id,
       name: heroEnrollment.course.name,

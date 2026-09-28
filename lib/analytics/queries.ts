@@ -60,7 +60,11 @@ export async function getAnalyticsData(userId: string, range: AnalyticsRange = "
 
   // In-progress courses first, then completed ones.
   const courseProgress = [...enrolled]
-    .sort((a, b) => Number(!!a.completed_at) - Number(!!b.completed_at) || b.progress_percent - a.progress_percent)
+    .sort(
+      (a, b) =>
+        Number(!!a.completed_at) - Number(!!b.completed_at) ||
+        b.progress_percent - a.progress_percent,
+    )
     .map((e) => ({
       id: e.course_id,
       name: e.course.name,

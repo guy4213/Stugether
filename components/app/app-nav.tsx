@@ -151,9 +151,7 @@ export function AppNav(props: ShellProps) {
                 >
                   <link.icon className="size-[18px]" strokeWidth={active ? 2 : 1.9} aria-hidden />
                   {link.label}
-                  {link.href === "/notifications" && (
-                    <NavBadge count={props.unreadNotifications} />
-                  )}
+                  {link.href === "/notifications" && <NavBadge count={props.unreadNotifications} />}
                 </Link>
               );
             })}

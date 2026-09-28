@@ -15,15 +15,13 @@ after(async () => {
 
 const countMessages = async (tx, roomId) =>
   Number(
-    (
-      await tx.one("select count(*)::int n from public.messages where room_id = $1", [roomId])
-    ).n,
+    (await tx.one("select count(*)::int n from public.messages where room_id = $1", [roomId])).n,
   );
 
 test("RLS #1: non-member SELECT messages -> 0 rows", async () => {
-  // Control: a member sees the room history (5 seed messages in R1).
+  // Control: a member sees the room history (28 seed messages in R1).
   const member = await db.asUser(U.a1, (tx) => countMessages(tx, ROOM.r1));
-  assert.equal(member, 5, "control: member a1 should see R1 history");
+  assert.equal(member, 28, "control: member a1 should see R1 history");
 
   // a4 is enrolled in CS-201 (same course) but is not a member of R1.
   await db.asUser(U.a4, async (tx) => {
@@ -99,7 +97,7 @@ test("RLS #3: authenticated INSERT message with sender_type 'ai' -> denied", asy
 test("RLS #4: member who left (left_at set) SELECT messages -> 0 rows", async () => {
   await db.asOwner(async (tx) => {
     await become(tx, U.a3);
-    assert.equal(await countMessages(tx, ROOM.r1), 5, "control: a3 sees history while active");
+    assert.equal(await countMessages(tx, ROOM.r1), 28, "control: a3 sees history while active");
     await become(tx, "owner");
     await tx.query(
       "update public.room_members set left_at = now() where room_id = $1 and user_id = $2",
@@ -164,7 +162,11 @@ test("RLS #7: direct UPDATE on messages (own and others) -> denied", async () =>
       [MSG.r1_a2],
       "permission denied",
     );
-    await tx.expectError("delete from public.messages where id = $1", [MSG.r1_a2], "permission denied");
+    await tx.expectError(
+      "delete from public.messages where id = $1",
+      [MSG.r1_a2],
+      "permission denied",
+    );
   });
   const rows = await db.query(
     "select id::text, content, deleted_at from public.messages where id = any($1::uuid[]) order by id",
@@ -209,7 +211,11 @@ test("RLS #8: soft_delete_message — others' message / >10 min old -> error; ow
       [ROOM.r1, U.a1],
     );
     await become(tx, U.a1);
-    await tx.expectError("select public.soft_delete_message($1)", [old.id], "MESSAGE_NOT_DELETABLE");
+    await tx.expectError(
+      "select public.soft_delete_message($1)",
+      [old.id],
+      "MESSAGE_NOT_DELETABLE",
+    );
     await become(tx, "owner");
     const r = await tx.one("select deleted_at from public.messages where id = $1", [old.id]);
     assert.equal(r.deleted_at, null);
@@ -234,9 +240,9 @@ test("RLS #9: student vs admin-only policy -> denied", async () => {
 
   await db.asUser(U.a1, async (tx) => {
     // UPDATE courses: no admin -> no row visible for update.
-    const upd = await tx.query("update public.courses set name = 'pwned' where id = $1", [
-      COURSE.cs201,
-    ]).catch((e) => e);
+    const upd = await tx
+      .query("update public.courses set name = 'pwned' where id = $1", [COURSE.cs201])
+      .catch((e) => e);
     if (upd instanceof Error) {
       assert.match(upd.message, /permission denied|row-level security/i);
     } else {
@@ -270,7 +276,9 @@ test("RLS #9: student vs admin-only policy -> denied", async () => {
     const s = await tx.query("update public.app_settings set ai_enabled = false where id = 1");
     assert.equal(s.affectedRows ?? 0, 0);
     // rooms UPDATE is admin-only.
-    const r = await tx.query("update public.rooms set status = 'closed' where id = $1", [ROOM.r1]).catch((e) => e);
+    const r = await tx
+      .query("update public.rooms set status = 'closed' where id = $1", [ROOM.r1])
+      .catch((e) => e);
     if (r instanceof Error) assert.match(r.message, /permission denied|row-level security/i);
     else assert.equal(r.affectedRows ?? 0, 0);
   });
@@ -285,7 +293,10 @@ test("RLS #9: student vs admin-only policy -> denied", async () => {
     assert.equal(p.role, "student");
     assert.equal(p.is_active, true);
   }
-  assert.equal((await db.one("select ai_enabled from public.app_settings where id = 1")).ai_enabled, true);
+  assert.equal(
+    (await db.one("select ai_enabled from public.app_settings where id = 1")).ai_enabled,
+    true,
+  );
 
   // Control: super_admin can do these.
   await db.asUser(U.admin, async (tx) => {

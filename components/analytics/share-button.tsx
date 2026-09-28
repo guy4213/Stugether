@@ -27,7 +27,12 @@ export function ShareButton({ completedCount }: { completedCount: number }) {
   }
 
   return (
-    <Button variant="quiet" size="md" onClick={handleShare} className="rounded-[13px] px-[18px] text-sm font-semibold">
+    <Button
+      variant="quiet"
+      size="md"
+      onClick={handleShare}
+      className="rounded-[13px] px-[18px] text-sm font-semibold"
+    >
       <Share2Icon className="size-[18px] text-primary" strokeWidth={2} />
       שיתוף
     </Button>

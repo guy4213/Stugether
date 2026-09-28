@@ -51,20 +51,18 @@ export function MyCourseCard({
     <article
       className={cn(
         "relative flex flex-col gap-4 overflow-hidden rounded-[20px] bg-card p-[22px]",
-        highlight
-          ? "border-[1.5px] border-primary-line shadow-highlight"
-          : "border border-border",
+        highlight ? "border-[1.5px] border-primary-line shadow-highlight" : "border border-border",
       )}
     >
       {highlight && <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-brand" />}
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-3">
-          <IconTile tone={theme.tone}>
-            {createElement(theme.icon, { strokeWidth: 2.2 })}
-          </IconTile>
+          <IconTile tone={theme.tone}>{createElement(theme.icon, { strokeWidth: 2.2 })}</IconTile>
           <div className="flex min-w-0 flex-col">
             <h3 className="truncate text-lg font-bold">{course.name}</h3>
-            {course.code && <span className="text-[13px] text-muted-foreground">{course.code}</span>}
+            {course.code && (
+              <span className="text-[13px] text-muted-foreground">{course.code}</span>
+            )}
           </div>
         </div>
         <Badge badge={course.badge} completed={course.completed} />

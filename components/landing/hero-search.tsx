@@ -20,21 +20,21 @@ export function HeroSearch() {
     <form
       onSubmit={handleSubmit}
       role="search"
-      className="flex max-w-lg items-center gap-2 rounded-2xl bg-white p-1.5 shadow-xl shadow-black/20"
+      className="flex h-14 items-center overflow-hidden rounded-[18px] bg-white shadow-[0_24px_48px_-20px_rgba(2,12,40,.6)] sm:h-16"
     >
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="חיפוש קורס, נושא או מוסד..."
+        placeholder="חיפוש קורס, נושא או מוסד…"
         aria-label="חיפוש קורס, נושא או מוסד"
-        className="h-11 min-w-0 flex-1 bg-transparent px-3 text-base text-foreground outline-none placeholder:text-muted-foreground"
+        className="h-full min-w-0 grow bg-transparent px-[22px] text-[17px] text-foreground outline-none placeholder:text-muted-foreground"
       />
       <button
         type="submit"
         aria-label="חיפוש"
-        className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-opacity hover:opacity-90"
+        className="flex h-full w-[72px] shrink-0 items-center justify-center bg-brand-diag text-white hover:brightness-110 focus-visible:brightness-125 focus-visible:outline-none"
       >
-        <SearchIcon className="size-5" />
+        <SearchIcon className="size-6" strokeWidth={2.4} />
       </button>
     </form>
   );

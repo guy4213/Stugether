@@ -78,7 +78,9 @@ export default async function CoursesPage({
                 key={course.id}
                 course={course}
                 departmentName={
-                  course.department_id ? (departmentNameById.get(course.department_id) ?? null) : null
+                  course.department_id
+                    ? (departmentNameById.get(course.department_id) ?? null)
+                    : null
                 }
                 activeRoomCount={data.roomCounts[course.id] ?? 0}
                 studentCount={data.studentCounts[course.id] ?? 0}
@@ -114,7 +116,15 @@ export default async function CoursesPage({
   );
 }
 
-function HeroStat({ label, value, live = false }: { label: string; value: number; live?: boolean }) {
+function HeroStat({
+  label,
+  value,
+  live = false,
+}: {
+  label: string;
+  value: number;
+  live?: boolean;
+}) {
   return (
     <div className="flex flex-col items-start justify-between gap-1 rounded-[18px] border border-white/22 bg-white/14 px-4 py-3.5 sm:flex-row sm:items-center lg:w-[220px] lg:px-[18px]">
       <dt className="flex items-center gap-2 text-sm text-white/90">

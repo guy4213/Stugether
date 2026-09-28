@@ -142,7 +142,15 @@ export default async function ProfilePage() {
   );
 }
 
-function ProfileStat({ label, value, warm = false }: { label: string; value: number; warm?: boolean }) {
+function ProfileStat({
+  label,
+  value,
+  warm = false,
+}: {
+  label: string;
+  value: number;
+  warm?: boolean;
+}) {
   return (
     <div
       className={`flex flex-col-reverse items-center rounded-2xl px-[18px] py-2.5 ${warm ? "bg-warning-soft text-warning-ink" : "bg-muted"}`}

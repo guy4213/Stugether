@@ -2,144 +2,207 @@ import {
   BookOpenIcon,
   GraduationCapIcon,
   MessageSquareIcon,
-  SparklesIcon,
   UsersIcon,
-  type LucideIcon,
+  VideoIcon,
 } from "lucide-react";
+import { SiteNav } from "@/components/landing/site-nav";
 import { HeroSearch } from "@/components/landing/hero-search";
+import { ProgressRing } from "@/components/ui/progress-ring";
 
-// Static placeholder numbers matching the mockup — the only aggregate query
-// (admin_global_stats) is super-admin gated and can't back a public page.
-const STATS: { icon: LucideIcon; value: string; label: string }[] = [
-  { icon: UsersIcon, value: "10K+", label: "סטודנטים" },
-  { icon: GraduationCapIcon, value: "500+", label: "מורים" },
-  { icon: BookOpenIcon, value: "200+", label: "קורסים" },
-  { icon: MessageSquareIcon, value: "50+", label: "חדרי לימוד" },
+// Marketing figures from the design, kept static on purpose: live counts of
+// students/rooms aren't readable anonymously (RLS), and a small dev catalog
+// would read worse than no number.
+const STATS = [
+  { value: "+10K", label: "סטודנטים", icon: UsersIcon },
+  { value: "+500", label: "מוסדות", icon: GraduationCapIcon },
+  { value: "+200", label: "קורסים", icon: BookOpenIcon },
+  { value: "+50", label: "חדרים חיים", icon: VideoIcon },
 ];
 
-// The mockup has a student photo here; we have no imagery, so this is a
-// composed preview of the product itself (a study room + match + progress).
-function HeroIllustration() {
+function Sparkle({ className }: { className?: string }) {
   return (
-    <div aria-hidden className="relative mx-auto hidden h-[380px] w-full max-w-md md:block">
-      <div className="absolute inset-x-6 top-8 rounded-3xl bg-white/95 p-5 text-foreground shadow-2xl shadow-black/30">
-        <div className="mb-4 flex items-center gap-3 border-b border-border pb-3">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <MessageSquareIcon className="size-5" />
-          </span>
-          <div>
-            <p className="text-sm font-semibold">הכנה למבחן — עצים</p>
-            <p className="text-xs text-muted-foreground">מבני נתונים · 3 משתתפים</p>
-          </div>
-        </div>
-        <div className="space-y-2.5 text-xs">
-          <div className="w-fit max-w-[75%] rounded-2xl rounded-ss-sm bg-muted px-3 py-2">
-            מתי עושים רוטציה כפולה ב-AVL?
-          </div>
-          <div className="ms-auto w-fit max-w-[80%] rounded-2xl rounded-se-sm bg-[oklch(0.94_0.05_175)] px-3 py-2">
-            <span className="mb-0.5 flex items-center gap-1 font-semibold text-[oklch(0.4_0.1_180)]">
-              <SparklesIcon className="size-3" /> עוזר AI
-            </span>
-            כשחוסר האיזון הוא בזיגזג (LR / RL)...
-          </div>
-          <div className="w-fit max-w-[70%] rounded-2xl rounded-ss-sm bg-primary px-3 py-2 text-primary-foreground">
-            מעולה, ננסה את הדוגמה!
-          </div>
-        </div>
-      </div>
-
-      <div className="absolute -start-2 bottom-6 w-52 rounded-2xl bg-white p-4 text-foreground shadow-xl shadow-black/25">
-        <p className="text-xs text-muted-foreground">התאמה ללמידה משותפת</p>
-        <div className="mt-2 flex items-center gap-3">
-          <span className="text-2xl font-bold text-primary">92%</span>
-          <div className="flex -space-x-2 rtl:space-x-reverse">
-            {["נכ", "אל", "מפ"].map((i, idx) => (
-              <span
-                key={i}
-                className="flex size-7 items-center justify-center rounded-full text-[10px] font-bold text-white ring-2 ring-white"
-                style={{ background: ["#1f6fd1", "#14a38b", "#8b5cf6"][idx] }}
-              >
-                {i}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="absolute -end-2 bottom-0 w-44 rounded-2xl bg-white p-4 text-foreground shadow-xl shadow-black/25">
-        <p className="text-xs text-muted-foreground">מבני נתונים</p>
-        <p className="mt-1 text-lg font-bold">65%</p>
-        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-muted">
-          <div className="h-full w-[65%] rounded-full bg-linear-to-l from-primary to-secondary" />
-        </div>
-      </div>
-
-      <div className="absolute -end-4 -top-2 flex size-28 items-center justify-center rounded-full bg-[oklch(0.3_0.1_260)] p-3 text-center text-sm leading-tight font-bold text-white shadow-xl ring-4 ring-white/10">
-        אותן מטרות,
-        <br />
-        ביחד יותר
-      </div>
-    </div>
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+      <path d="M12 2l2.2 6.3L20.5 10l-6.3 2.2L12 18.5l-2.2-6.3L3.5 10l6.3-1.7z" />
+    </svg>
   );
 }
 
-export function HeroSection() {
+// Hero per Landing.dc.html: nav inside, headline + search + stats on the
+// start side, a photo arch with floating product cards on the end side, and
+// a sweeping wave into the page background.
+export function HeroSection({ isAuthed }: { isAuthed: boolean }) {
   return (
-    <section className="relative overflow-hidden bg-linear-to-bl from-[oklch(0.2_0.06_262)] via-[oklch(0.3_0.12_258)] to-[oklch(0.45_0.17_250)] text-white">
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute start-1/3 -top-24 size-96 rounded-full bg-[oklch(0.6_0.18_240)] opacity-30 blur-3xl" />
-        <div className="absolute end-10 bottom-10 size-72 rounded-full bg-[oklch(0.7_0.15_175)] opacity-20 blur-3xl" />
-        <div className="absolute end-1/3 top-32 size-4 rounded-full bg-[oklch(0.8_0.14_175)]" />
-        <div className="absolute start-20 top-20 size-3 rounded-full bg-[oklch(0.75_0.15_240)]" />
-      </div>
+    <section className="relative overflow-hidden bg-landing-hero text-white lg:h-[860px] xl:h-[900px]">
+      <HeroVisual />
+      <SiteNav isAuthed={isAuthed} />
 
-      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pt-16 pb-36 sm:px-6 md:grid-cols-2 md:pt-20">
-        <div className="space-y-7">
-          <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm backdrop-blur">
-            <SparklesIcon className="size-4 text-[oklch(0.85_0.12_175)]" />
+      <div className="relative z-10 mx-auto max-w-[1440px] px-5 pt-10 pb-40 md:px-10 md:pt-16 lg:pb-0 xl:px-16 xl:pt-20">
+        <div className="flex max-w-[620px] flex-col gap-[26px] lg:max-w-[520px] xl:max-w-[620px]">
+          <span className="flex h-9 items-center gap-2 self-start rounded-full border border-white/20 bg-white/10 px-3.5 text-sm font-semibold">
+            <Sparkle className="size-4 text-[#5EEAD4]" />
             חדרי לימוד עם עוזר AI מובנה
           </span>
-          <h1 className="text-5xl leading-[1.1] font-extrabold tracking-tight sm:text-6xl">
+          <h1 className="text-5xl leading-none font-black tracking-[-1.5px] md:text-[64px] xl:text-[88px] xl:tracking-[-2.5px]">
             סטודנטים
             <br />
-            <span className="bg-linear-to-l from-[oklch(0.85_0.12_175)] to-[oklch(0.8_0.12_235)] bg-clip-text text-transparent">
-              לומדים ביחד
-            </span>
+            <span className="text-gradient-aqua">לומדים ביחד</span>
           </h1>
-          <p className="max-w-md text-lg text-white/75">
-            מצאו שותפים ללמידה, הצטרפו לחדרי לימוד בקורסים שלכם וקבלו עזרה מעוזר AI — הכול במקום
-            אחד.
+          <p className="max-w-[540px] text-lg leading-[1.6] text-white/85 md:text-xl">
+            מצאו שותפים ללמידה, הצטרפו לחדרי לימוד בקורסים שלכם וקבלו עזרה מ-AI — הכול במקום אחד.
           </p>
-
           <HeroSearch />
-
-          <dl className="grid max-w-lg grid-cols-2 gap-4 pt-2 sm:grid-cols-4">
+          <dl className="grid grid-cols-2 gap-2.5 sm:flex">
             {STATS.map((s) => (
-              <div key={s.label}>
-                <dt className="sr-only">{s.label}</dt>
-                <dd className="flex items-center gap-2">
-                  <s.icon className="size-5 text-[oklch(0.85_0.12_175)]" />
-                  <span className="text-2xl font-bold">{s.value}</span>
-                </dd>
-                <p aria-hidden className="text-sm text-white/65">
-                  {s.label}
-                </p>
+              <div
+                key={s.label}
+                className="flex grow items-center gap-2.5 rounded-2xl border border-white/16 bg-white/8 px-3.5 py-3"
+              >
+                <span
+                  aria-hidden
+                  className="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] bg-[rgba(94,234,212,.18)] text-[#5EEAD4]"
+                >
+                  <s.icon className="size-[17px]" strokeWidth={2} />
+                </span>
+                <div className="flex flex-col-reverse">
+                  <dt className="text-xs text-white/75">{s.label}</dt>
+                  <dd className="text-[22px] leading-[1.1] font-extrabold">{s.value}</dd>
+                </div>
               </div>
             ))}
           </dl>
         </div>
-
-        <HeroIllustration />
       </div>
 
+      {/* sweeping bottom edge */}
       <svg
-        aria-hidden
-        viewBox="0 0 1440 120"
+        viewBox="0 0 1440 220"
         preserveAspectRatio="none"
-        className="absolute inset-x-0 bottom-0 h-24 w-full fill-background"
+        aria-hidden
+        className="pointer-events-none absolute -bottom-px left-0 h-24 w-full md:h-36 xl:h-[220px]"
       >
-        <path d="M0,64 C240,120 480,120 720,80 C960,40 1200,0 1440,40 L1440,120 L0,120 Z" />
+        <defs>
+          <linearGradient id="ldEdge" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#5EEAD4" />
+            <stop offset=".5" stopColor="#38BDF8" />
+            <stop offset="1" stopColor="#2563EB" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M0 150 C 260 230, 620 210, 900 140 S 1300 20, 1440 70"
+          fill="none"
+          stroke="url(#ldEdge)"
+          strokeWidth="6"
+          opacity=".9"
+        />
+        <path
+          d="M0 150 C 260 230, 620 210, 900 140 S 1300 20, 1440 70 V220 H0 Z"
+          className="fill-background"
+        />
       </svg>
     </section>
+  );
+}
+
+// Decorative arch + floating cards (physical left in the design, so these use
+// left-* on purpose). Desktop only; phones get the text column alone.
+function HeroVisual() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1440px] -translate-x-1/2 lg:block"
+    >
+      <div className="absolute inset-y-0 left-0 w-[680px] origin-top-left scale-[.82] xl:scale-100">
+        <span className="absolute top-[170px] left-[610px] size-[22px] rounded-full bg-[#38BDF8] opacity-70" />
+        <span className="absolute top-[130px] left-[700px] size-3 rounded-full bg-[#5EEAD4] opacity-80" />
+        <span className="absolute top-[220px] left-[690px] size-2 rounded-full bg-[#93C5FD] opacity-80" />
+        <svg
+          viewBox="0 0 260 160"
+          width="260"
+          height="160"
+          className="absolute top-24 left-[360px]"
+        >
+          <path
+            d="M10 120c30-40 60-10 80-40s10-60 40-60 20 60 50 50 30-50 60-40"
+            fill="none"
+            stroke="#5EEAD4"
+            strokeWidth="3"
+            strokeLinecap="round"
+            opacity=".85"
+          />
+          <path
+            d="M40 150c20-10 40 0 55-15"
+            fill="none"
+            stroke="#38BDF8"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            opacity=".7"
+          />
+          <ellipse
+            cx="228"
+            cy="30"
+            rx="14"
+            ry="22"
+            transform="rotate(35 228 30)"
+            fill="none"
+            stroke="#E0F2FE"
+            strokeWidth="3"
+            opacity=".8"
+          />
+        </svg>
+
+        {/* photo arch — TODO: swap the silhouette for a real students photo */}
+        <div className="absolute top-[150px] left-10 h-[760px] w-[600px] rounded-t-[300px] bg-[linear-gradient(180deg,rgba(94,234,212,.7),rgba(56,189,248,.25)_60%,rgba(56,189,248,0))] p-2.5">
+          <div className="relative flex size-full items-center justify-center overflow-hidden rounded-t-[290px] bg-[linear-gradient(160deg,#3B82F6_0%,#1E6FD0_45%,#129B9A_100%)]">
+            <svg width="200" height="140" viewBox="0 0 200 140" className="opacity-35">
+              <circle cx="100" cy="42" r="26" fill="#fff" />
+              <path d="M52 138c0-30 22-54 48-54s48 24 48 54z" fill="#fff" />
+              <circle cx="38" cy="58" r="20" fill="#fff" />
+              <path d="M0 138c0-24 17-42 38-42 10 0 19 4 26 11-8 10-12 20-12 31z" fill="#fff" />
+              <circle cx="162" cy="58" r="20" fill="#fff" />
+              <path d="M200 138c0-24-17-42-38-42-10 0-19 4-26 11 8 10 12 20 12 31z" fill="#fff" />
+            </svg>
+            <span className="absolute inset-0 bg-[linear-gradient(0deg,rgba(11,44,127,.55)_0%,rgba(11,44,127,0)_40%)]" />
+          </div>
+        </div>
+
+        <div className="absolute top-[118px] left-[470px] flex size-[150px] items-center justify-center rounded-full border-4 border-[rgba(94,234,212,.55)] bg-[#0A2470] text-center text-[19px] leading-[1.15] font-extrabold shadow-[0_20px_40px_-16px_rgba(2,12,40,.7)]">
+          אותן
+          <br />
+          מטרות,
+          <br />
+          <span className="text-[#5EEAD4]">ביחד</span>
+        </div>
+
+        <div className="absolute top-[560px] left-[90px] flex w-[290px] flex-col gap-2.5 rounded-[20px] bg-white/95 px-4 py-3.5 text-foreground shadow-[0_28px_56px_-24px_rgba(2,12,40,.7)] motion-safe:animate-float">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-9 items-center justify-center rounded-[11px] bg-brand-diag text-white">
+              <MessageSquareIcon className="size-[17px]" strokeWidth={2} />
+            </span>
+            <div className="flex grow flex-col">
+              <span className="text-sm font-bold">הכנה למבחן — עצים</span>
+              <span className="text-xs text-muted-foreground">מבני נתונים · 3 משתתפים</span>
+            </div>
+            <span className="flex items-center gap-[5px] rounded-full bg-success-soft px-2 py-[3px] text-[11px] font-bold text-success-ink">
+              <span className="size-1.5 rounded-full bg-success" />
+              LIVE
+            </span>
+          </div>
+          <span className="flex flex-col gap-0.5 self-end rounded-[14px_14px_4px_14px] bg-success-soft px-3 py-2 text-[13px]">
+            <strong className="text-xs text-success-ink">עוזר AI</strong>
+            רוטציה ב-AVL היא O(1)
+          </span>
+        </div>
+
+        <div className="absolute top-[700px] left-[400px] flex w-[210px] items-center gap-3 rounded-[18px] bg-white/95 px-3.5 py-3 text-foreground shadow-[0_24px_48px_-20px_rgba(2,12,40,.7)] motion-safe:animate-float-slow">
+          <ProgressRing value={92} size={48} stroke={6} from="#0D9488" to="#0D9488" track="#E7F8F3">
+            <span className="text-xs font-extrabold">92%</span>
+          </ProgressRing>
+          <div className="flex flex-col">
+            <span className="text-sm font-bold">התאמה ללמידה</span>
+            <span className="text-xs text-muted-foreground">3 שותפים בקורס</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

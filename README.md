@@ -62,3 +62,5 @@ Supabase Studio: http://localhost:54323
 ## בדיקת RTL
 
 בפיתוח בלבד: http://localhost:3000/dev/rtl
+
+<!-- test -->

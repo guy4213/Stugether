@@ -45,7 +45,9 @@ export function FavoriteButton({
         variant === "light"
           ? cn(
               "size-9 rounded-full",
-              isFavorite ? "bg-white text-warning" : "bg-white/90 text-muted-foreground hover:text-warning",
+              isFavorite
+                ? "bg-white text-warning"
+                : "bg-white/90 text-muted-foreground hover:text-warning",
             )
           : cn(
               "size-11 rounded-[13px] border border-white/40 bg-white/14 hover:bg-white/22",

@@ -4,7 +4,11 @@ function mix(a: string, b: string, t: number): string {
   const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
   const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
   return `#${pa
-    .map((v, i) => Math.round(v + (pb[i] - v) * t).toString(16).padStart(2, "0"))
+    .map((v, i) =>
+      Math.round(v + (pb[i] - v) * t)
+        .toString(16)
+        .padStart(2, "0"),
+    )
     .join("")}`;
 }
 

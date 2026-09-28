@@ -38,7 +38,11 @@ export function CourseCard({
 
   return (
     <article className="flex flex-col overflow-hidden rounded-[22px] border border-border bg-card shadow-card-sm">
-      <CourseCover seed={course.id} label={`${course.name} ${course.code ?? ""}`} className="h-[140px]">
+      <CourseCover
+        seed={course.id}
+        label={`${course.name} ${course.code ?? ""}`}
+        className="h-[140px]"
+      >
         {popular && (
           <span className="absolute top-3.5 right-3.5 flex h-7 items-center gap-[5px] rounded-full bg-white px-2.5 text-xs font-bold text-[#B45309]">
             <FlameIcon />

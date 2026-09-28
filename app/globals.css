@@ -199,3 +199,73 @@
 @utility bg-brand-soft {
   background-image: linear-gradient(135deg, #eef4ff, #e7f8f3);
 }
+
+/* Landing page (Landing.dc.html). */
+@utility bg-landing-hero {
+  background-color: #0b2c7f;
+  background-image:
+    radial-gradient(
+      ellipse 45% 55% at 12% 88%,
+      rgba(45, 212, 191, 0.45) 0%,
+      rgba(45, 212, 191, 0) 65%
+    ),
+    radial-gradient(
+      ellipse 40% 50% at 92% 8%,
+      rgba(56, 189, 248, 0.35) 0%,
+      rgba(56, 189, 248, 0) 60%
+    ),
+    radial-gradient(
+      ellipse 35% 40% at 55% 55%,
+      rgba(37, 99, 235, 0.55) 0%,
+      rgba(37, 99, 235, 0) 70%
+    ),
+    linear-gradient(125deg, #0a2470 0%, #1242b8 45%, #0f63a8 72%, #0b8a86 100%);
+}
+@utility bg-landing-cta {
+  background-color: #1a63e0;
+  background-image:
+    radial-gradient(
+      ellipse 60% 70% at 85% 10%,
+      rgba(94, 234, 212, 0.55) 0%,
+      rgba(94, 234, 212, 0) 60%
+    ),
+    radial-gradient(
+      ellipse 55% 65% at 10% 90%,
+      rgba(99, 102, 241, 0.45) 0%,
+      rgba(99, 102, 241, 0) 60%
+    ),
+    radial-gradient(
+      ellipse 50% 60% at 40% 30%,
+      rgba(125, 211, 252, 0.35) 0%,
+      rgba(125, 211, 252, 0) 60%
+    ),
+    linear-gradient(120deg, #1d4ed8 0%, #1c6fd6 38%, #0f95b4 70%, #0c9c83 100%);
+}
+@utility text-gradient-aqua {
+  background-image: linear-gradient(90deg, #5eead4, #7dd3fc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@utility text-gradient-brand {
+  background-image: linear-gradient(90deg, #2563eb, #0b7a70);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@keyframes landing-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+@utility animate-float {
+  animation: landing-float 6s ease-in-out infinite;
+}
+@utility animate-float-slow {
+  animation: landing-float 7s ease-in-out infinite reverse;
+}

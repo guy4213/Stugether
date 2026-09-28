@@ -151,7 +151,9 @@ export function CoursesFilterBar({ departments }: { departments: Department[] })
             active={departmentId === dept.id}
             onClick={() =>
               navigate((p) =>
-                departmentId === dept.id ? p.delete("departmentId") : p.set("departmentId", dept.id),
+                departmentId === dept.id
+                  ? p.delete("departmentId")
+                  : p.set("departmentId", dept.id),
               )
             }
           >

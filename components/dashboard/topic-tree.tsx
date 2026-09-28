@@ -79,7 +79,15 @@ export function TopicTree({
           }
           if (t.state === "upcoming") {
             return (
-              <circle key={t.id} cx={s.x} cy={s.y} r={s.r} fill="#fff" stroke="#C9D6EA" strokeWidth="2">
+              <circle
+                key={t.id}
+                cx={s.x}
+                cy={s.y}
+                r={s.r}
+                fill="#fff"
+                stroke="#C9D6EA"
+                strokeWidth="2"
+              >
                 <title>{t.title}</title>
               </circle>
             );

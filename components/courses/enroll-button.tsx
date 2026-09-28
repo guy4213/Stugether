@@ -42,7 +42,13 @@ export function EnrollButton({
   }
 
   return (
-    <Button onClick={handleClick} disabled={isPending} variant="white" size="xl" className="px-[26px] text-base">
+    <Button
+      onClick={handleClick}
+      disabled={isPending}
+      variant="white"
+      size="xl"
+      className="px-[26px] text-base"
+    >
       {isEnrolled ? "ביטול הרשמה" : "הרשמה לקורס"}
     </Button>
   );

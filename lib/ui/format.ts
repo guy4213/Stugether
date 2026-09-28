@@ -53,8 +53,7 @@ export function weekdayLetterHe(iso: string): string {
 }
 
 export function isSameIsraelDay(a: Date, b: Date): boolean {
-  const key = (d: Date) =>
-    new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(d);
+  const key = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(d);
   return key(a) === key(b);
 }
 

@@ -42,10 +42,7 @@ type StartAiRunResult = {
   ai_status: "disabled" | "rate_limited" | "busy" | "started";
 };
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: roomId } = await params;
 
   // --- a. validate body ------------------------------------------------------

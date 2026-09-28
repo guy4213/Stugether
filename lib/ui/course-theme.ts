@@ -95,7 +95,6 @@ const FALLBACKS: CourseTheme[] = [
 
 export function courseTheme(name: string, seed = name): CourseTheme {
   return (
-    RULES.find((r) => r.match.test(name))?.theme ??
-    FALLBACKS[hashString(seed) % FALLBACKS.length]
+    RULES.find((r) => r.match.test(name))?.theme ?? FALLBACKS[hashString(seed) % FALLBACKS.length]
   );
 }

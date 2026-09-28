@@ -8,7 +8,13 @@ import { Button } from "@/components/ui/button";
 import { enrollInCourse } from "@/lib/courses/actions";
 
 // The "+" on dashboard course recommendations.
-export function QuickEnrollButton({ courseId, courseName }: { courseId: string; courseName: string }) {
+export function QuickEnrollButton({
+  courseId,
+  courseName,
+}: {
+  courseId: string;
+  courseName: string;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   return (

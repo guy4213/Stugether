@@ -51,7 +51,12 @@ export function AddTestForm({ courseId }: { courseId: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="quiet" size="icon-md" aria-label="הוספת אירוע לקורס" className="rounded-[13px] text-primary-strong">
+        <Button
+          variant="quiet"
+          size="icon-md"
+          aria-label="הוספת אירוע לקורס"
+          className="rounded-[13px] text-primary-strong"
+        >
           <PlusIcon strokeWidth={2.4} />
         </Button>
       </DialogTrigger>
@@ -101,7 +106,12 @@ export function AddTestForm({ courseId }: { courseId: string }) {
             maxLength={200}
           />
           <DialogFooter>
-            <Button type="submit" variant="brand" size="md" disabled={isPending || !title.trim() || !dueAt}>
+            <Button
+              type="submit"
+              variant="brand"
+              size="md"
+              disabled={isPending || !title.trim() || !dueAt}
+            >
               {isPending ? "מוסיף..." : "הוספה"}
             </Button>
           </DialogFooter>

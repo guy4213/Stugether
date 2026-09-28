@@ -29,8 +29,7 @@ const buttonVariants = cva(
         soft: "rounded-xl bg-primary-soft font-semibold text-primary-strong hover:bg-primary-tint",
         "outline-primary":
           "rounded-xl border-[1.5px] border-primary bg-white font-semibold text-primary hover:bg-primary-soft",
-        quiet:
-          "rounded-xl border-border bg-white font-medium text-foreground hover:bg-surface-2",
+        quiet: "rounded-xl border-border bg-white font-medium text-foreground hover:bg-surface-2",
         glass:
           "rounded-[13px] border-white/40 bg-white/14 font-semibold text-white hover:bg-white/22",
         white:

@@ -122,9 +122,7 @@ export default async function CourseDetailPage({
               <div className="flex flex-wrap gap-2 pt-1.5">
                 <BannerChip icon={<UsersIcon />}>{data.studentCount} סטודנטים</BannerChip>
                 {data.isEnrolled && (
-                  <BannerChip
-                    icon={<span className="size-[7px] rounded-full bg-[#A7F3D0]" />}
-                  >
+                  <BannerChip icon={<span className="size-[7px] rounded-full bg-[#A7F3D0]" />}>
                     {data.availableNow.length} פנויים עכשיו
                   </BannerChip>
                 )}
@@ -181,11 +179,7 @@ export default async function CourseDetailPage({
           </div>
         </div>
 
-        <TopicStepper
-          courseId={course.id}
-          topics={data.topics.topics}
-          editable={data.isEnrolled}
-        />
+        <TopicStepper courseId={course.id} topics={data.topics.topics} editable={data.isEnrolled} />
       </section>
 
       {/* Tabs */}
@@ -213,7 +207,9 @@ export default async function CourseDetailPage({
           return (
             <Link
               key={t.id}
-              href={t.id === "overview" ? `/courses/${course.id}` : `/courses/${course.id}?tab=${t.id}`}
+              href={
+                t.id === "overview" ? `/courses/${course.id}` : `/courses/${course.id}?tab=${t.id}`
+              }
               aria-current={active ? "page" : undefined}
               scroll={false}
               className={cn(
@@ -350,7 +346,11 @@ function Overview({
         )}
       </div>
 
-      <section id="available" aria-labelledby="available-title" className="flex scroll-mt-24 flex-col gap-3.5">
+      <section
+        id="available"
+        aria-labelledby="available-title"
+        className="flex scroll-mt-24 flex-col gap-3.5"
+      >
         <div className="flex items-center gap-2.5">
           <h2 id="available-title" className="text-[22px] font-extrabold">
             זמינים ללמוד עכשיו

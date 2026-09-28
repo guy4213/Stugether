@@ -110,7 +110,10 @@ export default async function NotificationsPage({
 
       <aside className="flex w-full shrink-0 flex-col gap-4 pt-1 xl:w-[380px]">
         <div className="relative flex flex-col gap-[18px] overflow-hidden rounded-[22px] bg-brand-deep p-6 text-white shadow-[0_18px_36px_-20px_rgba(29,78,216,.7)]">
-          <span aria-hidden className="absolute -top-20 -left-[60px] size-[180px] rounded-full bg-white/8" />
+          <span
+            aria-hidden
+            className="absolute -top-20 -left-[60px] size-[180px] rounded-full bg-white/8"
+          />
           <div className="relative flex items-center justify-between">
             <div className="flex flex-col">
               <span className="text-sm text-white/85">השבוע</span>

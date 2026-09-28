@@ -26,11 +26,16 @@ async function fresh(t) {
 }
 
 const START_AI = "select public.start_ai_run($1, $2, $3, $4, $5) as r";
-const startAi = (tx, { room = ROOM.r1, msg = MSG.r1_a3_trigger, by = U.a3, userLimit = 100, roomLimit = 100 } = {}) =>
-  tx.one(START_AI, [room, msg, by, userLimit, roomLimit]).then((row) => row.r);
+const startAi = (
+  tx,
+  { room = ROOM.r1, msg = MSG.r1_a3_trigger, by = U.a3, userLimit = 100, roomLimit = 100 } = {},
+) => tx.one(START_AI, [room, msg, by, userLimit, roomLimit]).then((row) => row.r);
 
 const activeRuns = (q, room = ROOM.r1) =>
-  q("select id::text, status, error_code from public.ai_runs where room_id = $1 and status in ('queued','running')", [room]).then((r) => r.rows);
+  q(
+    "select id::text, status, error_code from public.ai_runs where room_id = $1 and status in ('queued','running')",
+    [room],
+  ).then((r) => r.rows);
 
 // ---------------------------------------------------------------------------
 // 11. capacity
@@ -60,14 +65,17 @@ test("#11 capacity: second accept into a room that became full -> ROOM_FULL (seq
   // First accept wins (commits).
   const roomId = await db.asUser(
     U.a4,
-    (tx) => tx.one("select public.accept_room_invitation($1) as r", [INV.i1_a4_valid]).then((x) => x.r),
+    (tx) =>
+      tx.one("select public.accept_room_invitation($1) as r", [INV.i1_a4_valid]).then((x) => x.r),
     { commit: true },
   );
   assert.equal(roomId, ROOM.r1);
 
   // Second accept -> ROOM_FULL.
   await expectError(
-    db.asUser(U.a5, (tx) => tx.query("select public.accept_room_invitation($1)", [invA5.id]), { commit: true }),
+    db.asUser(U.a5, (tx) => tx.query("select public.accept_room_invitation($1)", [invA5.id]), {
+      commit: true,
+    }),
     "ROOM_FULL",
   );
 
@@ -78,14 +86,22 @@ test("#11 capacity: second accept into a room that became full -> ROOM_FULL (seq
   assert.equal(members.n, 4, "exactly 4 active members, never 5");
   const a5 = await db.one("select status from public.room_invitations where id = $1", [invA5.id]);
   assert.equal(a5.status, "pending", "losing invitation is not consumed");
-  const a5m = await db.query("select 1 from public.room_members where room_id = $1 and user_id = $2", [ROOM.r1, U.a5]);
+  const a5m = await db.query(
+    "select 1 from public.room_members where room_id = $1 and user_id = $2",
+    [ROOM.r1, U.a5],
+  );
   assert.equal(a5m.rows.length, 0);
 
   // Mechanism: the capacity check runs under a row lock on the room.
-  const def = (await db.one("select pg_get_functiondef('public.accept_room_invitation(uuid)'::regprocedure) d")).d;
+  const def = (
+    await db.one("select pg_get_functiondef('public.accept_room_invitation(uuid)'::regprocedure) d")
+  ).d;
   const lockIdx = def.search(/from\s+public\.rooms[\s\S]*?for\s+update/i);
   const countIdx = def.search(/count\(\*\)/i);
-  assert.ok(lockIdx >= 0, "accept_room_invitation must SELECT ... FROM public.rooms ... FOR UPDATE");
+  assert.ok(
+    lockIdx >= 0,
+    "accept_room_invitation must SELECT ... FROM public.rooms ... FOR UPDATE",
+  );
   assert.ok(countIdx > lockIdx, "active-member count must happen after taking the room lock");
   assert.match(def, /ROOM_FULL/);
   assert.match(def, />=\s*4/);
@@ -96,12 +112,18 @@ test("#11 capacity: second accept into a room that became full -> ROOM_FULL (seq
 // ---------------------------------------------------------------------------
 test("#12 expired invitation: not in pending list; accept -> INVITATION_EXPIRED (NULL) and status 'expired'", async (t) => {
   const db = await fresh(t);
-  const seedRow = await db.one("select status, expires_at < now() past from public.room_invitations where id = $1", [INV.i2_a5_expired]);
+  const seedRow = await db.one(
+    "select status, expires_at < now() past from public.room_invitations where id = $1",
+    [INV.i2_a5_expired],
+  );
   assert.deepEqual(seedRow, { status: "pending", past: true });
 
   await db.asUser(U.a5, async (tx) => {
     const { rows } = await tx.query("select id::text from public.get_pending_invitations()");
-    assert.ok(!rows.some((r) => r.id === INV.i2_a5_expired), "expired invitation must not be listed");
+    assert.ok(
+      !rows.some((r) => r.id === INV.i2_a5_expired),
+      "expired invitation must not be listed",
+    );
     // Also the documented direct read filter.
     const direct = await tx.query(
       "select id from public.room_invitations where invitee_user_id = auth.uid() and status = 'pending' and expires_at > now()",
@@ -109,19 +131,30 @@ test("#12 expired invitation: not in pending list; accept -> INVITATION_EXPIRED 
     assert.equal(direct.rows.length, 0);
   });
   // Control: a4's valid invitation is listed.
-  const a4list = await db.asUser(U.a4, (tx) => tx.query("select id::text from public.get_pending_invitations()"));
-  assert.deepEqual(a4list.rows.map((r) => r.id), [INV.i1_a4_valid]);
+  const a4list = await db.asUser(U.a4, (tx) =>
+    tx.query("select id::text from public.get_pending_invitations()"),
+  );
+  assert.deepEqual(
+    a4list.rows.map((r) => r.id),
+    [INV.i1_a4_valid],
+  );
 
   // Documented convention: accept returns NULL == INVITATION_EXPIRED, and the status update persists.
   const res = await db.asUser(
     U.a5,
-    (tx) => tx.one("select public.accept_room_invitation($1) as r", [INV.i2_a5_expired]).then((x) => x.r),
+    (tx) =>
+      tx.one("select public.accept_room_invitation($1) as r", [INV.i2_a5_expired]).then((x) => x.r),
     { commit: true },
   );
   assert.equal(res, null, "INVITATION_EXPIRED is signalled by a NULL return");
-  const after = await db.one("select status from public.room_invitations where id = $1", [INV.i2_a5_expired]);
+  const after = await db.one("select status from public.room_invitations where id = $1", [
+    INV.i2_a5_expired,
+  ]);
   assert.equal(after.status, "expired");
-  const m = await db.query("select 1 from public.room_members where room_id = $1 and user_id = $2", [ROOM.r1, U.a5]);
+  const m = await db.query(
+    "select 1 from public.room_members where room_id = $1 and user_id = $2",
+    [ROOM.r1, U.a5],
+  );
   assert.equal(m.rows.length, 0, "expired invitation must not grant membership");
 
   // Calling again still reports expired.
@@ -141,7 +174,9 @@ test("#13 second start_ai_run while one is active -> busy; one active run, one p
   assert.ok(first.run_id && first.placeholder_message_id);
 
   // Second trigger from another member (a1's own message) a moment later.
-  const second = await db.asService((tx) => startAi(tx, { msg: MSG.r1_a1_newest, by: U.a1 }), { commit: true });
+  const second = await db.asService((tx) => startAi(tx, { msg: MSG.r1_a1_newest, by: U.a1 }), {
+    commit: true,
+  });
   assert.deepEqual(second, { run_id: null, placeholder_message_id: null, ai_status: "busy" });
   const third = await db.asService((tx) => startAi(tx), { commit: true });
   assert.equal(third.ai_status, "busy");
@@ -154,10 +189,17 @@ test("#13 second start_ai_run while one is active -> busy; one active run, one p
     [ROOM.r1],
   );
   assert.equal(ph.rows.length, 1);
-  assert.deepEqual(ph.rows[0], { id: first.placeholder_message_id, ai_run_id: first.run_id, status: "streaming", content: "" });
+  assert.deepEqual(ph.rows[0], {
+    id: first.placeholder_message_id,
+    ai_run_id: first.run_id,
+    status: "streaming",
+    content: "",
+  });
 
   // Mechanism: partial unique index exists.
-  const idx = await db.one("select indexdef from pg_indexes where indexname = 'ai_runs_one_active_per_room'");
+  const idx = await db.one(
+    "select indexdef from pg_indexes where indexname = 'ai_runs_one_active_per_room'",
+  );
   assert.match(idx.indexdef, /UNIQUE/);
   assert.match(idx.indexdef, /queued/);
   assert.match(idx.indexdef, /running/);
@@ -197,12 +239,18 @@ for (const [num, status, startedSql] of [
     assert.equal(res.ai_status, "started");
     assert.notEqual(res.run_id, stale.id);
 
-    const old = await db.one("select status, error_code, finished_at from public.ai_runs where id = $1", [stale.id]);
+    const old = await db.one(
+      "select status, error_code, finished_at from public.ai_runs where id = $1",
+      [stale.id],
+    );
     assert.equal(old.status, "failed");
     assert.equal(old.error_code, "stale");
     assert.notEqual(old.finished_at, null);
     const runs = await activeRuns((s, p) => db.query(s, p));
-    assert.deepEqual(runs.map((r) => r.id), [res.run_id]);
+    assert.deepEqual(
+      runs.map((r) => r.id),
+      [res.run_id],
+    );
     const oldMsg = await db.one("select status from public.messages where id = $1", [stale.msgId]);
     assert.notEqual(oldMsg.status, "streaming", "old placeholder must not keep streaming");
   });
@@ -233,25 +281,38 @@ test("#16 start_ai_run failing after the run insert -> no active run, no orphan 
     create trigger test_reject_ai_message before insert on public.messages
       for each row execute function public.test_reject_ai_message();
   `);
-  const aiBefore = (await db.one("select count(*)::int n from public.messages where sender_type = 'ai'")).n;
+  const aiBefore = (
+    await db.one("select count(*)::int n from public.messages where sender_type = 'ai'")
+  ).n;
   const runsBefore = (await db.one("select count(*)::int n from public.ai_runs")).n;
 
   // Like a PostgREST RPC call: one transaction that errors -> rolled back.
-  await expectError(db.asService((tx) => startAi(tx), { commit: true }), "TEST_PLACEHOLDER_FAIL");
+  await expectError(
+    db.asService((tx) => startAi(tx), { commit: true }),
+    "TEST_PLACEHOLDER_FAIL",
+  );
 
   assert.equal((await activeRuns((s, p) => db.query(s, p))).length, 0, "no active run left behind");
   assert.equal((await db.one("select count(*)::int n from public.ai_runs")).n, runsBefore);
-  assert.equal((await db.one("select count(*)::int n from public.messages where sender_type = 'ai'")).n, aiBefore, "no orphan placeholder");
+  assert.equal(
+    (await db.one("select count(*)::int n from public.messages where sender_type = 'ai'")).n,
+    aiBefore,
+    "no orphan placeholder",
+  );
 
   // After the fault is removed, the room is not stuck "busy".
-  await db.exec("drop trigger test_reject_ai_message on public.messages; drop function public.test_reject_ai_message();");
+  await db.exec(
+    "drop trigger test_reject_ai_message on public.messages; drop function public.test_reject_ai_message();",
+  );
   const ok = await db.asService((tx) => startAi(tx), { commit: true });
   assert.equal(ok.ai_status, "started");
 });
 
 test("#16b start_ai_run with a trigger message from another room -> rejected, nothing created", async (t) => {
   const db = await fresh(t);
-  const aiBefore = (await db.one("select count(*)::int n from public.messages where sender_type = 'ai'")).n;
+  const aiBefore = (
+    await db.one("select count(*)::int n from public.messages where sender_type = 'ai'")
+  ).n;
   const runsBefore = (await db.one("select count(*)::int n from public.ai_runs")).n;
   // a2 is a member of R1 and authored R2 message ...011.
   await expectError(
@@ -269,15 +330,24 @@ test("#16b start_ai_run with a trigger message from another room -> rejected, no
     "NOT_ALLOWED",
   );
   assert.equal((await db.one("select count(*)::int n from public.ai_runs")).n, runsBefore);
-  assert.equal((await db.one("select count(*)::int n from public.messages where sender_type = 'ai'")).n, aiBefore);
+  assert.equal(
+    (await db.one("select count(*)::int n from public.messages where sender_type = 'ai'")).n,
+    aiBefore,
+  );
 });
 
 // ---------------------------------------------------------------------------
 // Extras
 // ---------------------------------------------------------------------------
 test("extra: authenticated/anon calling start_ai_run directly -> permission denied", async () => {
-  await expectError(base.asUser(U.a3, (tx) => startAi(tx)), "permission denied");
-  await expectError(base.asAnon((tx) => startAi(tx)), "permission denied");
+  await expectError(
+    base.asUser(U.a3, (tx) => startAi(tx)),
+    "permission denied",
+  );
+  await expectError(
+    base.asAnon((tx) => startAi(tx)),
+    "permission denied",
+  );
   const priv = await base.one(`
     select has_function_privilege('anon', 'public.start_ai_run(uuid,uuid,uuid,int,int)', 'EXECUTE') anon,
            has_function_privilege('authenticated', 'public.start_ai_run(uuid,uuid,uuid,int,int)', 'EXECUTE') auth,
@@ -290,17 +360,28 @@ test("extra: rate limit -> 'rate_limited'", async (t) => {
   // Seed run is ~2.75h old, so the per-user counter starts at 0.
   const first = await db.asService((tx) => startAi(tx, { userLimit: 1 }), { commit: true });
   assert.equal(first.ai_status, "started");
-  await db.query("update public.ai_runs set status = 'succeeded', finished_at = now() where id = $1", [first.run_id]);
+  await db.query(
+    "update public.ai_runs set status = 'succeeded', finished_at = now() where id = $1",
+    [first.run_id],
+  );
 
   const userLimited = await db.asService((tx) => startAi(tx, { userLimit: 1 }));
-  assert.deepEqual(userLimited, { run_id: null, placeholder_message_id: null, ai_status: "rate_limited" });
+  assert.deepEqual(userLimited, {
+    run_id: null,
+    placeholder_message_id: null,
+    ai_status: "rate_limited",
+  });
 
   // Room limit applies to other members too.
-  const roomLimited = await db.asService((tx) => startAi(tx, { msg: MSG.r1_a1_newest, by: U.a1, roomLimit: 1 }));
+  const roomLimited = await db.asService((tx) =>
+    startAi(tx, { msg: MSG.r1_a1_newest, by: U.a1, roomLimit: 1 }),
+  );
   assert.equal(roomLimited.ai_status, "rate_limited");
 
   // Different user, room limit not reached -> started.
-  const other = await db.asService((tx) => startAi(tx, { msg: MSG.r1_a1_newest, by: U.a1, userLimit: 1, roomLimit: 5 }));
+  const other = await db.asService((tx) =>
+    startAi(tx, { msg: MSG.r1_a1_newest, by: U.a1, userLimit: 1, roomLimit: 5 }),
+  );
   assert.equal(other.ai_status, "started");
 });
 
@@ -316,23 +397,32 @@ test("extra: AI disabled (global or room) -> 'disabled'", async (t) => {
     await become(tx, "service_role");
     assert.equal((await startAi(tx)).ai_status, "disabled");
   });
-  assert.equal((await db.one("select count(*)::int n from public.ai_runs where status in ('queued','running')")).n, 0);
+  assert.equal(
+    (
+      await db.one(
+        "select count(*)::int n from public.ai_runs where status in ('queued','running')",
+      )
+    ).n,
+    0,
+  );
 });
 
 test("extra: invitation INSERT for a user not enrolled in the course -> denied", async () => {
   await base.asOwner(async (tx) => {
     // Control: a1 can invite a5 (enrolled in CS-201, not a member).
     await become(tx, U.a1);
-    await tx.savepoint(async () => {
-      const ok = await tx.query(
-        "insert into public.room_invitations (room_id, inviter_id, invitee_user_id) values ($1, $2, $3) returning id",
-        [ROOM.r1, U.a1, U.a5],
-      );
-      assert.equal(ok.rows.length, 1);
-      throw new Error("rollback-savepoint");
-    }).catch((e) => {
-      if (e.message !== "rollback-savepoint") throw e;
-    });
+    await tx
+      .savepoint(async () => {
+        const ok = await tx.query(
+          "insert into public.room_invitations (room_id, inviter_id, invitee_user_id) values ($1, $2, $3) returning id",
+          [ROOM.r1, U.a1, U.a5],
+        );
+        assert.equal(ok.rows.length, 1);
+        throw new Error("rollback-savepoint");
+      })
+      .catch((e) => {
+        if (e.message !== "rollback-savepoint") throw e;
+      });
 
     // Admin has no enrollments at all.
     await tx.expectError(
@@ -343,7 +433,10 @@ test("extra: invitation INSERT for a user not enrolled in the course -> denied",
 
     // a5's CS-201 enrollment archived -> no longer invitable.
     await become(tx, "owner");
-    await tx.query("update public.enrollments set status = 'archived' where user_id = $1 and course_id = $2", [U.a5, COURSE.cs201]);
+    await tx.query(
+      "update public.enrollments set status = 'archived' where user_id = $1 and course_id = $2",
+      [U.a5, COURSE.cs201],
+    );
     await become(tx, U.a1);
     await tx.expectError(
       "insert into public.room_invitations (room_id, inviter_id, invitee_user_id) values ($1, $2, $3)",
@@ -353,7 +446,10 @@ test("extra: invitation INSERT for a user not enrolled in the course -> denied",
 
     // Non-member (a4) cannot invite into R1.
     await become(tx, "owner");
-    await tx.query("update public.enrollments set status = 'active' where user_id = $1 and course_id = $2", [U.a5, COURSE.cs201]);
+    await tx.query(
+      "update public.enrollments set status = 'active' where user_id = $1 and course_id = $2",
+      [U.a5, COURSE.cs201],
+    );
     await become(tx, U.a4);
     await tx.expectError(
       "insert into public.room_invitations (room_id, inviter_id, invitee_user_id) values ($1, $2, $3)",
@@ -362,15 +458,24 @@ test("extra: invitation INSERT for a user not enrolled in the course -> denied",
     );
   });
   // Nothing persisted, I2 untouched.
-  const i2 = await base.one("select status from public.room_invitations where id = $1", [INV.i2_a5_expired]);
+  const i2 = await base.one("select status from public.room_invitations where id = $1", [
+    INV.i2_a5_expired,
+  ]);
   assert.equal(i2.status, "pending");
 });
 
 test("extra: accept by an invitee no longer enrolled -> NOT_ALLOWED", async () => {
   await base.asOwner(async (tx) => {
-    await tx.query("update public.enrollments set status = 'archived' where user_id = $1 and course_id = $2", [U.a4, COURSE.cs201]);
+    await tx.query(
+      "update public.enrollments set status = 'archived' where user_id = $1 and course_id = $2",
+      [U.a4, COURSE.cs201],
+    );
     await become(tx, U.a4);
-    await tx.expectError("select public.accept_room_invitation($1)", [INV.i1_a4_valid], "NOT_ALLOWED");
+    await tx.expectError(
+      "select public.accept_room_invitation($1)",
+      [INV.i1_a4_valid],
+      "NOT_ALLOWED",
+    );
   });
 });
 
@@ -408,10 +513,14 @@ test("extra: room INSERT makes the creator an active 'owner' member atomically",
 
 test("extra: leave_room then messages are invisible (and ownership hands off)", async () => {
   await base.asUser(U.a1, async (tx) => {
-    const beforeN = (await tx.one("select count(*)::int n from public.messages where room_id = $1", [ROOM.r1])).n;
-    assert.equal(beforeN, 5);
+    const beforeN = (
+      await tx.one("select count(*)::int n from public.messages where room_id = $1", [ROOM.r1])
+    ).n;
+    assert.equal(beforeN, 28);
     await tx.query("select public.leave_room($1)", [ROOM.r1]);
-    const afterN = (await tx.one("select count(*)::int n from public.messages where room_id = $1", [ROOM.r1])).n;
+    const afterN = (
+      await tx.one("select count(*)::int n from public.messages where room_id = $1", [ROOM.r1])
+    ).n;
     assert.equal(afterN, 0);
     await tx.expectError(
       "insert into public.messages (room_id, sender_id, sender_type, content) values ($1, $2, 'user', 'back?')",
@@ -430,6 +539,10 @@ test("extra: leave_room then messages are invisible (and ownership hands off)", 
 
 test("extra: accepting someone else's invitation -> INVITATION_NOT_FOUND", async () => {
   await base.asUser(U.a5, async (tx) => {
-    await tx.expectError("select public.accept_room_invitation($1)", [INV.i1_a4_valid], "INVITATION_NOT_FOUND");
+    await tx.expectError(
+      "select public.accept_room_invitation($1)",
+      [INV.i1_a4_valid],
+      "INVITATION_NOT_FOUND",
+    );
   });
 });
