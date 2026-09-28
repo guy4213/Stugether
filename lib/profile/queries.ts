@@ -1,6 +1,6 @@
 import "server-only";
+import { getCachedOwnProfile } from "@/lib/app/cached";
 import { createClient } from "@/lib/supabase/server";
-import { getOwnProfile } from "@/lib/repositories/profiles";
 import { listInstitutions, listFaculties, listDepartments } from "@/lib/repositories/catalog";
 import { countActiveClassmates, listMyEnrollments } from "@/lib/repositories/enrollments";
 import { listMyMessageTimestamps } from "@/lib/repositories/messages";
@@ -13,7 +13,7 @@ export async function getProfileFormData(userId: string) {
   const supabase = await createClient();
   const since60 = new Date(Date.now() - 60 * 86_400_000).toISOString();
   const [profile, institutions, enrollments, partners, messageTimes, progress] = await Promise.all([
-    getOwnProfile(supabase, userId),
+    getCachedOwnProfile(userId),
     listInstitutions(supabase),
     listMyEnrollments(supabase, userId),
     countActiveClassmates(supabase, userId),

@@ -1,14 +1,10 @@
 import "server-only";
+import { getCachedMyActiveRooms, getCachedOwnProfile } from "@/lib/app/cached";
 import { createClient } from "@/lib/supabase/server";
 import { getCourse, listDepartments } from "@/lib/repositories/catalog";
-import { getOwnProfile } from "@/lib/repositories/profiles";
 import { countActiveStudentsByCourseIds, listMyEnrollments } from "@/lib/repositories/enrollments";
 import { listEnrolledCourseStudents } from "@/lib/repositories/invitations";
-import {
-  listMyActiveRooms,
-  countActiveRoomsByCourseIds,
-  listOpenRooms,
-} from "@/lib/repositories/rooms";
+import { countActiveRoomsByCourseIds, listOpenRooms } from "@/lib/repositories/rooms";
 import { listEventRegistrations, listTestsForCourse } from "@/lib/repositories/tests";
 import { listCourseTopics, listMyTopicProgress } from "@/lib/repositories/topics";
 import { listAvailability } from "@/lib/repositories/availability";
@@ -35,10 +31,10 @@ export async function getCourseDetailData(userId: string, courseId: string) {
     favoriteIds,
   ] = await Promise.all([
     getCourse(supabase, courseId),
-    getOwnProfile(supabase, userId),
+    getCachedOwnProfile(userId),
     listMyEnrollments(supabase, userId),
     listEnrolledCourseStudents(supabase, courseId),
-    listMyActiveRooms(supabase, userId),
+    getCachedMyActiveRooms(userId),
     listTestsForCourse(supabase, courseId),
     countActiveRoomsByCourseIds(supabase, [courseId]),
     countActiveStudentsByCourseIds(supabase, [courseId]),

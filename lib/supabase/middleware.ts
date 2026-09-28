@@ -8,8 +8,10 @@ import { NextResponse, type NextRequest } from "next/server";
 // Next.js 16, but the helper's role and shape are unchanged).
 //
 // Creates a Supabase server client bound to the request/response cookies and
-// calls getUser() (never getSession()) so an expired access token is
-// actually refreshed against the auth server, not just read from a cookie.
+// calls getClaims() (never a bare getSession()): an expired access token is
+// refreshed against the auth server and the new cookies are written, while a
+// still-valid token's signature is verified locally with the project's
+// asymmetric signing key — no Auth round trip on every request.
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({
     request,
@@ -39,10 +41,10 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Do not run code between createServerClient and this call — it forces a
-  // token refresh check against the auth server (unlike getSession(), which
-  // only reads the local cookie and can silently serve an expired session).
-  await supabase.auth.getUser();
+  // Do not run code between createServerClient and this call — it refreshes
+  // an expired session (unlike reading the cookie alone, which can silently
+  // serve an expired session) and verifies the JWT signature.
+  await supabase.auth.getClaims();
 
   return response;
 }

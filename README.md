@@ -18,16 +18,23 @@
 ```bash
 npm install
 cp .env.example .env.local
+# מפתח חתימה מקומי (ES256). הקובץ ב-.gitignore — לא לקמט אותו.
+npx supabase gen signing-key --algorithm ES256 > supabase/signing_keys.json
 npm run db:start          # Supabase מקומי — מדפיס URL ומפתחות
 ```
 
+`signing_keys.json` חייב להיות **מערך** JSON. אם הפקודה כתבה אובייקט בודד, עוטפים אותו ב-`[ ]`.
+בזכות המפתח האסימטרי, `auth.getClaims()` מאמת את ה-session מקומית, בלי קריאה לשרת האימות בכל עמוד.
+
 מעתיקים מהפלט של `db:start` ל-`.env.local`:
 
-| פלט                | משתנה                           |
-| ------------------ | ------------------------------- |
-| `API URL`          | `NEXT_PUBLIC_SUPABASE_URL`      |
-| `anon key`         | `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
-| `service_role key` | `SUPABASE_SERVICE_ROLE_KEY`     |
+| פלט               | משתנה                           |
+| ----------------- | ------------------------------- |
+| `API_URL`         | `NEXT_PUBLIC_SUPABASE_URL`      |
+| `PUBLISHABLE_KEY` | `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| `SECRET_KEY`      | `SUPABASE_SERVICE_ROLE_KEY`     |
+
+המפתחות הישנים (`ANON_KEY`/`SERVICE_ROLE_KEY`, ‏JWT בחתימת HS256) לא עובדים כשמפתח החתימה מופעל.
 
 ```bash
 npm run dev               # http://localhost:3000

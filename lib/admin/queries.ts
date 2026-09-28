@@ -1,9 +1,9 @@
 import "server-only";
+import { getCachedOwnProfile } from "@/lib/app/cached";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getOwnProfile } from "@/lib/repositories/profiles";
 import {
   getAiUsageSummary,
   getAppSettings,
@@ -21,8 +21,7 @@ import {
 export const requireSuperAdmin = cache(async () => {
   const user = await getCurrentUser();
   if (!user) return null;
-  const supabase = await createClient();
-  const profile = await getOwnProfile(supabase, user.id);
+  const profile = await getCachedOwnProfile(user.id);
   if (!profile || profile.role !== "super_admin" || !profile.is_active) return null;
   return { userId: user.id };
 });

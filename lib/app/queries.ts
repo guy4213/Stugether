@@ -1,8 +1,12 @@
 import "server-only";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getOwnProfile, touchLastSeen } from "@/lib/repositories/profiles";
-import { countUnreadNotifications } from "@/lib/repositories/notifications";
-import { listMyActiveRooms } from "@/lib/repositories/rooms";
+import { touchLastSeen } from "@/lib/repositories/profiles";
+import {
+  getCachedMyActiveRooms,
+  getCachedOwnProfile,
+  getCachedUnreadNotificationCount,
+} from "@/lib/app/cached";
 
 const LAST_SEEN_THROTTLE_MS = 2 * 60 * 1000;
 
@@ -10,16 +14,18 @@ const LAST_SEEN_THROTTLE_MS = 2 * 60 * 1000;
 // notifications badge and the "active room" shortcut. Also the presence
 // heartbeat behind "online" badges (throttled to one write per 2 minutes).
 export async function getShellData(userId: string) {
-  const supabase = await createClient();
   const [profile, unreadNotifications, rooms] = await Promise.all([
-    getOwnProfile(supabase, userId),
-    countUnreadNotifications(supabase, userId),
-    listMyActiveRooms(supabase, userId),
+    getCachedOwnProfile(userId),
+    getCachedUnreadNotificationCount(userId),
+    getCachedMyActiveRooms(userId),
   ]);
 
   const lastSeen = profile?.last_seen_at ? new Date(profile.last_seen_at).getTime() : 0;
   if (profile && Date.now() - lastSeen > LAST_SEEN_THROTTLE_MS) {
-    await touchLastSeen(supabase, userId).catch(() => {});
+    // The heartbeat write must not delay the page: run it after the response.
+    // The client is built now — cookies() is not readable inside after().
+    const supabase = await createClient();
+    after(() => touchLastSeen(supabase, userId).catch(() => {}));
   }
 
   const activeRoom = rooms.find((r) => r.status === "active") ?? null;

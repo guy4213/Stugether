@@ -1,9 +1,8 @@
 import "server-only";
+import { getCachedMyActiveRooms, getCachedOwnProfile } from "@/lib/app/cached";
 import { createClient } from "@/lib/supabase/server";
 import { listMyEnrollments } from "@/lib/repositories/enrollments";
-import { listMyActiveRooms } from "@/lib/repositories/rooms";
 import { listMyMessageTimestamps } from "@/lib/repositories/messages";
-import { getOwnProfile } from "@/lib/repositories/profiles";
 import { listDepartments } from "@/lib/repositories/catalog";
 
 const WEEK_MS = 7 * 86_400_000;
@@ -21,9 +20,9 @@ export async function getAnalyticsData(userId: string, range: AnalyticsRange = "
   const since = new Date(Date.now() - weeks * WEEK_MS);
   const [enrollments, activeRooms, messageTimes, profile] = await Promise.all([
     listMyEnrollments(supabase, userId),
-    listMyActiveRooms(supabase, userId),
+    getCachedMyActiveRooms(userId),
     listMyMessageTimestamps(supabase, userId, since.toISOString()),
-    getOwnProfile(supabase, userId),
+    getCachedOwnProfile(userId),
   ]);
   const departments = profile?.institution_id
     ? await listDepartments(supabase, profile.institution_id)

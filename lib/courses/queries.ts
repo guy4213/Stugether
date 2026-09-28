@@ -1,6 +1,6 @@
 import "server-only";
+import { getCachedOwnProfile } from "@/lib/app/cached";
 import { createClient } from "@/lib/supabase/server";
-import { getOwnProfile } from "@/lib/repositories/profiles";
 import { listActiveCourses, listDepartments } from "@/lib/repositories/catalog";
 import { listFavoriteCourseIds } from "@/lib/repositories/favorites";
 import { countActiveRoomsByCourseIds } from "@/lib/repositories/rooms";
@@ -18,7 +18,7 @@ export async function getCoursesPageData(
 ) {
   const supabase = await createClient();
   const [profile, favoriteIds] = await Promise.all([
-    getOwnProfile(supabase, userId),
+    getCachedOwnProfile(userId),
     listFavoriteCourseIds(supabase, userId),
   ]);
   const institutionId = profile?.institution_id ?? null;

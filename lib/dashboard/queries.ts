@@ -1,25 +1,22 @@
 import "server-only";
+import {
+  getCachedMyActiveRooms,
+  getCachedOwnProfile,
+  getCachedUnreadNotificationCount,
+} from "@/lib/app/cached";
 import { createClient } from "@/lib/supabase/server";
-import { getOwnProfile, listPublicProfiles } from "@/lib/repositories/profiles";
+import { listPublicProfiles } from "@/lib/repositories/profiles";
 import {
   countActiveStudentsByCourseIds,
   listCourseRosters,
   listMyEnrollments,
 } from "@/lib/repositories/enrollments";
-import {
-  countActiveRoomsByCourseIds,
-  listMyActiveRooms,
-  listOpenRooms,
-} from "@/lib/repositories/rooms";
+import { countActiveRoomsByCourseIds, listOpenRooms } from "@/lib/repositories/rooms";
 import { listActiveCourses, listDepartments } from "@/lib/repositories/catalog";
 import { listCourseTopics, listMyTopicProgress } from "@/lib/repositories/topics";
 import { listAvailability } from "@/lib/repositories/availability";
-import { listEventRegistrations, listUpcomingTestsForUser } from "@/lib/repositories/tests";
-import {
-  countUnreadNotifications,
-  listNotifications,
-  type NotificationType,
-} from "@/lib/repositories/notifications";
+import { listEventRegistrations, listUpcomingTestsForCourses } from "@/lib/repositories/tests";
+import { listNotifications, type NotificationType } from "@/lib/repositories/notifications";
 import { getUnreadSummary, listMyMessageTimestamps } from "@/lib/repositories/messages";
 import { listPendingInvitations } from "@/lib/repositories/invitations";
 import { summarizeTopics, type TopicWithState } from "@/lib/courses/topic-state";
@@ -59,6 +56,46 @@ export async function getDashboardData(userId: string) {
   const supabase = await createClient();
   const since60 = new Date(Date.now() - 60 * DAY_MS).toISOString();
 
+  // A dependency graph, not rounds: every query starts as soon as what it
+  // needs has arrived (e.g. rosters wait only for my enrollments, the catalog
+  // only for my profile), so the slowest chain is enrollments → rosters →
+  // profiles instead of four sequential Promise.all rounds.
+  const pProfile = getCachedOwnProfile(userId);
+  const pEnrollments = listMyEnrollments(supabase, userId);
+  const pNotifications = listNotifications(supabase, userId, { limit: 4 });
+
+  const pCourseIds = pEnrollments.then((rows) =>
+    rows.filter((e) => e.status === "active").map((e) => e.course_id),
+  );
+  const pEvents = pCourseIds.then((ids) => listUpcomingTestsForCourses(supabase, ids));
+  const pInstitutionId = pProfile.then((p) => p?.institution_id ?? null);
+  const pInstitutionCourses = pInstitutionId.then((id) =>
+    id ? listActiveCourses(supabase, { institutionId: id }) : [],
+  );
+  const pRosters = pCourseIds.then((ids) => listCourseRosters(supabase, ids));
+  const pAvailability = pCourseIds.then((ids) => listAvailability(supabase, ids));
+  const now = Date.now();
+  const pNextEvent = pEvents.then(
+    (events) => events.find((e) => e.due_at && new Date(e.due_at).getTime() > now) ?? null,
+  );
+  const pRegistrations = pNextEvent.then((e) => listEventRegistrations(supabase, e ? [e.id] : []));
+  // Catalog recommendations: my institution's courses I'm not enrolled in.
+  const pCandidateIds = Promise.all([pInstitutionCourses, pCourseIds]).then(([courses, ids]) =>
+    courses.filter((c) => !ids.includes(c.id)).map((c) => c.id),
+  );
+  // One batched lookup for every person shown on the page.
+  const pPeople = Promise.all([pRosters, pAvailability, pRegistrations, pNotifications]).then(
+    ([rosterRows, availabilityRows, registrationRows, notificationRows]) => {
+      const personIds = new Set<string>();
+      rosterRows.forEach((r) => personIds.add(r.user_id));
+      availabilityRows.forEach((a) => personIds.add(a.user_id));
+      registrationRows.forEach((r) => personIds.add(r.user_id));
+      notificationRows.forEach((n) => n.actor_id && personIds.add(n.actor_id));
+      personIds.delete(userId);
+      return listPublicProfiles(supabase, [...personIds]);
+    },
+  );
+
   const [
     profile,
     enrollments,
@@ -70,62 +107,46 @@ export async function getDashboardData(userId: string) {
     unreadCount,
     invitations,
     unreadSummary,
+    courseIds,
+    topics,
+    rosters,
+    availability,
+    openRooms,
+    institutionCourses,
+    departments,
+    nextEventRaw,
+    registrations,
+    studentCounts,
+    roomCounts,
+    people,
   ] = await Promise.all([
-    getOwnProfile(supabase, userId),
-    listMyEnrollments(supabase, userId),
-    listMyActiveRooms(supabase, userId),
+    pProfile,
+    pEnrollments,
+    getCachedMyActiveRooms(userId),
     listMyTopicProgress(supabase, userId),
     listMyMessageTimestamps(supabase, userId, since60),
-    listUpcomingTestsForUser(supabase, userId),
-    listNotifications(supabase, userId, { limit: 4 }),
-    countUnreadNotifications(supabase, userId),
+    pEvents,
+    pNotifications,
+    getCachedUnreadNotificationCount(userId),
     listPendingInvitations(supabase),
     getUnreadSummary(supabase),
+    pCourseIds,
+    pCourseIds.then((ids) => listCourseTopics(supabase, ids)),
+    pRosters,
+    pAvailability,
+    pCourseIds.then((ids) => listOpenRooms(supabase, ids)),
+    pInstitutionCourses,
+    pInstitutionId.then((id) => (id ? listDepartments(supabase, id) : [])),
+    pNextEvent,
+    pRegistrations,
+    pCandidateIds.then((ids) => countActiveStudentsByCourseIds(supabase, ids)),
+    pCandidateIds.then((ids) => countActiveRoomsByCourseIds(supabase, ids)),
+    pPeople,
   ]);
 
   const active = enrollments.filter((e) => e.status === "active");
-  const courseIds = active.map((e) => e.course_id);
-
-  const [topics, rosters, availability, openRooms, institutionCourses, departments] =
-    await Promise.all([
-      listCourseTopics(supabase, courseIds),
-      listCourseRosters(supabase, courseIds),
-      listAvailability(supabase, courseIds),
-      listOpenRooms(supabase, courseIds),
-      profile?.institution_id
-        ? listActiveCourses(supabase, { institutionId: profile.institution_id })
-        : Promise.resolve([]),
-      profile?.institution_id
-        ? listDepartments(supabase, profile.institution_id)
-        : Promise.resolve([]),
-    ]);
-
-  const now = Date.now();
   const upcomingEvents = events.filter((e) => e.due_at && new Date(e.due_at).getTime() > now);
-  const nextEventRaw = upcomingEvents[0] ?? null;
-
-  // Catalog recommendations: my institution's courses I'm not enrolled in.
   const candidateCourses = institutionCourses.filter((c) => !courseIds.includes(c.id));
-  const [studentCounts, roomCounts, registrations] = await Promise.all([
-    countActiveStudentsByCourseIds(
-      supabase,
-      candidateCourses.map((c) => c.id),
-    ),
-    countActiveRoomsByCourseIds(
-      supabase,
-      candidateCourses.map((c) => c.id),
-    ),
-    listEventRegistrations(supabase, nextEventRaw ? [nextEventRaw.id] : []),
-  ]);
-
-  // One batched lookup for every person shown on the page.
-  const personIds = new Set<string>();
-  rosters.forEach((r) => personIds.add(r.user_id));
-  availability.forEach((a) => personIds.add(a.user_id));
-  registrations.forEach((r) => personIds.add(r.user_id));
-  notifications.forEach((n) => n.actor_id && personIds.add(n.actor_id));
-  personIds.delete(userId);
-  const people = await listPublicProfiles(supabase, [...personIds]);
   const personById = new Map(people.map((p) => [p.id, { id: p.id, name: p.full_name }]));
   const person = (id: string): StackPerson | null => personById.get(id) ?? null;
   const toPeople = (ids: string[]) => ids.map(person).filter((p): p is StackPerson => p !== null);

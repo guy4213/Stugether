@@ -1,4 +1,5 @@
 import "server-only";
+import { getCachedMyActiveRooms } from "@/lib/app/cached";
 import { createClient } from "@/lib/supabase/server";
 import { listPendingInvitations, type PendingInvitation } from "@/lib/repositories/invitations";
 import {
@@ -8,7 +9,7 @@ import {
   type AppNotification,
   type NotificationCategory,
 } from "@/lib/repositories/notifications";
-import { listMyActiveRooms, listOpenRooms } from "@/lib/repositories/rooms";
+import { listOpenRooms } from "@/lib/repositories/rooms";
 import { listMyEnrollments } from "@/lib/repositories/enrollments";
 import { israelDayKey } from "@/lib/stats/streak";
 
@@ -47,7 +48,7 @@ export async function getNotificationsData(userId: string, category: Notificatio
       getNotificationSummary(supabase, null),
       getNotificationSummary(supabase, weekAgo),
       getNotificationPreferences(supabase, userId),
-      listMyActiveRooms(supabase, userId),
+      getCachedMyActiveRooms(userId),
       listMyEnrollments(supabase, userId),
     ]);
 

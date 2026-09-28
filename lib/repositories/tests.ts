@@ -20,22 +20,13 @@ export interface CourseTestWithCourse extends CourseTest {
   course: { name: string; code: string | null };
 }
 
-// Dashboard's "dynamic tests" section — DB-driven items in place of the
-// static "Assignments" mock, scoped to courses the caller is actively
-// enrolled in (RLS: tests_select_enrolled_or_admin already limits rows the
-// same way, this ordering/shape is just for the dashboard's own query).
-export async function listUpcomingTestsForUser(
+// Dashboard's events, for the courses the caller is actively enrolled in —
+// the caller passes those ids (it already has them), which saves a round
+// trip. RLS (tests_select_enrolled_or_admin) limits the rows the same way.
+export async function listUpcomingTestsForCourses(
   client: SupabaseClient,
-  userId: string,
+  courseIds: string[],
 ): Promise<CourseTestWithCourse[]> {
-  const { data: enrollments, error: enrollmentsError } = await client
-    .from("enrollments")
-    .select("course_id")
-    .eq("user_id", userId)
-    .eq("status", "active");
-  if (enrollmentsError) throw enrollmentsError;
-
-  const courseIds = (enrollments as { course_id: string }[]).map((row) => row.course_id);
   if (courseIds.length === 0) return [];
 
   const { data, error } = await client
