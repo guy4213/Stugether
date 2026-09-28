@@ -69,7 +69,7 @@ export default function SignUpPage() {
       }
       if (result.hasSession) {
         toast.success("נרשמת בהצלחה! נשאר רק לבחור מוסד ומחלקה.");
-        router.push("/profile");
+        router.push("/profile?welcome=1");
       } else {
         toast.success("נרשמת בהצלחה! בדוק/י את המייל שלך כדי לאמת את החשבון.");
         router.push("/login");

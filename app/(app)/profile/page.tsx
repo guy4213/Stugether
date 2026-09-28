@@ -7,15 +7,21 @@ import { ProfileCover } from "@/components/profile/profile-cover";
 import { AvatarUploader } from "@/components/profile/avatar-uploader";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { ProfileCompletion } from "@/components/profile/profile-completion";
+import { OnboardingBanner } from "@/components/auth/onboarding-banner";
 import { getCurrentUser } from "@/lib/auth/session";
 import { signOutAndRedirect } from "@/lib/auth/session-actions";
 import { getProfileFormData } from "@/lib/profile/queries";
 import { courseTheme } from "@/lib/ui/course-theme";
 
 // "הגדרות פרופיל" per Profile.dc.html.
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  const onboarding = (await searchParams).welcome === "1";
 
   const { profile, institutions, faculties, departments, activeCourses, stats } =
     await getProfileFormData(user.id);
@@ -46,6 +52,8 @@ export default async function ProfilePage() {
       id="main-content"
       className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-5 px-4 pt-7 pb-10 sm:px-8 xl:px-12"
     >
+      {onboarding && <OnboardingBanner step={1} />}
+
       {/* Cover */}
       <section className="overflow-hidden rounded-[26px] border border-border bg-card shadow-card">
         <ProfileCover />
@@ -88,6 +96,7 @@ export default async function ProfilePage() {
             institutions={institutions}
             initialFaculties={faculties}
             initialDepartments={departments}
+            onboarding={onboarding}
           />
         </section>
 

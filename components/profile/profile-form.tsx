@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,13 +32,16 @@ export function ProfileForm({
   institutions,
   initialFaculties,
   initialDepartments,
+  onboarding = false,
 }: {
   profile: Profile;
   email: string;
   institutions: Institution[];
   initialFaculties: Faculty[];
   initialDepartments: Department[];
+  onboarding?: boolean;
 }) {
+  const router = useRouter();
   const [state, formAction, isSubmitting] = useActionState(updateProfile, initialState);
   const [isCatalogLoading, startCatalogTransition] = useTransition();
   const [, startSaveTransition] = useTransition();
@@ -57,6 +61,12 @@ export function ProfileForm({
   const [bio, setBio] = useState(profile.bio ?? "");
   const [faculties, setFaculties] = useState(initialFaculties);
   const [departments, setDepartments] = useState(initialDepartments);
+  // Read by the save effect: only a new action result navigates, so the
+  // latest values live in a ref instead of the effect's dependencies.
+  const continueToCourses = useRef(false);
+  useEffect(() => {
+    continueToCourses.current = onboarding && !!institutionId;
+  }, [onboarding, institutionId]);
 
   // useActionState hands back the same initialState object until an action
   // completes — a ref-based "first render" guard breaks under StrictMode's
@@ -64,8 +74,12 @@ export function ProfileForm({
   useEffect(() => {
     if (state === initialState) return;
     if (state.ok === false && state.error) toast.error(state.error);
-    if (state.ok === true) toast.success("הפרופיל עודכן בהצלחה");
-  }, [state]);
+    if (state.ok === true) {
+      toast.success("הפרופיל עודכן בהצלחה");
+      // Onboarding step 2 → step 3 (enroll in courses), SPEC §4.1.
+      if (continueToCourses.current) router.push("/courses?onboarding=1");
+    }
+  }, [state, router]);
 
   // Submitting via onSubmit (not <form action>) opts out of React 19's
   // automatic form reset after an action, which made the Radix selects fire

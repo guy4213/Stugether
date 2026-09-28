@@ -35,6 +35,19 @@ npm run dev               # http://localhost:3000
 
 Supabase Studio: http://localhost:54323
 
+ב-Git Bash על Windows, אם `supabase start` לא מוצא את `docker`:
+`export PATH="/c/Program Files/Docker/Docker/resources/bin:$PATH"`.
+
+### משתמשי seed
+
+סיסמה לכולם: `Password123!`
+
+| מייל                   | תפקיד                                |
+| ---------------------- | ------------------------------------ |
+| `noa@stugether.test`   | סטודנטית, יוצרת חדר R1 (משתמשת הדמו) |
+| `itai@stugether.test`  | סטודנט, חבר ב-R1                     |
+| `admin@stugether.test` | Super Admin — פאנל ניהול ב-`/admin`  |
+
 ## סקריפטים
 
 | פקודה                          |                             |

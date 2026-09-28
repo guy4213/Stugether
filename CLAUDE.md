@@ -42,7 +42,9 @@ CI (`.github/workflows/ci.yml`) מריץ: lint → format:check → typecheck �
 ```
 app/
   (app)/            אזור מאומת: dashboard, courses, rooms/[id], profile, notifications, analytics
+  (app)/admin/      פאנל Super Admin (סקירה, משתמשים, קטלוג, חדרים, AI). מטא-נתונים בלבד
   api/rooms/[id]/messages/route.ts   שליחת הודעה + הפעלת ה-AI
+  api/rooms/[id]/ai-retry/route.ts   "נסה שוב" על תשובת AI שנכשלה
   login, signup, auth/callback, dev/rtl
 components/         UI בלבד (ui/ = shadcn; שאר התיקיות לפי תחום)
 hooks/useRoomChannel.ts             נקודת הכניסה היחידה ל-Realtime
@@ -50,7 +52,8 @@ lib/
   repositories/     כל הגישה ל-DB
   storage/          קבצים (avatars)
   supabase/         clients: client / server / admin / middleware
-  ai/               context.ts, gemini.ts
+  ai/               context.ts, gemini.ts, run.ts (start_ai_run + after(), משותף לשני ה-routes)
+  admin/            queries.ts + actions.ts של הפאנל (כל קריאה בודקת super_admin)
   <domain>/         actions.ts (Server Actions) ו-queries.ts לפי תחום
 supabase/
   migrations/       סכמה + RLS + RPCs

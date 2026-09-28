@@ -36,7 +36,15 @@ export async function acceptRoomInvitation(
     roomId = await acceptInvitation(supabase, invitationId);
     if (notificationId) await markNotificationsRead(supabase, [notificationId]);
     if (!roomId) return { ok: false, error: "תוקף ההזמנה פג" };
-  } catch {
+  } catch (err) {
+    // accept_room_invitation raises its error code as the message.
+    const message = (err as { message?: string } | null)?.message ?? "";
+    revalidateNotificationViews();
+    if (message.includes("ROOM_FULL")) return { ok: false, error: "החדר מלא (4 משתתפים)" };
+    if (message.includes("ROOM_NOT_ACTIVE")) return { ok: false, error: "החדר כבר לא פעיל" };
+    if (message.includes("INVITATION_NOT_PENDING")) {
+      return { ok: false, error: "ההזמנה כבר לא בתוקף" };
+    }
     return { ok: false, error: "לא ניתן היה לאשר את ההזמנה" };
   }
   revalidateNotificationViews();

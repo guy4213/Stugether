@@ -21,17 +21,23 @@ import { createRoomForCourse } from "@/lib/courses/actions";
 // soft (rooms tab). Open rooms are announced to the course and joinable
 // without an invitation (up to 4).
 export function CreateRoomForm({
-  courseId,
+  courseId: fixedCourseId,
+  courses,
   trigger = "soft",
   defaultTopic = "",
   className,
 }: {
-  courseId: string;
+  // Either a fixed course (course page) or a list to pick from (dashboard
+  // "כניסה מהירה", SPEC §4.2).
+  courseId?: string;
+  courses?: { id: string; name: string }[];
   trigger?: "glass" | "brand" | "soft";
   defaultTopic?: string;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [pickedCourseId, setPickedCourseId] = useState(courses?.[0]?.id ?? "");
+  const courseId = fixedCourseId ?? pickedCourseId;
   const [name, setName] = useState("");
   const [topic, setTopic] = useState(defaultTopic);
   const [isOpenRoom, setIsOpenRoom] = useState(true);
@@ -73,6 +79,20 @@ export function CreateRoomForm({
           <DialogDescription>עד 4 משתתפים, עם עוזר AI בתוך החדר.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
+          {!fixedCourseId && courses && (
+            <select
+              aria-label="קורס"
+              value={pickedCourseId}
+              onChange={(e) => setPickedCourseId(e.target.value)}
+              className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              {courses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
           <Input
             placeholder="שם החדר"
             aria-label="שם החדר"
@@ -102,7 +122,12 @@ export function CreateRoomForm({
             </span>
           </label>
           <DialogFooter>
-            <Button type="submit" variant="brand" size="md" disabled={isPending || !name.trim()}>
+            <Button
+              type="submit"
+              variant="brand"
+              size="md"
+              disabled={isPending || !name.trim() || !courseId}
+            >
               {isPending ? "פותח..." : "פתיחת החדר"}
             </Button>
           </DialogFooter>

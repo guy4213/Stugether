@@ -20,7 +20,8 @@ import {
   listNotifications,
   type NotificationType,
 } from "@/lib/repositories/notifications";
-import { listMyMessageTimestamps } from "@/lib/repositories/messages";
+import { getUnreadSummary, listMyMessageTimestamps } from "@/lib/repositories/messages";
+import { listPendingInvitations } from "@/lib/repositories/invitations";
 import { summarizeTopics, type TopicWithState } from "@/lib/courses/topic-state";
 import { computeStreak } from "@/lib/stats/streak";
 import { computeCourseMatch } from "@/lib/stats/course-match";
@@ -67,6 +68,8 @@ export async function getDashboardData(userId: string) {
     events,
     notifications,
     unreadCount,
+    invitations,
+    unreadSummary,
   ] = await Promise.all([
     getOwnProfile(supabase, userId),
     listMyEnrollments(supabase, userId),
@@ -76,6 +79,8 @@ export async function getDashboardData(userId: string) {
     listUpcomingTestsForUser(supabase, userId),
     listNotifications(supabase, userId, { limit: 4 }),
     countUnreadNotifications(supabase, userId),
+    listPendingInvitations(supabase),
+    getUnreadSummary(supabase),
   ]);
 
   const active = enrollments.filter((e) => e.status === "active");
@@ -287,11 +292,39 @@ export async function getDashboardData(userId: string) {
       }
     : null;
 
+  // --- my rooms (SPEC §4.2: by last message, with unread) + pending invitations ---
+  const unreadByRoom = new Map(unreadSummary.map((u) => [u.room_id, u]));
+  const courseNameById = new Map(enrollments.map((e) => [e.course_id, e.course.name]));
+  const rooms = myRooms
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      courseName: courseNameById.get(r.course_id) ?? null,
+      status: r.status,
+      unread: Number(unreadByRoom.get(r.id)?.unread_count ?? 0),
+      lastMessageAt: unreadByRoom.get(r.id)?.last_message_at ?? r.last_message_at,
+      live: r.status === "active" && isRoomLive(r),
+    }))
+    .sort((a, b) => (b.lastMessageAt ?? "").localeCompare(a.lastMessageAt ?? ""));
+  // get_pending_invitations already hides expired ones; re-check against the
+  // clock in case the page is rendered right at the boundary.
+  const pendingInvitations = invitations
+    .filter((i) => new Date(i.expires_at).getTime() > now)
+    .map((i) => ({
+      id: i.id,
+      roomName: i.room_name,
+      courseName: i.course_name,
+      inviter: { id: i.inviter_id, name: i.inviter_name },
+      expiresAt: i.expires_at,
+    }));
+
   // --- streak / weekly activity -----------------------------------------------------------
   const activityTimes = [...messageTimes, ...progress.map((p) => p.updated_at)];
   const weekAgo = now - 7 * DAY_MS;
 
   return {
+    // SPEC §4.1: a student without an institution hasn't finished onboarding.
+    needsOnboarding: !!profile && profile.role === "student" && !profile.institution_id,
     firstName: profile?.full_name.split(/\s+/)[0] ?? "",
     streak: computeStreak(activityTimes),
     messagesThisWeek: messageTimes.filter((t) => new Date(t).getTime() >= weekAgo).length,
@@ -303,6 +336,9 @@ export async function getDashboardData(userId: string) {
     activity,
     unreadCount,
     nextEvent,
+    rooms,
+    pendingInvitations,
+    roomCourses: active.map((e) => ({ id: e.course_id, name: e.course.name })),
   };
 }
 

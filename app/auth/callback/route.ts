@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 
 // GET /auth/callback — exchanges the PKCE `code` from Supabase Auth email
 // links (signup confirmation, resend, etc.) for a session, then redirects
-// to "/".
+// to the dashboard — which sends a profile without an institution on to
+// onboarding step 2 (/profile?welcome=1).
 //
 // On failure we redirect to "/?auth_error=1" rather than a dedicated error
 // page: no such page exists yet (this task builds no UI). The query param
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      return NextResponse.redirect(`${origin}/`);
+      return NextResponse.redirect(`${origin}/dashboard`);
     }
   }
 

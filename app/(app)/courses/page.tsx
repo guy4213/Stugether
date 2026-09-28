@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PlusIcon } from "lucide-react";
 import { CourseSearchBox, CoursesFilterBar } from "@/components/courses/filter-bar";
 import { CourseCard } from "@/components/courses/course-card";
+import { OnboardingBanner } from "@/components/auth/onboarding-banner";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCoursesPageData, parseCourseSort } from "@/lib/courses/queries";
 
@@ -10,12 +11,18 @@ import { getCoursesPageData, parseCourseSort } from "@/lib/courses/queries";
 export default async function CoursesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; departmentId?: string; favorites?: string; sort?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    departmentId?: string;
+    favorites?: string;
+    sort?: string;
+    onboarding?: string;
+  }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const { q, departmentId, favorites, sort } = await searchParams;
+  const { q, departmentId, favorites, sort, onboarding } = await searchParams;
   const data = await getCoursesPageData(user.id, {
     q,
     departmentId,
@@ -30,6 +37,8 @@ export default async function CoursesPage({
       id="main-content"
       className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-[22px] px-4 pt-7 pb-10 sm:px-8 xl:px-12"
     >
+      {onboarding === "1" && data.institutionId && <OnboardingBanner step={2} />}
+
       <section className="relative flex flex-col gap-8 overflow-hidden rounded-[28px] bg-brand-hero p-6 text-white shadow-banner sm:p-9 lg:min-h-[236px] lg:flex-row lg:items-center lg:justify-between lg:gap-10 lg:px-10">
         <span
           aria-hidden

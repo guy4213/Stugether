@@ -30,6 +30,7 @@ export async function getShellData(userId: string) {
     avatarPath: profile?.avatar_url ?? null,
     unreadNotifications,
     activeRoomId: activeRoom?.id ?? null,
+    isSuperAdmin: profile?.role === "super_admin" && profile.is_active,
   };
 }
 

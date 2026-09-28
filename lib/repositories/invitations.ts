@@ -72,6 +72,24 @@ export async function listPendingInvitations(client: SupabaseClient): Promise<Pe
   return data as PendingInvitation[];
 }
 
+// Pending, unexpired invitations of one room — for the room's members panel
+// (who was invited, and a "cancel" action for the inviter). RLS lets any active
+// room member see them.
+export async function listRoomPendingInvitations(
+  client: SupabaseClient,
+  roomId: string,
+): Promise<RoomInvitation[]> {
+  const { data, error } = await client
+    .from("room_invitations")
+    .select("*")
+    .eq("room_id", roomId)
+    .eq("status", "pending")
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at");
+  if (error) throw error;
+  return data as RoomInvitation[];
+}
+
 // Plain INSERT into room_invitations. All validation (same-course enrollment,
 // room capacity, not-self, not-already-a-member, etc.) is done by the
 // room_invitations_insert_member RLS policy / can_invite_to_room() helper —

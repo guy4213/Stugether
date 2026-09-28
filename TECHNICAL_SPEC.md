@@ -573,7 +573,7 @@ export const maxDuration = 60
 | timeout / crash של הפונקציה | ה-run נשאר `running` → משוחרר ב-stale-check הבא               |
 | rate limit                  | `aiStatus='rate_limited'`, הודעה בעברית, ההודעה עצמה נשמרת    |
 
-בכל `failed` מופיע כפתור "נסה שוב". כל כשל נרשם ל-Sentry **וגם** ל-`ai_runs.error_*` — Sentry לדיבאג, ה-DB לדשבורד האדמין.
+בכל `failed` מופיע כפתור "נסה שוב": `POST /api/rooms/[id]/ai-retry` עם מזהה הודעת ה-AI. ה-route מוצא את ה-`trigger_message_id` של הריצה ומריץ שוב את אותו `start_ai_run` (נעילה, rate limit ו-busy זהים). רק מי ששאל יכול לנסות שוב, כי ה-RPC מקבל רק הודעת trigger של המבקש. כל כשל נרשם ל-Sentry **וגם** ל-`ai_runs.error_*` — Sentry לדיבאג, ה-DB לדשבורד האדמין.
 
 ### 6.8 System prompt (טיוטה)
 

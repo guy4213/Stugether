@@ -13,19 +13,19 @@
 
 ## התקדמות
 
-| Milestone                 | שעות   | מצב                                                                                          |
-| ------------------------- | ------ | -------------------------------------------------------------------------------------------- |
-| מסמכים                    | —      | ✅ הושלם                                                                                     |
-| M0 Foundation             | 6.25   | 🟡 כמעט — חסר `supabase start` (Docker)                                                      |
-| M1 DB + Auth + Onboarding | 11.5   | 🟡 DB + Auth הושלמו · מסכי login/signup בנויים · onboarding (שלב 2 בהרשמה) לאמת בדפדפן       |
-| M2 Dashboard & Courses    | 7      | 🟡 UI בנוי לפי המוקאפ (דשבורד, גילוי קורסים, עמוד קורס) · לא נבדק בדפדפן                     |
-| M3 Invitations            | 6.5    | 🟡 חדרים פתוחים + "הצטרפות" + התראות בנויים · UI לשליחה/אישור הזמנה in-app חסר               |
-| M4 Room Realtime          | 10     | 🟡 מסך חדר + `chat-window` על `useRoomChannel` · מחיקה עצמית ו-Presence ב-UI חסרים           |
-| M5 AI in Room             | 12     | 🟡 backend הושלם · UI: "נסה שוב", הודעת חריגה ו-"העוזר כותב…" חסרים                          |
-| M6 Profile & Super Admin  | 7.75   | 🟡 פרופיל (עריכה, avatar, השלמה, העדפות התראות) בנוי · פאנל Super Admin לא התחיל             |
-| M7 QA & Launch            | 9      | ⬜ lint/typecheck/format/build נקיים · 49/49 בדיקות DB · בדיקה בדפדפן ו-responsive טרם בוצעו |
-| **שלב 1**                 | **70** |                                                                                              |
-| S1-S5 שלב 2               | 22     |                                                                                              |
+| Milestone                 | שעות   | מצב                                                                                      |
+| ------------------------- | ------ | ---------------------------------------------------------------------------------------- |
+| מסמכים                    | —      | ✅ הושלם                                                                                 |
+| M0 Foundation             | 6.25   | ✅ הושלם — Docker + `supabase start` עובדים                                              |
+| M1 DB + Auth + Onboarding | 11.5   | ✅ הושלם — migrations+seed עולים על Supabase אמיתי · onboarding: הרשמה → פרופיל → קורסים |
+| M2 Dashboard & Courses    | 7      | ✅ הושלם — דשבורד (כולל החדרים שלי + unread, הזמנות, חדר חדש), קטלוג, עמוד קורס          |
+| M3 Invitations            | 6.5    | ✅ הושלם — הזמנת 1-3 מתוך החדר, אישור/דחייה בדשבורד ובהתראות, ביטול ע"י המזמין           |
+| M4 Room Realtime          | 10     | ✅ הושלם — realtime, Presence, מחיקה עצמית, keyset pagination, סטטוס נקרא                |
+| M5 AI in Room             | 12     | ✅ הושלם — "שאל את העוזר", markdown, "העוזר כותב…", "נסה שוב", הודעות busy/מגבלה         |
+| M6 Profile & Super Admin  | 7.75   | ✅ הושלם — פרופיל + פאנל `/admin`: סקירה, משתמשים, קטלוג, חדרים (מטא בלבד), AI           |
+| M7 QA & Launch            | 9      | 🟡 E2E על stack אמיתי: 43/43 + concurrency #11/#13 · חסר: בדיקה ויזואלית, Production     |
+| **שלב 1**                 | **70** |                                                                                          |
+| S1-S5 שלב 2               | 22     |                                                                                          |
 
 **נוצל עד כה: 0 / 70**
 
@@ -82,8 +82,8 @@
 - [x] **נוסף** — בדיקות 11-16 (הזמנות, AI, stale, אטומיות) ברמת ה-DB + בדיקות ל-fixes מה-review. **39/39 עוברות** (`npm run db:test`)
 - [x] **נוסף** — RPCs: `decline/revoke_room_invitation`, `get_pending_invitations`, `mark_room_read`, `leave_room`, `remove_room_member`, `set_room_status`, `update_room`, `admin_room_stats`, `admin_global_stats` · view `public_profiles`. פירוט: `TECHNICAL_SPEC.md` §12
 - [x] **backend** — `lib/auth/actions.ts` (signUp/signIn/signOut/resendVerificationEmail, שגיאות בעברית) · `proxy.ts` + `lib/supabase/middleware.ts` (רענון session — שים לב: Next 16.3.5 בפרויקט הזה קורא לזה `proxy.ts` ולא `middleware.ts`) · `app/auth/callback/route.ts`
-- [ ] **~1ש׳ נותר** — מסכי הרשמה/התחברות בפועל (טפסים שקוראים ל-actions למעלה) — פרונטאנד
-- [ ] **1.5ש׳** — Onboarding: מוסד → מחלקה → שנה → רישום לקורסים (UI). ה-repositories שזה נשען עליהם כבר קיימים: `catalog.ts`, `profiles.updateOwnProfile`, `enrollments.ts`
+- [x] **~1ש׳ נותר** — מסכי הרשמה/התחברות בפועל (טפסים שקוראים ל-actions למעלה) — פרונטאנד
+- [x] **1.5ש׳** — Onboarding: מוסד → מחלקה → שנה → רישום לקורסים (UI). ה-repositories שזה נשען עליהם כבר קיימים: `catalog.ts`, `profiles.updateOwnProfile`, `enrollments.ts`
 
 ---
 
@@ -130,29 +130,29 @@
 
 ## M2 — Dashboard & Courses · 7ש׳
 
-- [ ] **3ש׳** — דשבורד: חדרים פעילים (עם badge unread) · הקורסים שלי · הזמנות ממתינות (**מסונן לפי `expires_at`**) · כניסה מהירה
-- [ ] **1.5ש׳** — "הקורסים שלי": רשימה, הוספה מהקטלוג, הסרה
-- [ ] **2.5ש׳** — מסך קורס: פרטים + רשימת הסטודנטים הרשומים + מעבר לפרופיל ציבורי
+- [x] **3ש׳** — דשבורד: חדרים פעילים (עם badge unread) · הקורסים שלי · הזמנות ממתינות (**מסונן לפי `expires_at`**) · כניסה מהירה
+- [x] **1.5ש׳** — "הקורסים שלי": רשימה, הוספה מהקטלוג, הסרה
+- [x] **2.5ש׳** — מסך קורס: פרטים + רשימת הסטודנטים הרשומים + מעבר לפרופיל ציבורי
 
 ---
 
 ## M3 — Invitations · 6.5ש׳
 
-- [ ] **2.5ש׳** — בחירת 1-3 סטודנטים מרשימת הקורס + שליחת הזמנות
-- [ ] **1.75ש׳** — חיבור `accept_room_invitation` + דחייה + ביטול ע"י המזמין
-- [ ] **1.25ש׳** — הזמנות ממתינות בדשבורד + realtime על `user:{id}`
-- [ ] **1ש׳** — יצירת חדר + ולידציות
-- [ ] בדיקות 11-12 (concurrency אישורים, תוקף)
+- [x] **2.5ש׳** — בחירת 1-3 סטודנטים מרשימת הקורס + שליחת הזמנות
+- [x] **1.75ש׳** — חיבור `accept_room_invitation` + דחייה + ביטול ע"י המזמין
+- [x] **1.25ש׳** — הזמנות ממתינות בדשבורד + realtime על `user:{id}` — **בלי realtime** (מופיעות ברענון; Cut list #2)
+- [x] **1ש׳** — יצירת חדר + ולידציות
+- [x] בדיקות 11-12 (concurrency אישורים, תוקף)
 
 ---
 
 ## M4 — Room Realtime · 10ש׳
 
-- [ ] **3ש׳** — Layout + רשימת הודעות · keyset pagination · בועות RTL
-- [ ] **1.5ש׳** — שליחת הודעה + optimistic UI (uuid בקליינט)
-- [ ] **2.5ש׳** — `useRoomChannel`: postgres_changes INSERT/UPDATE + reconciliation
-- [ ] **1.25ש׳** — Presence
-- [ ] **1.75ש׳** — `last_read_at` + badge unread + `soft_delete_message` ב-UI
+- [x] **3ש׳** — Layout + רשימת הודעות · keyset pagination · בועות RTL
+- [x] **1.5ש׳** — שליחת הודעה + optimistic UI (uuid בקליינט) — ההודעה נכנסת לרשימה מתשובת ה-route (לא uuid מהקליינט)
+- [x] **2.5ש׳** — `useRoomChannel`: postgres_changes INSERT/UPDATE + reconciliation
+- [x] **1.25ש׳** — Presence
+- [x] **1.75ש׳** — `last_read_at` + badge unread + `soft_delete_message` ב-UI
 
 > M4 בונה את הרכיבים שעליהם מסתמך צ'אט 1:1 בשלב 2. **רשימת ההודעות, ה-hook וה-pagination חייבים לצאת גנריים** — אחרת S2 יעלה 16ש׳ במקום 10.
 
@@ -164,33 +164,33 @@
 - [x] **3.25ש׳** — `POST /api/rooms/[id]/messages`: זיהוי trigger, קריאה ל-`start_ai_run`, `after()`, `maxDuration=60`
 - [x] **1.75ש׳** — צבירת stream + UPDATE סופי + **`onChunk` hook (no-op)**
 - [x] **backend** — שמירת טקסט חלקי + "(נקטע)", `status='failed'`, דיווח ל-Sentry
-- [ ] **~0.5ש׳ נותר** — כפתור "נסה שוב" — פרונטאנד
+- [x] **~0.5ש׳ נותר** — כפתור "נסה שוב" — פרונטאנד
 - [x] **backend** — Rate limiting (בתוך ה-RPC, נקרא מה-route)
-- [ ] **~0.5ש׳ נותר** — UX של הודעת חריגה — פרונטאנד
-- [ ] **1.25ש׳** — רינדור הודעת AI: markdown, סגנון נבדל, "העוזר כותב…"
+- [x] **~0.5ש׳ נותר** — UX של הודעת חריגה — פרונטאנד
+- [x] **1.25ש׳** — רינדור הודעת AI: markdown, סגנון נבדל, "העוזר כותב…"
 - [x] בדיקות 13-16 — **כבר עוברות** ב-`supabase/tests/rpc.test.mjs` (נבנו ב-M1). מה שעדיין לא נבדק: אותו תרחיש דרך ה-route האמיתי, לא רק דרך ה-RPC ישירות — חסום עד Docker
 
 ---
 
 ## M6 — Profile & Super Admin · 7.75ש׳
 
-- [ ] **2.5ש׳** — פרופיל: צפייה/עריכה + avatar דרך `lib/storage/` + הגדרות
-- [ ] **0.5ש׳** — פרופיל ציבורי מצומצם
-- [ ] **1.25ש׳** — אדמין: משתמשים (רשימה, חיפוש, סינון, השבתה)
-- [ ] **2ש׳** — אדמין: קטלוג CRUD (מוסדות, מחלקות, קורסים)
-- [ ] **0.75ש׳** — אדמין: חדרים (רשימה, מטא, ארכוב) — **בלי תוכן הודעות**
-- [ ] **0.75ש׳** — אדמין: `ai_system_prompt` + `ai_enabled` + סיכום צריכה + כשלונות אחרונים
+- [x] **2.5ש׳** — פרופיל: צפייה/עריכה + avatar דרך `lib/storage/` + הגדרות
+- [x] **0.5ש׳** — פרופיל ציבורי מצומצם
+- [x] **1.25ש׳** — אדמין: משתמשים (רשימה, חיפוש, סינון, השבתה)
+- [x] **2ש׳** — אדמין: קטלוג CRUD (מוסדות, מחלקות, קורסים)
+- [x] **0.75ש׳** — אדמין: חדרים (רשימה, מטא, ארכוב) — **בלי תוכן הודעות**
+- [x] **0.75ש׳** — אדמין: `ai_system_prompt` + `ai_enabled` + סיכום צריכה + כשלונות אחרונים
 
 ---
 
 ## M7 — QA & Launch · 9ש׳
 
 - [ ] **2.5ש׳** — Responsive: desktop, tablet, mobile
-- [ ] **2ש׳** — בדיקות פונקציונליות מקצה לקצה
-- [ ] **1.5ש׳** — בדיקות הרשאות ומקרי קצה (חזרה על 1-16)
+- [x] **2ש׳** — בדיקות פונקציונליות מקצה לקצה
+- [x] **1.5ש׳** — בדיקות הרשאות ומקרי קצה (חזרה על 1-16)
 - [ ] **2ש׳** — תיקוני באגים
 - [ ] **1ש׳** — Production: Supabase prod, Vercel, דומיין, env, Sentry, smoke test, מסירה
-- [ ] בדיקה 17 — אין סודות ב-bundle
+- [x] בדיקה 17 — אין סודות ב-bundle (נבדק: `SUPABASE_SERVICE_ROLE_KEY` ו-`service_role` לא מופיעים ב-`.next/static`)
 
 ### אופציונלי — לא בתוך 70
 
@@ -249,23 +249,23 @@
 
 ### לסגור לפני שממשיכים ל-Auth
 
-- [ ] **להתקין Docker Desktop** — חוסם את כל השאר ברשימה
-- [ ] `npm run db:start` + `npm run db:reset` — לוודא שה-migrations וה-seed עולים על Supabase האמיתי. הסיכון העיקרי: ב-Supabase `postgres` אינו superuser, והפקודות על `realtime.messages` ו-`storage` עלולות להיכשל
-- [ ] התחברות עם משתמש seed (`Password123!`) — מאמת את מבנה `auth.users` / `auth.identities`
-- [ ] בדיקת concurrency אמיתית בשני חיבורים: #11 (שני אישורים לחדר עם 3) ו-#13 (שני `@AI` במקביל)
-- [ ] Realtime אמיתי: הודעה מופיעה אצל חבר אחר; לא-חבר לא מצליח להצטרף ל-`room:<id>`
+- [x] **להתקין Docker Desktop** — חוסם את כל השאר ברשימה
+- [x] `npm run db:start` + `npm run db:reset` — לוודא שה-migrations וה-seed עולים על Supabase האמיתי. הסיכון העיקרי: ב-Supabase `postgres` אינו superuser, והפקודות על `realtime.messages` ו-`storage` עלולות להיכשל
+- [x] התחברות עם משתמש seed (`Password123!`) — מאמת את מבנה `auth.users` / `auth.identities`
+- [x] בדיקת concurrency אמיתית בשני חיבורים: #11 (שני אישורים לחדר עם 3) ו-#13 (שני `@AI` במקביל)
+- [x] Realtime אמיתי: הודעה מופיעה אצל חבר אחר; לא-חבר לא מצליח להצטרף ל-`room:<id>`
 - [ ] `npx supabase gen types typescript --local > lib/database.types.ts`
-- [ ] `npm run lint` + `npm run format:check` + `npm run typecheck` — **לא הורצו אחרי הוספת קבצי ה-DB והבדיקות**
+- [x] `npm run lint` + `npm run format:check` + `npm run typecheck` — **לא הורצו אחרי הוספת קבצי ה-DB והבדיקות**
 - [ ] לבדוק בעין את `/dev/rtl` (5 הבדיקות בראש הדף)
-- [ ] commit — **שום דבר עוד לא ב-git**
+- [x] commit — **שום דבר עוד לא ב-git**
 
 ### התאמות באפליקציה שנובעות מה-DB (לזכור ב-M1-M6)
 
-- [ ] `lib/storage/index.ts` — `uploadAvatar` מחזיר URL, אבל ה-DB מצפה לנתיב `<id>/<file>` ב-`avatar_url`
-- [ ] פרופילים של אחרים — לקרוא מ-`public_profiles`, לא מ-`profiles`
-- [ ] insert של הודעה — **בלי** `created_at`
-- [ ] route ה-AI — `start_ai_run` דרך `createAdminClient()`, אחרי אימות המשתמש
-- [ ] broadcast `message_deleted` אחרי `soft_delete_message` (ה-DB מוכן, האפליקציה לא)
+- [x] `lib/storage/index.ts` — `uploadAvatar` מחזיר URL, אבל ה-DB מצפה לנתיב `<id>/<file>` ב-`avatar_url`
+- [x] פרופילים של אחרים — לקרוא מ-`public_profiles`, לא מ-`profiles`
+- [x] insert של הודעה — **בלי** `created_at`
+- [x] route ה-AI — `start_ai_run` דרך `createAdminClient()`, אחרי אימות המשתמש
+- [x] broadcast `message_deleted` אחרי `soft_delete_message` (ה-DB מוכן, האפליקציה לא)
 
 ### החלטות DB שדורשות אישור
 
@@ -281,10 +281,11 @@
 
 ## יומן
 
-| תאריך         | שלב          | שעות | הערות                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| ------------- | ------------ | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 11.09.2026    | מסמכים       | —    | `SPEC`, `TECHNICAL_SPEC`, `TASKS`, `PHASE3` נכתבו                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| 13.09.2026    | M0           | —    | scaffold, RTL, shadcn, Sentry, CI, גבולות. חסר Docker ל-`supabase start`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| 13.09.2026    | M1 (DB)      | —    | 4 migrations, seed, 15 RPCs, RLS מלא, 39/39 בדיקות ב-PGlite. review: 13 תיקונים. נעצר לפני Auth                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| 18.09.2026    | ליבת בקאנד   | —    | Auth actions, 7 repositories, Gemini client, AI route. lint/typecheck/build נקיים. review: ממצא אחד (email enumeration) — תוקן                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| 25-28.09.2026 | UI לפי מוקאפ | —    | 7 מסכים + דף נחיתה (nav, hero עם חיפוש, features grid, איך זה עובד, CTA, footer) לפי קנבס Claude Design (Rubik, טוקנים, תפריט עליון). נמחקו רכיבים ישנים שאין אליהם imports. migration `20260925000001`: התראות+העדפות, חדרים פתוחים, נושאי קורס (מניעים `progress_percent`), "פנוי ללמוד עכשיו", סוגי אירועים+הרשמה. **49/49 בדיקות DB עוברות** (עודכנו ציפיות ישנות: 28 הודעות ב-R1 אחרי הרחבת ה-seed, `city`/`last_seen_at` ב-`public_profiles`). lint/typecheck/format/build נקיים. **Change Request מול `SPEC.md` §7 (סילבוס, קבוצות) — לאשר.** חסר: בדיקה בדפדפן |
+| תאריך         | שלב              | שעות | הערות                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------- | ---------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 11.09.2026    | מסמכים           | —    | `SPEC`, `TECHNICAL_SPEC`, `TASKS`, `PHASE3` נכתבו                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 13.09.2026    | M0               | —    | scaffold, RTL, shadcn, Sentry, CI, גבולות. חסר Docker ל-`supabase start`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 13.09.2026    | M1 (DB)          | —    | 4 migrations, seed, 15 RPCs, RLS מלא, 39/39 בדיקות ב-PGlite. review: 13 תיקונים. נעצר לפני Auth                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 18.09.2026    | ליבת בקאנד       | —    | Auth actions, 7 repositories, Gemini client, AI route. lint/typecheck/build נקיים. review: ממצא אחד (email enumeration) — תוקן                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 25-28.09.2026 | UI לפי מוקאפ     | —    | 7 מסכים + דף נחיתה (nav, hero עם חיפוש, features grid, איך זה עובד, CTA, footer) לפי קנבס Claude Design (Rubik, טוקנים, תפריט עליון). נמחקו רכיבים ישנים שאין אליהם imports. migration `20260925000001`: התראות+העדפות, חדרים פתוחים, נושאי קורס (מניעים `progress_percent`), "פנוי ללמוד עכשיו", סוגי אירועים+הרשמה. **49/49 בדיקות DB עוברות** (עודכנו ציפיות ישנות: 28 הודעות ב-R1 אחרי הרחבת ה-seed, `city`/`last_seen_at` ב-`public_profiles`). lint/typecheck/format/build נקיים. **Change Request מול `SPEC.md` §7 (סילבוס, קבוצות) — לאשר.** חסר: בדיקה בדפדפן |
+| 28.09.2026    | M1-M6 סגירה + QA | —    | Docker + Supabase אמיתי: כל 8 ה-migrations וה-seed עולים. חדר: Presence, מחיקה עצמית (broadcast), טעינת הודעות קודמות, סטטוס נקרא, פאנל משתתפים (הזמנת 1-3, ביטול, הסרה, ארכוב/סגירה, AI בחדר, עזיבה). AI: "שאל את העוזר", markdown, "העוזר כותב…", "נסה שוב" (`/api/rooms/[id]/ai-retry`, אותו `start_ai_run`), busy/מגבלה. דשבורד: החדרים שלי + unread, הזמנות ממתינות, חדר חדש. Onboarding מחובר. פאנל Super Admin `/admin`. E2E על ה-stack: 43/43, concurrency #11/#13 אמיתי עובר. בלי שינוי סכמה                                                                  |

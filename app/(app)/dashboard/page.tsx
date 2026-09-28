@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeftIcon, MessageSquareIcon } from "lucide-react";
 import { cn } from "cn";
 import { HeroCard } from "@/components/dashboard/hero-card";
 import { MyCourseCard, RecommendationCard } from "@/components/dashboard/course-cards";
 import { ActivityRail } from "@/components/dashboard/activity-rail";
+import { RoomsPanel } from "@/components/dashboard/rooms-panel";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { greetingHe } from "@/lib/ui/format";
@@ -22,6 +24,7 @@ export default async function DashboardPage() {
   if (!user) return null; // guarded by app/(app)/layout.tsx
 
   const data = await getDashboardData(user.id);
+  if (data.needsOnboarding) redirect("/profile?welcome=1");
   const myCourses = data.myCourses.slice(0, 3);
   const recommendations = data.recommendations.slice(0, 3);
 
@@ -56,6 +59,12 @@ export default async function DashboardPage() {
 
       <div className="flex flex-col gap-5 xl:flex-row xl:items-start">
         <div className="flex min-w-0 grow flex-col gap-7">
+          <RoomsPanel
+            rooms={data.rooms}
+            invitations={data.pendingInvitations}
+            courses={data.roomCourses}
+          />
+
           <section aria-labelledby="my-courses" className="flex flex-col gap-3.5">
             <div className="flex items-center justify-between">
               <h2 id="my-courses" className="text-2xl font-extrabold">

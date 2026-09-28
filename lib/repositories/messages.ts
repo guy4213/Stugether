@@ -103,6 +103,37 @@ export async function softDeleteMessage(client: SupabaseClient, messageId: strin
   if (error) throw error;
 }
 
+// For "נסה שוב": the run behind an AI answer and the user message that
+// triggered it. ai_runs SELECT is limited to active room members by RLS.
+export async function getAiRunTrigger(
+  client: SupabaseClient,
+  aiMessageId: string,
+): Promise<{ roomId: string; triggerMessageId: string | null; requestedBy: string } | null> {
+  const { data: message, error: messageError } = await client
+    .from("messages")
+    .select("ai_run_id")
+    .eq("id", aiMessageId)
+    .eq("sender_type", "ai")
+    .maybeSingle();
+  if (messageError) throw messageError;
+  const runId = (message as { ai_run_id: string | null } | null)?.ai_run_id;
+  if (!runId) return null;
+
+  const { data: run, error: runError } = await client
+    .from("ai_runs")
+    .select("room_id, trigger_message_id, requested_by")
+    .eq("id", runId)
+    .maybeSingle();
+  if (runError) throw runError;
+  if (!run) return null;
+  const row = run as { room_id: string; trigger_message_id: string | null; requested_by: string };
+  return {
+    roomId: row.room_id,
+    triggerMessageId: row.trigger_message_id,
+    requestedBy: row.requested_by,
+  };
+}
+
 // Wraps mark_room_read(p_room_id).
 export async function markRoomRead(client: SupabaseClient, roomId: string): Promise<void> {
   const { error } = await client.rpc("mark_room_read", { p_room_id: roomId });

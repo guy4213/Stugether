@@ -10,6 +10,7 @@ import {
   LogOutIcon,
   MenuIcon,
   SearchIcon,
+  ShieldCheckIcon,
   UserIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -27,7 +28,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { signOutAndRedirect } from "@/lib/auth/session-actions";
 
-const NAV_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
+type NavLink = { href: string; label: string; icon: LucideIcon };
+
+const ADMIN_LINK: NavLink = { href: "/admin", label: "ניהול", icon: ShieldCheckIcon };
+
+const NAV_LINKS: NavLink[] = [
   { href: "/dashboard", label: "בית", icon: HouseIcon },
   { href: "/courses", label: "קורסים", icon: BookOpenIcon },
   { href: "/analytics", label: "ההתקדמות שלי", icon: ChartColumnIcon },
@@ -45,6 +50,7 @@ type ShellProps = {
   avatarPath: string | null;
   unreadNotifications: number;
   activeRoomId: string | null;
+  isSuperAdmin: boolean;
 };
 
 function NavBadge({ count }: { count: number }) {
@@ -86,6 +92,7 @@ function SearchBox({ className }: { className?: string }) {
 // "active room" pill, avatar menu. Below lg: logo + avatar + menu button.
 export function AppNav(props: ShellProps) {
   const pathname = usePathname();
+  const links = props.isSuperAdmin ? [...NAV_LINKS, ADMIN_LINK] : NAV_LINKS;
 
   const avatarMenu = (
     <DropdownMenu>
@@ -135,7 +142,7 @@ export function AppNav(props: ShellProps) {
             aria-label="ניווט ראשי"
             className="hidden items-center gap-1 rounded-2xl bg-muted p-[5px] lg:flex"
           >
-            {NAV_LINKS.map((link) => {
+            {links.map((link) => {
               const active = isLinkActive(pathname, link.href);
               return (
                 <Link
@@ -182,7 +189,7 @@ export function AppNav(props: ShellProps) {
               )}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60">
-              {NAV_LINKS.map((link) => {
+              {links.map((link) => {
                 const active = isLinkActive(pathname, link.href);
                 return (
                   <DropdownMenuItem key={link.href} asChild>
