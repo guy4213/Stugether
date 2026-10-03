@@ -5,11 +5,16 @@ import { listInstitutions, listFaculties, listDepartments } from "@/lib/reposito
 import { countActiveClassmates, listMyEnrollments } from "@/lib/repositories/enrollments";
 import { listMyMessageTimestamps } from "@/lib/repositories/messages";
 import { listMyTopicProgress } from "@/lib/repositories/topics";
+import { timed } from "@/lib/perf/timing";
 import { computeStreak } from "@/lib/stats/streak";
 
 // Server-only aggregate for the profile settings page — kept out of
 // app/**/page.tsx per the ESLint Supabase boundary (eslint.config.mjs).
-export async function getProfileFormData(userId: string) {
+export function getProfileFormData(userId: string) {
+  return timed("page.profile", loadProfileFormData(userId));
+}
+
+async function loadProfileFormData(userId: string) {
   const supabase = await createClient();
   const since60 = new Date(Date.now() - 60 * 86_400_000).toISOString();
   const [profile, institutions, enrollments, partners, messageTimes, progress] = await Promise.all([

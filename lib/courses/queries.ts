@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listActiveCourses, listDepartments } from "@/lib/repositories/catalog";
 import { listFavoriteCourseIds } from "@/lib/repositories/favorites";
 import { countActiveRoomsByCourseIds } from "@/lib/repositories/rooms";
+import { timed } from "@/lib/perf/timing";
 import { countActiveStudentsByCourseIds } from "@/lib/repositories/enrollments";
 
 export type CourseSort = "popular" | "rooms" | "az";
@@ -12,10 +13,13 @@ export function parseCourseSort(value: string | undefined): CourseSort {
   return value === "rooms" || value === "az" ? value : "popular";
 }
 
-export async function getCoursesPageData(
-  userId: string,
-  filters: { q?: string; departmentId?: string; favorites?: boolean; sort?: CourseSort },
-) {
+type CourseFilters = { q?: string; departmentId?: string; favorites?: boolean; sort?: CourseSort };
+
+export function getCoursesPageData(userId: string, filters: CourseFilters) {
+  return timed("page.courses", loadCoursesPageData(userId, filters));
+}
+
+async function loadCoursesPageData(userId: string, filters: CourseFilters) {
   const supabase = await createClient();
   const [profile, favoriteIds] = await Promise.all([
     getCachedOwnProfile(userId),

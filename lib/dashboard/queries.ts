@@ -23,6 +23,7 @@ import { summarizeTopics, type TopicWithState } from "@/lib/courses/topic-state"
 import { computeStreak } from "@/lib/stats/streak";
 import { computeCourseMatch } from "@/lib/stats/course-match";
 import { isRoomLive } from "@/lib/stats/live";
+import { timed } from "@/lib/perf/timing";
 import type { StackPerson } from "@/components/ui/avatar-stack";
 
 const DAY_MS = 86_400_000;
@@ -52,7 +53,11 @@ export interface ActivityItem {
   joinRoomId: string | null;
 }
 
-export async function getDashboardData(userId: string) {
+export function getDashboardData(userId: string) {
+  return timed("page.dashboard", loadDashboardData(userId));
+}
+
+async function loadDashboardData(userId: string) {
   const supabase = await createClient();
   const since60 = new Date(Date.now() - 60 * DAY_MS).toISOString();
 

@@ -11,11 +11,16 @@ import { listAvailability } from "@/lib/repositories/availability";
 import { listFavoriteCourseIds } from "@/lib/repositories/favorites";
 import { computeMatchPercent } from "@/lib/matching/score";
 import { summarizeTopics } from "@/lib/courses/topic-state";
+import { timed } from "@/lib/perf/timing";
 import { isOnline } from "@/lib/ui/people";
 
 export type MemberStatus = "available" | "online" | "offline";
 
-export async function getCourseDetailData(userId: string, courseId: string) {
+export function getCourseDetailData(userId: string, courseId: string) {
+  return timed("page.courseDetail", loadCourseDetailData(userId, courseId));
+}
+
+async function loadCourseDetailData(userId: string, courseId: string) {
   const supabase = await createClient();
   const [
     course,

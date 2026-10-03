@@ -1,6 +1,7 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { timed } from "@/lib/perf/timing";
 
 // Session-refresh helper for proxy.ts (see @supabase/ssr's Next.js pattern —
 // historically documented as the "middleware" helper; the Next.js file
@@ -44,7 +45,7 @@ export async function updateSession(request: NextRequest) {
   // Do not run code between createServerClient and this call — it refreshes
   // an expired session (unlike reading the cookie alone, which can silently
   // serve an expired session) and verifies the JWT signature.
-  await supabase.auth.getClaims();
+  await timed("proxy.getClaims", supabase.auth.getClaims());
 
   return response;
 }

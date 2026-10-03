@@ -2,6 +2,7 @@ import "server-only";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { touchLastSeen } from "@/lib/repositories/profiles";
+import { timed } from "@/lib/perf/timing";
 import {
   getCachedMyActiveRooms,
   getCachedOwnProfile,
@@ -14,11 +15,14 @@ const LAST_SEEN_THROTTLE_MS = 2 * 60 * 1000;
 // notifications badge and the "active room" shortcut. Also the presence
 // heartbeat behind "online" badges (throttled to one write per 2 minutes).
 export async function getShellData(userId: string) {
-  const [profile, unreadNotifications, rooms] = await Promise.all([
-    getCachedOwnProfile(userId),
-    getCachedUnreadNotificationCount(userId),
-    getCachedMyActiveRooms(userId),
-  ]);
+  const [profile, unreadNotifications, rooms] = await timed(
+    "layout.shell",
+    Promise.all([
+      getCachedOwnProfile(userId),
+      getCachedUnreadNotificationCount(userId),
+      getCachedMyActiveRooms(userId),
+    ]),
+  );
 
   const lastSeen = profile?.last_seen_at ? new Date(profile.last_seen_at).getTime() : 0;
   if (profile && Date.now() - lastSeen > LAST_SEEN_THROTTLE_MS) {
