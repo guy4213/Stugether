@@ -59,6 +59,7 @@ export function RoomsPanel({
           {[...activeRooms, ...readOnlyRooms].map((room) => (
             <li key={room.id}>
               <Link
+                prefetch={false}
                 href={`/rooms/${room.id}`}
                 className={cn(
                   "flex h-full items-center gap-3 rounded-[18px] border border-border bg-card p-4 transition-colors hover:border-primary-line",

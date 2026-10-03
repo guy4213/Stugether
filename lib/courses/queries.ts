@@ -1,11 +1,9 @@
 import "server-only";
 import { getCachedOwnProfile } from "@/lib/app/cached";
 import { createClient } from "@/lib/supabase/server";
-import { listActiveCourses, listDepartments } from "@/lib/repositories/catalog";
+import { getCatalogCounts, listActiveCourses, listDepartments } from "@/lib/repositories/catalog";
 import { listFavoriteCourseIds } from "@/lib/repositories/favorites";
-import { countActiveRoomsByCourseIds } from "@/lib/repositories/rooms";
 import { timed } from "@/lib/perf/timing";
-import { countActiveStudentsByCourseIds } from "@/lib/repositories/enrollments";
 
 export type CourseSort = "popular" | "rooms" | "az";
 
@@ -21,11 +19,19 @@ export function getCoursesPageData(userId: string, filters: CourseFilters) {
 
 async function loadCoursesPageData(userId: string, filters: CourseFilters) {
   const supabase = await createClient();
-  const [profile, favoriteIds] = await Promise.all([
-    getCachedOwnProfile(userId),
-    listFavoriteCourseIds(supabase, userId),
-  ]);
+  // Favorites run alongside the profile and the catalog reads below, which
+  // wait only for the profile (cached — usually already fetched by the layout).
+  const pFavoriteIds = listFavoriteCourseIds(supabase, userId);
+  const profile = await getCachedOwnProfile(userId);
   const institutionId = profile?.institution_id ?? null;
+  const pCatalog = institutionId
+    ? Promise.all([
+        listActiveCourses(supabase, { institutionId }),
+        listDepartments(supabase, institutionId),
+        getCatalogCounts(supabase, institutionId),
+      ])
+    : null;
+  const favoriteIds = await pFavoriteIds;
   const empty = {
     courses: [],
     departments: [],
@@ -36,19 +42,12 @@ async function loadCoursesPageData(userId: string, filters: CourseFilters) {
     totals: { courses: 0, students: 0, liveRooms: 0 },
     institutionId,
   };
-  if (!institutionId) return empty;
+  if (!pCatalog) return empty;
 
   // All of the institution's courses: the hero counters describe the whole
-  // catalog, the grid shows the filtered subset.
-  const [allCourses, departments] = await Promise.all([
-    listActiveCourses(supabase, { institutionId }),
-    listDepartments(supabase, institutionId),
-  ]);
-  const allIds = allCourses.map((c) => c.id);
-  const [roomCounts, studentCounts] = await Promise.all([
-    countActiveRoomsByCourseIds(supabase, allIds),
-    countActiveStudentsByCourseIds(supabase, allIds),
-  ]);
+  // catalog, the grid shows the filtered subset. Counts are keyed by
+  // institution, so all three run in one round trip.
+  const [allCourses, departments, { roomCounts, studentCounts }] = await pCatalog;
 
   const favoriteSet = new Set(favoriteIds);
   const q = filters.q?.trim().toLowerCase();

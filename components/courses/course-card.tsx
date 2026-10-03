@@ -79,6 +79,7 @@ export function CourseCard({
           )}
         </div>
         <Link
+          prefetch={false}
           href={`/courses/${course.id}`}
           className="mt-auto flex h-11 items-center justify-center gap-2 rounded-xl bg-primary-soft text-[15px] font-semibold text-primary-strong hover:bg-primary-tint"
         >

@@ -110,6 +110,7 @@ export default async function ProfilePage({
               return (
                 <Link
                   key={course.id}
+                  prefetch={false}
                   href={`/courses/${course.id}`}
                   className="flex items-center gap-3 rounded-[14px] bg-surface-2 px-3 py-2.5 text-foreground hover:bg-primary-soft"
                 >

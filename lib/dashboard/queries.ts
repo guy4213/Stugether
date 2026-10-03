@@ -6,13 +6,9 @@ import {
 } from "@/lib/app/cached";
 import { createClient } from "@/lib/supabase/server";
 import { listPublicProfiles } from "@/lib/repositories/profiles";
-import {
-  countActiveStudentsByCourseIds,
-  listCourseRosters,
-  listMyEnrollments,
-} from "@/lib/repositories/enrollments";
-import { countActiveRoomsByCourseIds, listOpenRooms } from "@/lib/repositories/rooms";
-import { listActiveCourses, listDepartments } from "@/lib/repositories/catalog";
+import { listCourseRosters, listMyEnrollments } from "@/lib/repositories/enrollments";
+import { listOpenRooms } from "@/lib/repositories/rooms";
+import { getCatalogCounts, listActiveCourses, listDepartments } from "@/lib/repositories/catalog";
 import { listCourseTopics, listMyTopicProgress } from "@/lib/repositories/topics";
 import { listAvailability } from "@/lib/repositories/availability";
 import { listEventRegistrations, listUpcomingTestsForCourses } from "@/lib/repositories/tests";
@@ -84,9 +80,12 @@ async function loadDashboardData(userId: string) {
     (events) => events.find((e) => e.due_at && new Date(e.due_at).getTime() > now) ?? null,
   );
   const pRegistrations = pNextEvent.then((e) => listEventRegistrations(supabase, e ? [e.id] : []));
-  // Catalog recommendations: my institution's courses I'm not enrolled in.
-  const pCandidateIds = Promise.all([pInstitutionCourses, pCourseIds]).then(([courses, ids]) =>
-    courses.filter((c) => !ids.includes(c.id)).map((c) => c.id),
+  // Catalog recommendation counts: keyed by institution, so they run beside
+  // the course list instead of after it (filtered to candidates below).
+  const pCatalogCounts = pInstitutionId.then((id) =>
+    id
+      ? getCatalogCounts(supabase, id)
+      : { studentCounts: {} as Record<string, number>, roomCounts: {} as Record<string, number> },
   );
   // One batched lookup for every person shown on the page.
   const pPeople = Promise.all([pRosters, pAvailability, pRegistrations, pNotifications]).then(
@@ -144,8 +143,8 @@ async function loadDashboardData(userId: string) {
     pInstitutionId.then((id) => (id ? listDepartments(supabase, id) : [])),
     pNextEvent,
     pRegistrations,
-    pCandidateIds.then((ids) => countActiveStudentsByCourseIds(supabase, ids)),
-    pCandidateIds.then((ids) => countActiveRoomsByCourseIds(supabase, ids)),
+    pCatalogCounts.then((c) => c.studentCounts),
+    pCatalogCounts.then((c) => c.roomCounts),
     pPeople,
   ]);
 

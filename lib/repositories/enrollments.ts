@@ -126,15 +126,10 @@ export async function listCourseRosters(
 export async function countActiveClassmates(
   client: SupabaseClient,
   userId: string,
+  courseIds: string[],
 ): Promise<number> {
-  const { data: mine, error: mineError } = await client
-    .from("enrollments")
-    .select("course_id")
-    .eq("user_id", userId)
-    .eq("status", "active");
-  if (mineError) throw mineError;
-
-  const courseIds = (mine as { course_id: string }[]).map((row) => row.course_id);
+  // The caller already holds my active course ids (listMyEnrollments), so
+  // this is a single round trip instead of re-reading my enrollments first.
   if (courseIds.length === 0) return 0;
 
   const { data, error } = await client

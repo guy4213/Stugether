@@ -22,6 +22,18 @@ export function getCourseDetailData(userId: string, courseId: string) {
 
 async function loadCourseDetailData(userId: string, courseId: string) {
   const supabase = await createClient();
+  const now = Date.now();
+
+  // A dependency graph, not two rounds: departments wait only for the course,
+  // registrations only for the events. Availability and open rooms start right
+  // away; RLS shows them only to enrolled students, and they're dropped below
+  // for anyone who isn't.
+  const pCourse = getCourse(supabase, courseId);
+  const pEvents = listTestsForCourse(supabase, courseId);
+  const pNextEvent = pEvents.then(
+    (rows) => rows.find((e) => e.due_at && new Date(e.due_at).getTime() > now) ?? null,
+  );
+
   const [
     course,
     myProfile,
@@ -34,37 +46,39 @@ async function loadCourseDetailData(userId: string, courseId: string) {
     topics,
     progress,
     favoriteIds,
+    departments,
+    availabilityRows,
+    openRoomRows,
+    registrationRows,
   ] = await Promise.all([
-    getCourse(supabase, courseId),
+    pCourse,
     getCachedOwnProfile(userId),
     listMyEnrollments(supabase, userId),
     listEnrolledCourseStudents(supabase, courseId),
     getCachedMyActiveRooms(userId),
-    listTestsForCourse(supabase, courseId),
+    pEvents,
     countActiveRoomsByCourseIds(supabase, [courseId]),
     countActiveStudentsByCourseIds(supabase, [courseId]),
     listCourseTopics(supabase, [courseId]),
     listMyTopicProgress(supabase, userId),
     listFavoriteCourseIds(supabase, userId),
+    pCourse.then((c) => (c ? listDepartments(supabase, c.institution_id) : [])),
+    listAvailability(supabase, [courseId]),
+    listOpenRooms(supabase, [courseId]),
+    pNextEvent.then((e) => (e ? listEventRegistrations(supabase, [e.id]) : [])),
   ]);
 
   const myEnrollment = myEnrollments.find((e) => e.course_id === courseId) ?? null;
   const isEnrolled = myEnrollment?.status === "active";
 
-  const now = Date.now();
   const upcomingEvents = events.filter((e) => e.due_at && new Date(e.due_at).getTime() > now);
   const nextEvent = upcomingEvents[0] ?? null;
 
-  // Rosters, availability, open rooms and registrations are only visible to
-  // enrolled students (RLS); skip the round trips otherwise.
-  const [departments, availability, openRooms, registrations] = await Promise.all([
-    course ? listDepartments(supabase, course.institution_id) : Promise.resolve([]),
-    isEnrolled ? listAvailability(supabase, [courseId]) : Promise.resolve([]),
-    isEnrolled ? listOpenRooms(supabase, [courseId]) : Promise.resolve([]),
-    isEnrolled && nextEvent
-      ? listEventRegistrations(supabase, [nextEvent.id])
-      : Promise.resolve([]),
-  ]);
+  // Rosters, availability, open rooms and registrations are for enrolled
+  // students only.
+  const availability = isEnrolled ? availabilityRows : [];
+  const openRooms = isEnrolled ? openRoomRows : [];
+  const registrations = isEnrolled ? registrationRows : [];
   const departmentsById = new Map(departments.map((d) => [d.id, d]));
 
   const topicSummary = summarizeTopics(topics, progress);

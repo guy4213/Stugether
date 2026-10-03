@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { countActiveStudentsByCourseIds } from "@/lib/repositories/enrollments";
+import { countActiveRoomsByCourseIds } from "@/lib/repositories/rooms";
 
 // Academic catalog: institutions, departments, courses.
 // Read paths are filtered to is_active; write paths rely on RLS
@@ -96,6 +98,37 @@ export async function listActiveCourses(
   const { data, error } = await query.order("name");
   if (error) throw error;
   return data as Course[];
+}
+
+// Active students + active rooms for every active course of an institution
+// (course_catalog_counts RPC, 20261003000001). Keyed by institution so it can
+// run alongside listActiveCourses instead of waiting for the course ids.
+export async function getCatalogCounts(
+  client: SupabaseClient,
+  institutionId: string,
+): Promise<{ studentCounts: Record<string, number>; roomCounts: Record<string, number> }> {
+  const { data, error } = await client.rpc("course_catalog_counts", {
+    p_institution_id: institutionId,
+  });
+  // PGRST202: the RPC isn't deployed yet (code shipped before `db push`).
+  // Fall back to the per-course RPCs — slower, but the page still works.
+  if (error?.code === "PGRST202") {
+    const ids = (await listActiveCourses(client, { institutionId })).map((c) => c.id);
+    const [studentCounts, roomCounts] = await Promise.all([
+      countActiveStudentsByCourseIds(client, ids),
+      countActiveRoomsByCourseIds(client, ids),
+    ]);
+    return { studentCounts, roomCounts };
+  }
+  if (error) throw error;
+
+  const studentCounts: Record<string, number> = {};
+  const roomCounts: Record<string, number> = {};
+  for (const row of data as { course_id: string; student_count: number; room_count: number }[]) {
+    if (Number(row.student_count) > 0) studentCounts[row.course_id] = Number(row.student_count);
+    if (Number(row.room_count) > 0) roomCounts[row.course_id] = Number(row.room_count);
+  }
+  return { studentCounts, roomCounts };
 }
 
 // --- Admin CRUD (RLS restricts writes to an active super_admin; call with the

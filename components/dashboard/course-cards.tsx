@@ -99,7 +99,9 @@ export function MyCourseCard({
           <Link href={course.continueHref}>המשך</Link>
         </Button>
         <Button asChild variant="quiet" size="md" className="grow">
-          <Link href={`/courses/${course.id}`}>פרטי הקורס</Link>
+          <Link prefetch={false} href={`/courses/${course.id}`}>
+            פרטי הקורס
+          </Link>
         </Button>
       </div>
     </article>
@@ -147,7 +149,7 @@ export function RecommendationCard({
       </ProgressRing>
       <div className="flex min-w-0 grow flex-col gap-1.5">
         <h3 className="truncate text-[17px] font-bold">
-          <Link href={`/courses/${course.id}`} className="hover:text-primary">
+          <Link prefetch={false} href={`/courses/${course.id}`} className="hover:text-primary">
             {course.name}
           </Link>
         </h3>

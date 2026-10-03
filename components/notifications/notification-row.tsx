@@ -126,7 +126,7 @@ export function NotificationRow({ item, time }: { item: NotificationItem; time: 
         )}
         {item.action?.kind === "room" && (
           <Button asChild variant="soft" size="chip">
-            <Link href={`/rooms/${item.action.roomId}`} onClick={markRead}>
+            <Link prefetch={false} href={`/rooms/${item.action.roomId}`} onClick={markRead}>
               לחדר
             </Link>
           </Button>
@@ -137,7 +137,7 @@ export function NotificationRow({ item, time }: { item: NotificationItem; time: 
             variant={item.type === "event_scheduled" ? "outline-primary" : "soft"}
             size="chip"
           >
-            <Link href={`/courses/${item.action.courseId}`} onClick={markRead}>
+            <Link prefetch={false} href={`/courses/${item.action.courseId}`} onClick={markRead}>
               {item.action.label}
             </Link>
           </Button>

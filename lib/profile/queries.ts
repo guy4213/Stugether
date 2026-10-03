@@ -17,22 +17,36 @@ export function getProfileFormData(userId: string) {
 async function loadProfileFormData(userId: string) {
   const supabase = await createClient();
   const since60 = new Date(Date.now() - 60 * 86_400_000).toISOString();
-  const [profile, institutions, enrollments, partners, messageTimes, progress] = await Promise.all([
-    getCachedOwnProfile(userId),
+  // Every query starts as soon as what it needs has arrived: faculties and
+  // departments wait only for my profile, classmates only for my enrollments.
+  const pProfile = getCachedOwnProfile(userId);
+  const pEnrollments = listMyEnrollments(supabase, userId);
+  const pInstitutionId = pProfile.then((p) => p?.institution_id ?? null);
+  const [
+    profile,
+    institutions,
+    enrollments,
+    partners,
+    messageTimes,
+    progress,
+    faculties,
+    departments,
+  ] = await Promise.all([
+    pProfile,
     listInstitutions(supabase),
-    listMyEnrollments(supabase, userId),
-    countActiveClassmates(supabase, userId),
+    pEnrollments,
+    pEnrollments.then((rows) =>
+      countActiveClassmates(
+        supabase,
+        userId,
+        rows.filter((e) => e.status === "active").map((e) => e.course_id),
+      ),
+    ),
     listMyMessageTimestamps(supabase, userId, since60),
     listMyTopicProgress(supabase, userId),
+    pInstitutionId.then((id) => (id ? listFaculties(supabase, id) : [])),
+    pInstitutionId.then((id) => (id ? listDepartments(supabase, id) : [])),
   ]);
-
-  const institutionId = profile?.institution_id ?? null;
-  const [faculties, departments] = institutionId
-    ? await Promise.all([
-        listFaculties(supabase, institutionId),
-        listDepartments(supabase, institutionId),
-      ])
-    : [[], []];
 
   const active = enrollments.filter((e) => e.status === "active");
 

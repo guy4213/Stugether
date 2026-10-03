@@ -251,6 +251,7 @@ export default async function AnalyticsPage({
             return (
               <Link
                 key={c.id}
+                prefetch={false}
                 href={`/courses/${c.id}`}
                 className="flex items-center gap-4 rounded-xl outline-offset-4"
               >

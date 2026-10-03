@@ -465,7 +465,9 @@ function RoomsTab({ data }: { data: CourseDetailData }) {
                 </p>
               </div>
               <Button asChild variant="solid" size="chip">
-                <Link href={`/rooms/${room.id}`}>כניסה</Link>
+                <Link prefetch={false} href={`/rooms/${room.id}`}>
+                  כניסה
+                </Link>
               </Button>
             </li>
           ))}
