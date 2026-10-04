@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { uploadAvatar, getAvatarUrl } from "@/lib/storage";
 import { updateAvatarPath } from "@/lib/profile/actions";
 import { initials } from "@/lib/ui/people";
+import { DEMO_READ_ONLY_ERROR } from "@/lib/demo/constants";
 
 // The file input is addressable by id so other controls (the completion
 // card's "העלאת תמונה") can open it with <label htmlFor>.
@@ -50,7 +51,9 @@ export function AvatarUploader({
             ? "הקובץ גדול מדי (עד 2MB)"
             : err instanceof Error && err.message === "AVATAR_INVALID_TYPE"
               ? "סוג קובץ לא נתמך (JPEG, PNG או WEBP בלבד)"
-              : "העלאת התמונה נכשלה";
+              : err instanceof Error && err.message === "DEMO_MODE"
+                ? DEMO_READ_ONLY_ERROR
+                : "העלאת התמונה נכשלה";
         toast.error(message);
       } finally {
         URL.revokeObjectURL(localPreview);

@@ -22,7 +22,13 @@ export type ChannelStatus = "connecting" | "subscribed" | "error" | "closed";
 
 // `presenceKey` is the current user's id: tracked on the room's private
 // channel so every member sees who is connected right now (SPEC §4.6).
-export function useRoomChannel(roomId: string, presenceKey: string | null, handlers: Handlers) {
+// `enabled: false` (demo mode) opens no channel at all.
+export function useRoomChannel(
+  roomId: string,
+  presenceKey: string | null,
+  handlers: Handlers,
+  { enabled = true }: { enabled?: boolean } = {},
+) {
   const [status, setStatus] = useState<ChannelStatus>("connecting");
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
   const handlersRef = useRef(handlers);
@@ -32,6 +38,7 @@ export function useRoomChannel(roomId: string, presenceKey: string | null, handl
   });
 
   useEffect(() => {
+    if (!enabled) return;
     const supabase = createClient();
     const filter = `room_id=eq.${roomId}`;
 
@@ -68,7 +75,7 @@ export function useRoomChannel(roomId: string, presenceKey: string | null, handl
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomId, presenceKey]);
+  }, [roomId, presenceKey, enabled]);
 
   return { status, onlineUserIds };
 }

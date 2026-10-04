@@ -20,7 +20,7 @@ import {
 
 export const requireSuperAdmin = cache(async () => {
   const user = await getCurrentUser();
-  if (!user) return null;
+  if (!user || user.demo) return null;
   const profile = await getCachedOwnProfile(user.id);
   if (!profile || profile.role !== "super_admin" || !profile.is_active) return null;
   return { userId: user.id };

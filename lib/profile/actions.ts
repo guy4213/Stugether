@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { updateOwnProfile } from "@/lib/repositories/profiles";
 import { getCurrentUser } from "@/lib/auth/session";
+import { DEMO_READ_ONLY } from "@/lib/demo/constants";
 import { ISRAELI_CITIES } from "@/lib/constants/cities";
 
 const CITY_VALUES = [...ISRAELI_CITIES] as [string, ...string[]];
@@ -38,6 +39,7 @@ export async function updateProfile(
   formData: FormData,
 ): Promise<ProfileFormState> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
 
   const parsed = ProfileSchema.safeParse(Object.fromEntries(formData));
@@ -69,6 +71,7 @@ export async function updateProfile(
 
 export async function updateAvatarPath(avatarPath: string): Promise<ProfileFormState> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
 
   const supabase = await createClient();

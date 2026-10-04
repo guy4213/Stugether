@@ -9,6 +9,7 @@ import {
   type NotificationPreferenceKey,
 } from "@/lib/repositories/notifications";
 import { getCurrentUser } from "@/lib/auth/session";
+import { DEMO_READ_ONLY } from "@/lib/demo/constants";
 
 export type ActionResult = { ok: boolean; error?: string };
 
@@ -29,6 +30,7 @@ export async function acceptRoomInvitation(
   notificationId?: string,
 ): Promise<ActionResult & { roomId?: string }> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   let roomId: string | null;
@@ -56,6 +58,7 @@ export async function declineRoomInvitation(
   notificationId?: string,
 ): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {
@@ -70,6 +73,7 @@ export async function declineRoomInvitation(
 
 export async function markAllNotificationsRead(): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {
@@ -83,6 +87,7 @@ export async function markAllNotificationsRead(): Promise<ActionResult> {
 
 export async function markNotificationRead(notificationId: string): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {
@@ -100,6 +105,7 @@ export async function updateNotificationPreference(
 ): Promise<ActionResult> {
   if (!PREFERENCE_KEYS.includes(key)) return { ok: false, error: "הגדרה לא מוכרת" };
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {

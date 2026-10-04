@@ -4,12 +4,14 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { addFavorite, removeFavorite } from "@/lib/repositories/favorites";
 import { getCurrentUser } from "@/lib/auth/session";
+import { DEMO_READ_ONLY } from "@/lib/demo/constants";
 
 export async function toggleFavorite(
   courseId: string,
   nextIsFavorite: boolean,
 ): Promise<{ ok: boolean; error?: string }> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
 
   const supabase = await createClient();

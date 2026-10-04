@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getCatalogCounts, listActiveCourses, listDepartments } from "@/lib/repositories/catalog";
 import { listFavoriteCourseIds } from "@/lib/repositories/favorites";
 import { timed } from "@/lib/perf/timing";
+import { getDemoScenario } from "@/lib/demo/state";
+import { demoCatalog } from "@/lib/demo/fixtures";
+import type { Course, Department } from "@/lib/repositories/catalog";
 
 export type CourseSort = "popular" | "rooms" | "az";
 
@@ -13,7 +16,9 @@ export function parseCourseSort(value: string | undefined): CourseSort {
 
 type CourseFilters = { q?: string; departmentId?: string; favorites?: boolean; sort?: CourseSort };
 
-export function getCoursesPageData(userId: string, filters: CourseFilters) {
+export async function getCoursesPageData(userId: string, filters: CourseFilters) {
+  const demo = await getDemoScenario();
+  if (demo) return shapeCoursesPage({ ...demoCatalog(demo), filters });
   return timed("page.courses", loadCoursesPageData(userId, filters));
 }
 
@@ -47,8 +52,36 @@ async function loadCoursesPageData(userId: string, filters: CourseFilters) {
   // All of the institution's courses: the hero counters describe the whole
   // catalog, the grid shows the filtered subset. Counts are keyed by
   // institution, so all three run in one round trip.
-  const [allCourses, departments, { roomCounts, studentCounts }] = await pCatalog;
+  const [courses, departments, { roomCounts, studentCounts }] = await pCatalog;
+  return shapeCoursesPage({
+    courses,
+    departments,
+    favoriteIds,
+    roomCounts,
+    studentCounts,
+    institutionId,
+    filters,
+  });
+}
 
+// Filtering, sorting and counters — shared with demo mode's fixed catalog.
+function shapeCoursesPage({
+  courses: allCourses,
+  departments,
+  favoriteIds,
+  roomCounts,
+  studentCounts,
+  institutionId,
+  filters,
+}: {
+  courses: Course[];
+  departments: Department[];
+  favoriteIds: string[];
+  roomCounts: Record<string, number>;
+  studentCounts: Record<string, number>;
+  institutionId: string | null;
+  filters: CourseFilters;
+}) {
   const favoriteSet = new Set(favoriteIds);
   const q = filters.q?.trim().toLowerCase();
   const activity = (id: string) => (studentCounts[id] ?? 0) + (roomCounts[id] ?? 0) * 2;

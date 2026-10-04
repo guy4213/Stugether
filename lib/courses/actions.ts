@@ -7,11 +7,13 @@ import { enroll, unenroll } from "@/lib/repositories/enrollments";
 import { createRoom } from "@/lib/repositories/rooms";
 import { createTest, type EventKind } from "@/lib/repositories/tests";
 import { getCurrentUser } from "@/lib/auth/session";
+import { DEMO_READ_ONLY } from "@/lib/demo/constants";
 
 export type ActionResult = { ok: boolean; error?: string };
 
 export async function enrollInCourse(courseId: string): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {
@@ -29,6 +31,7 @@ export async function enrollInCourse(courseId: string): Promise<ActionResult> {
 
 export async function unenrollFromCourse(courseId: string): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {
@@ -53,6 +56,7 @@ export async function createRoomForCourse(
   isOpen = false,
 ): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
 
@@ -83,6 +87,7 @@ export async function addTestForCourse(
     return { ok: false, error: "סוג אירוע לא חוקי" };
   }
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {

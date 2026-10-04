@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { clearAvailability, setAvailability } from "@/lib/repositories/availability";
 import { getCurrentUser } from "@/lib/auth/session";
+import { DEMO_READ_ONLY } from "@/lib/demo/constants";
 
 export type ActionResult = { ok: boolean; error?: string };
 
@@ -24,6 +25,7 @@ export async function setStudyAvailability(
   const parsed = availabilitySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "פרטים לא תקינים" };
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {
@@ -38,6 +40,7 @@ export async function setStudyAvailability(
 
 export async function clearStudyAvailability(courseId: string): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {

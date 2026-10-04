@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { setTopicStatus, type TopicStatus } from "@/lib/repositories/topics";
 import { getCurrentUser } from "@/lib/auth/session";
+import { DEMO_READ_ONLY } from "@/lib/demo/constants";
 
 export type ActionResult = { ok: boolean; error?: string };
 
@@ -18,6 +19,7 @@ export async function updateTopicStatus(
     return { ok: false, error: "סטטוס לא חוקי" };
   }
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {

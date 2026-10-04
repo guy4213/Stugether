@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { getDemoScenario } from "@/lib/demo/state";
+import { DEMO_READ_ONLY_ERROR } from "@/lib/demo/constants";
 import { getAiRunTrigger } from "@/lib/repositories/messages";
 import { startAiRunAndSchedule } from "@/lib/ai/run";
 
@@ -14,6 +16,10 @@ const bodySchema = z.object({ messageId: z.string().uuid() });
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: roomId } = await params;
+  // Demo mode never writes; the demo room simulates sending on the client.
+  if (await getDemoScenario()) {
+    return NextResponse.json({ error: DEMO_READ_ONLY_ERROR }, { status: 403 });
+  }
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
