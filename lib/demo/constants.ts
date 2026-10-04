@@ -10,6 +10,10 @@
 
 export const DEMO_COOKIE = "stugether_demo";
 
+// Demo mode is ON by default (no cookie = demo). Regular mode is the cookie
+// value "off", set by the toggle button.
+export const DEMO_OFF = "off";
+
 export const DEMO_SCENARIOS = ["active", "quiet", "empty"] as const;
 export type DemoScenario = (typeof DEMO_SCENARIOS)[number];
 

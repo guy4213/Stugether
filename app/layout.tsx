@@ -3,7 +3,6 @@ import { Rubik } from "next/font/google";
 import { DirectionProvider } from "@/components/ui/direction";
 import { Toaster } from "@/components/ui/sonner";
 import { DemoSwitcher } from "@/components/demo/demo-switcher";
-import { isDemoAvailable } from "@/lib/demo/config";
 import "./globals.css";
 
 // Rubik is the typeface of the StuGether Dashboard mockup (400–800).
@@ -31,8 +30,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             דילוג לתוכן הראשי
           </a>
           {children}
-          {/* UX/design demo mode — off on production unless DEMO_MODE=on. */}
-          {isDemoAvailable() && <DemoSwitcher />}
+          {/* Demo / regular mode toggle (lib/demo). */}
+          <DemoSwitcher />
           <Toaster dir="rtl" position="bottom-left" />
         </DirectionProvider>
       </body>
