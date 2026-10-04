@@ -7,10 +7,14 @@ import { listMyMessageTimestamps } from "@/lib/repositories/messages";
 import { listMyTopicProgress } from "@/lib/repositories/topics";
 import { timed } from "@/lib/perf/timing";
 import { computeStreak } from "@/lib/stats/streak";
+import { getDemoScenario } from "@/lib/demo/state";
+import { demoProfileForm } from "@/lib/demo/fixtures";
 
 // Server-only aggregate for the profile settings page — kept out of
 // app/**/page.tsx per the ESLint Supabase boundary (eslint.config.mjs).
-export function getProfileFormData(userId: string) {
+export async function getProfileFormData(userId: string): Promise<ProfileFormData> {
+  const demo = await getDemoScenario();
+  if (demo) return demoProfileForm(demo);
   return timed("page.profile", loadProfileFormData(userId));
 }
 
@@ -67,3 +71,5 @@ async function loadProfileFormData(userId: string) {
     },
   };
 }
+
+export type ProfileFormData = Awaited<ReturnType<typeof loadProfileFormData>>;

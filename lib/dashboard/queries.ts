@@ -20,6 +20,8 @@ import { computeStreak } from "@/lib/stats/streak";
 import { computeCourseMatch } from "@/lib/stats/course-match";
 import { isRoomLive } from "@/lib/stats/live";
 import { timed } from "@/lib/perf/timing";
+import { getDemoScenario } from "@/lib/demo/state";
+import { demoDashboard } from "@/lib/demo/fixtures";
 import type { StackPerson } from "@/components/ui/avatar-stack";
 
 const DAY_MS = 86_400_000;
@@ -49,7 +51,9 @@ export interface ActivityItem {
   joinRoomId: string | null;
 }
 
-export function getDashboardData(userId: string) {
+export async function getDashboardData(userId: string): Promise<DashboardData> {
+  const demo = await getDemoScenario();
+  if (demo) return demoDashboard(demo);
   return timed("page.dashboard", loadDashboardData(userId));
 }
 
@@ -367,4 +371,4 @@ async function loadDashboardData(userId: string) {
   };
 }
 
-export type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
+export type DashboardData = Awaited<ReturnType<typeof loadDashboardData>>;

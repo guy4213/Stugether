@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { listMyEnrollments } from "@/lib/repositories/enrollments";
 import { listMyMessageTimestamps } from "@/lib/repositories/messages";
 import { listDepartments } from "@/lib/repositories/catalog";
+import { getDemoScenario } from "@/lib/demo/state";
+import { demoAnalytics } from "@/lib/demo/fixtures";
 
 const WEEK_MS = 7 * 86_400_000;
 
@@ -14,7 +16,18 @@ export function parseAnalyticsRange(value: string | undefined): AnalyticsRange {
   return value === "semester" ? "semester" : "8w";
 }
 
-export async function getAnalyticsData(userId: string, range: AnalyticsRange = "8w") {
+export async function getAnalyticsData(
+  userId: string,
+  range: AnalyticsRange = "8w",
+): Promise<AnalyticsData> {
+  const demo = await getDemoScenario();
+  if (demo) return demoAnalytics(demo, range);
+  return loadAnalyticsData(userId, range);
+}
+
+export type AnalyticsData = Awaited<ReturnType<typeof loadAnalyticsData>>;
+
+async function loadAnalyticsData(userId: string, range: AnalyticsRange) {
   const weeks = range === "semester" ? 20 : 8;
   const supabase = await createClient();
   const since = new Date(Date.now() - weeks * WEEK_MS);

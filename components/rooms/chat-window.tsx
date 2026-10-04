@@ -15,6 +15,7 @@ import { useRoomChannel } from "@/hooks/useRoomChannel";
 import { deleteMessage, loadOlderMessages, markRoomReadAction } from "@/lib/rooms/actions";
 import type { Message } from "@/lib/repositories/messages";
 import type { RoomPageData } from "@/lib/rooms/queries";
+import { DEMO_AI_REPLY, DEMO_READ_ONLY_ERROR } from "@/lib/demo/constants";
 
 const TZ = "Asia/Jerusalem";
 const MARK_READ_THROTTLE_MS = 3000;
@@ -42,6 +43,25 @@ function dayLabel(iso: string): string {
   });
 }
 
+// Same trigger as the messages route, for the demo room's simulated tutor.
+const AI_MENTION_RE = /(^|\s)@ai(\s|[.,!?]|$)/i;
+
+function localMessage(roomId: string, fields: Partial<Message>): Message {
+  return {
+    id: crypto.randomUUID(),
+    room_id: roomId,
+    sender_id: null,
+    sender_type: "user",
+    content: "",
+    status: "complete",
+    ai_run_id: null,
+    metadata: {},
+    created_at: new Date().toISOString(),
+    deleted_at: null,
+    ...fields,
+  };
+}
+
 function upsert(list: Message[], row: Message): Message[] {
   const i = list.findIndex((m) => m.id === row.id);
   if (i === -1) return [...list, row];
@@ -56,6 +76,8 @@ function upsert(list: Message[], row: Message): Message[] {
 export function ChatWindow({ data, currentUserId }: { data: RoomPageData; currentUserId: string }) {
   const { room, course, isMember, aiAvailable } = data;
   const isActive = room.status === "active";
+  // Demo mode (lib/demo): no realtime, no writes — sending is simulated here.
+  const demo = data.demoPresence !== null;
   const canPost = isMember && isActive;
 
   const [messages, setMessages] = useState<Message[]>(data.messages);
@@ -76,21 +98,27 @@ export function ChatWindow({ data, currentUserId }: { data: RoomPageData; curren
   );
   const activeMembers = data.members.filter((m) => !m.left_at);
 
-  const { onlineUserIds } = useRoomChannel(room.id, isMember ? currentUserId : null, {
-    onMessageInsert: (row) => setMessages((prev) => upsert(prev, row as unknown as Message)),
-    onMessageUpdate: (row) => setMessages((prev) => upsert(prev, row as unknown as Message)),
-    onMessageDeleted: (id) =>
-      setMessages((prev) =>
-        prev.flatMap((m) => {
-          if (m.id !== id) return [m];
-          // My own deleted message stays as a "deleted" stub; others' vanish
-          // (RLS hides deleted rows from everyone but the sender).
-          return m.sender_id === currentUserId
-            ? [{ ...m, deleted_at: m.deleted_at ?? new Date().toISOString() }]
-            : [];
-        }),
-      ),
-  });
+  const channel = useRoomChannel(
+    room.id,
+    isMember ? currentUserId : null,
+    {
+      onMessageInsert: (row) => setMessages((prev) => upsert(prev, row as unknown as Message)),
+      onMessageUpdate: (row) => setMessages((prev) => upsert(prev, row as unknown as Message)),
+      onMessageDeleted: (id) =>
+        setMessages((prev) =>
+          prev.flatMap((m) => {
+            if (m.id !== id) return [m];
+            // My own deleted message stays as a "deleted" stub; others' vanish
+            // (RLS hides deleted rows from everyone but the sender).
+            return m.sender_id === currentUserId
+              ? [{ ...m, deleted_at: m.deleted_at ?? new Date().toISOString() }]
+              : [];
+          }),
+        ),
+    },
+    { enabled: !demo },
+  );
+  const onlineUserIds = data.demoPresence ?? channel.onlineUserIds;
   const online = useMemo(() => new Set(onlineUserIds), [onlineUserIds]);
 
   // Re-evaluate the 5-minute delete window without a user action.
@@ -100,12 +128,12 @@ export function ChatWindow({ data, currentUserId }: { data: RoomPageData; curren
   }, []);
 
   const markRead = useCallback(() => {
-    if (!isMember || document.visibilityState !== "visible") return;
+    if (demo || !isMember || document.visibilityState !== "visible") return;
     const t = Date.now();
     if (t - lastMarkRead.current < MARK_READ_THROTTLE_MS) return;
     lastMarkRead.current = t;
     void markRoomReadAction(room.id);
-  }, [isMember, room.id]);
+  }, [demo, isMember, room.id]);
 
   // Room-level "read" (SPEC §4.6): on open, on every new message while the
   // room is on screen, and when the tab comes back into view.
@@ -154,6 +182,10 @@ export function ChatWindow({ data, currentUserId }: { data: RoomPageData; curren
   async function send(askAi: boolean) {
     const trimmed = content.trim();
     if (!trimmed || isSending) return;
+    if (demo) {
+      sendDemo(trimmed, askAi || AI_MENTION_RE.test(trimmed));
+      return;
+    }
 
     setIsSending(true);
     try {
@@ -179,7 +211,32 @@ export function ChatWindow({ data, currentUserId }: { data: RoomPageData; curren
     }
   }
 
+  function sendDemo(text: string, askAi: boolean) {
+    setContent("");
+    stickToBottom.current = true;
+    setMessages((prev) => [
+      ...prev,
+      localMessage(room.id, { sender_id: currentUserId, content: text }),
+    ]);
+    if (!askAi) return;
+    const reply = localMessage(room.id, { sender_type: "ai", status: "streaming" });
+    setTimeout(() => setMessages((prev) => [...prev, reply]), 600);
+    setTimeout(
+      () =>
+        setMessages((prev) =>
+          upsert(prev, { ...reply, status: "complete", content: DEMO_AI_REPLY }),
+        ),
+      2200,
+    );
+  }
+
   async function handleDelete(message: Message) {
+    if (demo) {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === message.id ? { ...m, deleted_at: new Date().toISOString() } : m)),
+      );
+      return;
+    }
     setBusyId(message.id);
     const result = await deleteMessage(message.id);
     setBusyId(null);
@@ -193,6 +250,10 @@ export function ChatWindow({ data, currentUserId }: { data: RoomPageData; curren
   }
 
   async function handleRetry(message: Message) {
+    if (demo) {
+      toast.info(DEMO_READ_ONLY_ERROR);
+      return;
+    }
     setBusyId(message.id);
     try {
       const res = await fetch(`/api/rooms/${room.id}/ai-retry`, {

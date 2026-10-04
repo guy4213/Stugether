@@ -9,6 +9,8 @@ import {
   listRoomPendingInvitations,
 } from "@/lib/repositories/invitations";
 import { listPublicProfiles } from "@/lib/repositories/profiles";
+import { getDemoScenario } from "@/lib/demo/state";
+import { demoRoom } from "@/lib/demo/fixtures";
 
 const PAGE_SIZE = 50;
 const MAX_MEMBERS = 4;
@@ -17,7 +19,16 @@ const MAX_MEMBERS = 4;
 // member — rooms_select_member_or_admin RLS already returns null for a
 // non-member's getRoom() call, so this never distinguishes "not found" from
 // "no access" (same as the rest of the app's RLS-first design).
-export async function getRoomPageData(roomId: string, userId: string) {
+export async function getRoomPageData(
+  roomId: string,
+  userId: string,
+): Promise<RoomPageData | null> {
+  const demo = await getDemoScenario();
+  if (demo) return demoRoom(demo, roomId);
+  return loadRoomPageData(roomId, userId);
+}
+
+async function loadRoomPageData(roomId: string, userId: string) {
   const supabase = await createClient();
   const room = await getRoom(supabase, roomId);
   if (!room) return null;
@@ -72,7 +83,9 @@ export async function getRoomPageData(roomId: string, userId: string) {
       .map((c) => ({ id: c.id, name: c.full_name, avatarPath: c.avatar_url }))
       .sort((a, b) => a.name.localeCompare(b.name, "he")),
     openSeats: Math.max(0, openSeats),
+    // Demo mode only: fixed "who is online" instead of realtime presence.
+    demoPresence: null as string[] | null,
   };
 }
 
-export type RoomPageData = NonNullable<Awaited<ReturnType<typeof getRoomPageData>>>;
+export type RoomPageData = NonNullable<Awaited<ReturnType<typeof loadRoomPageData>>>;

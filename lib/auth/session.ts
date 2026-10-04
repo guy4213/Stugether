@@ -2,10 +2,14 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { timed } from "@/lib/perf/timing";
+import { getDemoScenario } from "@/lib/demo/state";
+import { DEMO_USER_ID } from "@/lib/demo/constants";
 
 export interface SessionUser {
   id: string;
   email: string | null;
+  // Demo mode (lib/demo): a fixed fake student, never a real account.
+  demo?: boolean;
 }
 
 // Kept out of components/**, app/**/page.tsx and app/**/layout.tsx per the
@@ -19,6 +23,7 @@ export interface SessionUser {
 // cache(): the (app) layout, the page and query modules all ask "who is
 // signed in" during one request — dedupe to a single verification.
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
+  if (await getDemoScenario()) return { id: DEMO_USER_ID, email: null, demo: true };
   const supabase = await createClient();
   const { data, error } = await timed("render.getClaims", supabase.auth.getClaims());
   if (error || !data?.claims?.sub) return null;

@@ -12,6 +12,8 @@ import {
 import { listOpenRooms } from "@/lib/repositories/rooms";
 import { listMyEnrollments } from "@/lib/repositories/enrollments";
 import { israelDayKey } from "@/lib/stats/streak";
+import { getDemoScenario } from "@/lib/demo/state";
+import { demoNotifications } from "@/lib/demo/fixtures";
 
 export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
   "invitations",
@@ -37,7 +39,18 @@ export interface NotificationItem extends AppNotification {
   action: NotificationAction;
 }
 
-export async function getNotificationsData(userId: string, category: NotificationCategory | null) {
+export async function getNotificationsData(
+  userId: string,
+  category: NotificationCategory | null,
+): Promise<NotificationsData> {
+  const demo = await getDemoScenario();
+  if (demo) return demoNotifications(demo, category);
+  return loadNotificationsData(userId, category);
+}
+
+export type NotificationsData = Awaited<ReturnType<typeof loadNotificationsData>>;
+
+async function loadNotificationsData(userId: string, category: NotificationCategory | null) {
   const supabase = await createClient();
   const weekAgo = new Date(Date.now() - 7 * 86_400_000);
 

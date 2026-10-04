@@ -13,10 +13,17 @@ import { computeMatchPercent } from "@/lib/matching/score";
 import { summarizeTopics } from "@/lib/courses/topic-state";
 import { timed } from "@/lib/perf/timing";
 import { isOnline } from "@/lib/ui/people";
+import { getDemoScenario } from "@/lib/demo/state";
+import { demoCourseDetail } from "@/lib/demo/fixtures";
 
 export type MemberStatus = "available" | "online" | "offline";
 
-export function getCourseDetailData(userId: string, courseId: string) {
+export async function getCourseDetailData(
+  userId: string,
+  courseId: string,
+): Promise<CourseDetailData> {
+  const demo = await getDemoScenario();
+  if (demo) return demoCourseDetail(demo, courseId);
   return timed("page.courseDetail", loadCourseDetailData(userId, courseId));
 }
 
@@ -157,4 +164,4 @@ async function loadCourseDetailData(userId: string, courseId: string) {
   };
 }
 
-export type CourseDetailData = Awaited<ReturnType<typeof getCourseDetailData>>;
+export type CourseDetailData = Awaited<ReturnType<typeof loadCourseDetailData>>;

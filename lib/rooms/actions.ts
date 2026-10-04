@@ -22,6 +22,7 @@ import {
 } from "@/lib/repositories/messages";
 import { getCourse } from "@/lib/repositories/catalog";
 import { getCurrentUser } from "@/lib/auth/session";
+import { DEMO_READ_ONLY } from "@/lib/demo/constants";
 
 export type ActionResult = { ok: boolean; error?: string };
 
@@ -34,6 +35,7 @@ function errorCode(err: unknown): string {
 // redirect() throws, so a successful call never returns.
 export async function joinOpenRoomAction(roomId: string): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {
@@ -56,6 +58,7 @@ export async function inviteToStudy(
   topicTitle?: string | null,
 ): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
 
@@ -100,6 +103,7 @@ export async function inviteToRoom(
   inviteeIds: string[],
 ): Promise<ActionResult & { sent?: number }> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const ids = [...new Set(inviteeIds)].slice(0, 3);
   if (ids.length === 0) return { ok: false, error: "יש לבחור לפחות סטודנט/ית אחד/ת" };
@@ -130,6 +134,7 @@ export async function revokeRoomInvitation(
   invitationId: string,
 ): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {
@@ -144,6 +149,7 @@ export async function revokeRoomInvitation(
 // Own message, within 5 minutes (SPEC §4.6) — enforced by soft_delete_message.
 export async function deleteMessage(messageId: string): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {
@@ -158,6 +164,7 @@ export async function deleteMessage(messageId: string): Promise<ActionResult> {
 // whenever new messages arrive while the room is on screen.
 export async function markRoomReadAction(roomId: string): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false };
   const supabase = await createClient();
   try {
@@ -171,6 +178,7 @@ export async function markRoomReadAction(roomId: string): Promise<ActionResult> 
 // Keyset pagination backwards ("טעינת הודעות קודמות"). Returned oldest-first.
 export async function loadOlderMessages(roomId: string, before: MessageCursor): Promise<Message[]> {
   const user = await getCurrentUser();
+  if (user?.demo) return [];
   if (!user) return [];
   const supabase = await createClient();
   const rows = await listRoomMessages(supabase, roomId, { before, limit: 50 });
@@ -179,6 +187,7 @@ export async function loadOlderMessages(roomId: string, before: MessageCursor): 
 
 export async function leaveRoomAction(roomId: string): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {
@@ -193,6 +202,7 @@ export async function leaveRoomAction(roomId: string): Promise<ActionResult> {
 // Owner only (remove_room_member enforces it).
 export async function removeRoomMember(roomId: string, userId: string): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {
@@ -211,6 +221,7 @@ export async function setRoomStatusAction(
   status: "archived" | "closed",
 ): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {
@@ -224,6 +235,7 @@ export async function setRoomStatusAction(
 
 export async function setRoomAiEnabled(roomId: string, aiEnabled: boolean): Promise<ActionResult> {
   const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {

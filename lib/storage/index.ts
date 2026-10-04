@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { DEMO_AVATAR_PREFIX, isDemoId } from "@/lib/demo/constants";
 
 // The only module allowed to touch Supabase Storage.
 const AVATARS_BUCKET = "avatars";
@@ -26,6 +27,7 @@ function extensionForType(type: string): string {
 // pass this straight into updateOwnProfile({ avatarPath }). Use
 // getAvatarUrl(path) separately at render time.
 export async function uploadAvatar(userId: string, file: File): Promise<string> {
+  if (isDemoId(userId)) throw new Error("DEMO_MODE");
   if (file.size > MAX_AVATAR_BYTES) throw new Error("AVATAR_TOO_LARGE");
   if (!ALLOWED_AVATAR_TYPES.includes(file.type)) throw new Error("AVATAR_INVALID_TYPE");
 
@@ -40,6 +42,8 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
 }
 
 export function getAvatarUrl(path: string): string {
+  // Demo mode avatars ship with the app (public/demo/avatars).
+  if (path.startsWith(DEMO_AVATAR_PREFIX)) return `/${path}`;
   const supabase = createClient();
   return supabase.storage.from(AVATARS_BUCKET).getPublicUrl(path).data.publicUrl;
 }

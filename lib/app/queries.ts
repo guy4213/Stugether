@@ -3,6 +3,8 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { touchLastSeen } from "@/lib/repositories/profiles";
 import { timed } from "@/lib/perf/timing";
+import { getDemoScenario } from "@/lib/demo/state";
+import { demoShell } from "@/lib/demo/fixtures";
 import {
   getCachedMyActiveRooms,
   getCachedOwnProfile,
@@ -14,7 +16,13 @@ const LAST_SEEN_THROTTLE_MS = 2 * 60 * 1000;
 // What the (app) top nav needs on every page: who you are, the unread
 // notifications badge and the "active room" shortcut. Also the presence
 // heartbeat behind "online" badges (throttled to one write per 2 minutes).
-export async function getShellData(userId: string) {
+export async function getShellData(userId: string): Promise<ShellData> {
+  const demo = await getDemoScenario();
+  if (demo) return demoShell(demo);
+  return loadShellData(userId);
+}
+
+async function loadShellData(userId: string) {
   const [profile, unreadNotifications, rooms] = await timed(
     "layout.shell",
     Promise.all([
@@ -44,4 +52,4 @@ export async function getShellData(userId: string) {
   };
 }
 
-export type ShellData = Awaited<ReturnType<typeof getShellData>>;
+export type ShellData = Awaited<ReturnType<typeof loadShellData>>;
