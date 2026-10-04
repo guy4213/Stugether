@@ -1,12 +1,12 @@
 import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
-import { isDemoAvailable } from "@/lib/demo/config";
-import { DEMO_COOKIE, parseDemoScenario, type DemoScenario } from "@/lib/demo/constants";
+import { DEMO_COOKIE, DEMO_OFF, parseDemoScenario, type DemoScenario } from "@/lib/demo/constants";
 
-// The demo scenario of this request, or null for the real app.
+// The demo scenario of this request, or null for the real app. Default: demo.
 export const getDemoScenario = cache(async (): Promise<DemoScenario | null> => {
-  if (!isDemoAvailable()) return null;
   const store = await cookies();
-  return parseDemoScenario(store.get(DEMO_COOKIE)?.value);
+  const value = store.get(DEMO_COOKIE)?.value;
+  if (value === DEMO_OFF) return null;
+  return parseDemoScenario(value) ?? "active";
 });
