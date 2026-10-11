@@ -6,7 +6,8 @@
 //
 // Used only as an equivalent-course source: a HIT course with no published
 // topics borrows them from the same standard course at the Technion (see
-// enrich.mjs). Exported: loadTechnion(cacheDir) → [{ code, name, faculty, syllabus }].
+// enrich.mjs). Exported: loadTechnion(cacheDir) →
+// [{ code, name, faculty, framework, credits, syllabus }].
 
 import { readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -22,7 +23,7 @@ async function getJson(url) {
 }
 
 export async function loadTechnion(cacheDir) {
-  const file = path.join(cacheDir, "technion.json");
+  const file = path.join(cacheDir, "technion-v2.json");
   if (existsSync(file)) return JSON.parse(await readFile(file, "utf8"));
 
   const semesters = (await getJson(`${RAW}/last_semesters.json`)).slice(0, SEMESTERS);
@@ -33,7 +34,15 @@ export async function loadTechnion(cacheDir) {
       const syllabus = (g["סילבוס"] ?? "").trim();
       if (byCode.has(code) || syllabus.length < 30) continue;
       // Responsible staff, exam dates and notes are dropped on purpose.
-      byCode.set(code, { code, name: g["שם מקצוע"], faculty: g["פקולטה"], syllabus });
+      byCode.set(code, {
+        code,
+        name: g["שם מקצוע"],
+        faculty: g["פקולטה"],
+        // "לימודי הסמכה" = undergraduate; "מקצוע משותף" = shared service course.
+        framework: g["מסגרת לימודים"] ?? null,
+        credits: Number.parseFloat(g["נקודות"]) || null,
+        syllabus,
+      });
     }
   }
   const courses = [...byCode.values()];
