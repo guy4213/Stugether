@@ -4,8 +4,10 @@
 `f9fd692` schema+HIT catalog+UI · `b45cc94` aliases+matching fixes · `c3d2211` HIT→other institutions
 templates · `820d163` Technion/Open University degrees. Working tree clean (this file aside).
 
-**User's instruction for tomorrow:** read this file, finish the remaining work quickly, then **merge to
-`main` and push everything**. Do NOT run `supabase db push` (production DB) without asking.
+**User's instruction for tomorrow (given 11.10.2026):** read this file, finish the remaining work quickly,
+then **merge to `main`, push everything, and update production** — the user explicitly authorized
+`supabase db push` too ("תעדכן הכל, אני סומך עליך"), on condition that all checks pass first. If any
+check fails or the push conflicts, stop and report instead of forcing.
 
 ## What exists (done, tested)
 
@@ -35,7 +37,9 @@ templates · `820d163` Technion/Open University degrees. Working tree clean (thi
 3. `npm run lint && npm run typecheck && npm run build`, `npx prettier --check scripts/catalog`.
 4. Commit, then: `git checkout main && git merge --no-ff feature/syllabus-catalog && git push origin main`
    (also push the branch). Update `TASKS.md` log row (10-11.10.2026) with final numbers if they changed.
-5. Delete this HANDOFF.md in the final commit.
+5. Production: `npx supabase db push` (linked project; applies 20261010000001–04). Verify the course
+   page "סילבוס" tab on the deployed site.
+6. Delete this HANDOFF.md in the final commit.
 
 ## Known gaps (accepted, mention in final report)
 
