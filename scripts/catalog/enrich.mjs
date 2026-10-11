@@ -61,6 +61,8 @@ const SYNONYMS = new Map([
   ["מורכבות", "מרוכבות"],
   ["דיסקרטית", "בדידה"],
   ["סדנא", "סדנה"],
+  ["תכנה", "תוכנה"],
+  ["עבוד", "עיבוד"],
   ["תיכנות", "תכנות"],
   ["אינטגראליות", "אינטגרליות"],
   ["פונקצית", "פונקציות"],
@@ -125,8 +127,10 @@ function stem(word) {
 // ("מבוא לכלכלה" inside "מבוא לכלכלה מיקרו ומאקרו", "סימולציה" inside
 // "סימולציה-מידול, ניתוח ויישומים"), the latter a bit lower.
 function similarity(a, b) {
-  const numsA = a.filter((t) => /^\d+$/.test(t)).join(",");
-  const numsB = b.filter((t) => /^\d+$/.test(t)).join(",");
+  // A part number can appear twice ("מערכות הספק א' 1": Hebrew + English title).
+  const nums = (x) => [...new Set(x.filter((t) => /^\d+$/.test(t)))].sort().join(",");
+  const numsA = nums(a);
+  const numsB = nums(b);
   // "פיסיקה 1" never matches "פיסיקה 2", but an unnumbered course is part 1:
   // "מבני נתונים" ≈ "מבני נתונים 1".
   const sameNumbers = numsA === numsB || (!numsA && numsB === "1") || (numsA === "1" && !numsB);
@@ -150,7 +154,9 @@ function similarity(a, b) {
 }
 
 const MIN_EQUIVALENT = 0.8;
-const MIN_SAME_CODE = 0.34; // same code at HIT: just confirm it is still the same course
+// Same code at HIT: the name only has to confirm it is still the same course
+// ("אלגוריתמים במולטימדיה (פייתון)" vs "... ולמידת מכונה בסביבת").
+const MIN_SAME_CODE = 0.25;
 
 // Best-named candidate ({ name, tokens, faculty? }) for a HIT course, or null.
 function bestEquivalent(course, department, candidates) {
@@ -162,7 +168,7 @@ function bestEquivalent(course, department, candidates) {
   for (const t of candidates) {
     if (PRACTICAL.test(t.name) !== practical || NO_EQUIVALENT.test(t.name)) continue;
     const score = similarity(mine, t.tokens);
-    if (score < MIN_EQUIVALENT) continue;
+    if (score < MIN_EQUIVALENT - 1e-9) continue; // 0.85 - 0.05 is 0.7999… in floats
     const pref = prefs.indexOf(t.faculty);
     // Closest name first (fewest extra words), then the expected faculty.
     const extra = Math.abs(t.tokens.length - mine.length);
@@ -175,6 +181,35 @@ function bestEquivalent(course, department, candidates) {
 function compare(a, b) {
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i];
   return 0;
+}
+
+// Hand-checked equivalents (supabase/catalog/hit-aliases.json): the first
+// alternative whose source yields 3+ topics wins.
+async function resolveAlias(alternatives, { archive, technion, cacheDir }) {
+  for (const alt of alternatives ?? []) {
+    let topics = [];
+    let url = null;
+    let kind = alt.source;
+    if (alt.source === "hit_archive") {
+      const a = archive[alt.code];
+      topics = a?.topics ?? [];
+      url = a?.source_url ?? null;
+      kind = "hit_archive_name";
+    } else if (alt.source === "technion") {
+      const t = technion.find((x) => x.code === alt.code);
+      topics = t ? splitTopics(t.syllabus) : [];
+      url = `https://students.technion.ac.il/local/technionsearch/course/${alt.code}`;
+    } else if (alt.source === "openu") {
+      topics = splitTopics(await loadOpenUTopics(alt.code, cacheDir));
+      url = `https://www.openu.ac.il/courses/${alt.code}.htm`;
+    } else if (alt.source === "braude") {
+      topics = splitTopics(await loadBraudeTopics(alt.code, cacheDir));
+      url = `https://info.braude.ac.il/yedion/fireflyweb.aspx?prgname=S_LOOK_FOR_NOSE&arguments=-N${alt.code}`;
+    }
+    if (topics.length >= 3)
+      return { topics, source: { kind, url, ref: `${alt.code} ${alt.name}` } };
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -201,6 +236,9 @@ async function main() {
     .map((t) => ({ ...t, tokens: tokens(t.name) }));
   const openu = (await loadOpenUIndex(cacheDir)).map((t) => ({ ...t, tokens: tokens(t.name) }));
   const braude = (await loadBraudeIndex(cacheDir)).map((t) => ({ ...t, tokens: tokens(t.name) }));
+  const aliases = JSON.parse(
+    await readFile(path.join(CATALOG, "hit-aliases.json"), "utf8"),
+  ).aliases;
 
   const stats = {};
   for (const dept of hit.departments) {
@@ -213,6 +251,7 @@ async function main() {
       braude: 0,
       openu: 0,
       none: 0,
+      aliased: 0, // of the above, via hit-aliases.json
     });
     for (const course of dept.courses) {
       s.courses++;
@@ -239,6 +278,14 @@ async function main() {
           ref: `${archived.code} ${archived.name} (${archived.academic_year})`,
         };
         s.hit_archive++;
+        continue;
+      }
+      const aliased = await resolveAlias(aliases[course.code], { archive, technion, cacheDir });
+      if (aliased) {
+        course.topics = aliased.topics;
+        course.topics_source = aliased.source;
+        s[aliased.source.kind]++;
+        s.aliased++;
         continue;
       }
       // Within HIT the audience is part of the course: "חשבון אינפי 1 לניהול

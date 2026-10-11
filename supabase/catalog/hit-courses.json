@@ -645,10 +645,55 @@
             "61101"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "סביבת פיתוח PyCharm לתכנות בפייתון",
+              "subtopics": []
+            },
+            {
+              "title": "הפונקציות המובנות של פייתון ועקרונות תפקוד השפה",
+              "subtopics": []
+            },
+            {
+              "title": "ספריות חיצוניות, כגון NumPy ו.OpenCV",
+              "subtopics": []
+            },
+            {
+              "title": "רשימות, רשומות, מילונים, וקטורים ומטריצות בפייתון",
+              "subtopics": []
+            },
+            {
+              "title": "הצגה גרפית של פונקציות",
+              "subtopics": []
+            },
+            {
+              "title": "עיבוד תמונות בסיסי, גילוי קוי מיתר, טשטוש וחידוד תמונה, שימוש בהיסטוגרמה",
+              "subtopics": []
+            },
+            {
+              "title": "הפעלת מסכות ופילטרים בסיסיים, כגון Gaussian, Median Filter ו MAF -על תמונות",
+              "subtopics": []
+            },
+            {
+              "title": "מושגי ייסוד באופטימיזציה ואלגוריתם Gradient. Descent",
+              "subtopics": []
+            },
+            {
+              "title": "מבוא לכריית נתונים ולמידת מכונה, כגון KNN, Logistic Regression ו.K-Means",
+              "subtopics": []
+            },
+            {
+              "title": "הורדת ממד PCA, ואלגוריתם לזיהוי פנים תוך שימוש ב.Eigenfaces",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "hit_archive",
+            "url": "https://web.archive.org/web/20220107164238id_/https://www.hit.ac.il/.upload/Academics/Yedion/2021-2022/Maths_Syllabus.pdf",
+            "ref": "21210 אלגוריתמים במולטימדיה ולמידת מכונה בסביבת (תשפ\"א)"
+          }
         },
         {
           "code": "61104",
@@ -1441,11 +1486,11 @@
           "description": null,
           "topics": [
             {
-              "title": "נושאים בסיסיים בשפת ג'אווה",
+              "title": "היסודות בטכנולוגיות דוט-נט – The NET",
               "subtopics": []
             },
             {
-              "title": "מחלקות, בנאים, אובייקטים והרשאות גישה",
+              "title": "Framework ושפת ( C#א' עד ת') תכנות מונחה עצמים: הכמסה",
               "subtopics": []
             },
             {
@@ -1453,48 +1498,26 @@
               "subtopics": []
             },
             {
-              "title": "פולימורפיזם בהורשה",
+              "title": "קומפוזיציה ופולימורפיזם – העמקת ההבנה והניסיון",
               "subtopics": []
             },
             {
-              "title": "ממשקים",
+              "title": "WinForms פיתוח ושימוש בשירותי רשת מבוססי XML ( XML, )Web Services תלוי הספק: מערכות מבוססות Database תוך שימוש ב ADO.NET",
               "subtopics": []
             },
             {
-              "title": "פולימורפיזם בממשקים",
-              "subtopics": []
-            },
-            {
-              "title": "מנגנון החריגות",
-              "subtopics": []
-            },
-            {
-              "title": "מחלקות, ממשקים ושיטות גנריות",
-              "subtopics": []
-            },
-            {
-              "title": "אוספים גנרים )(ADT",
-              "subtopics": []
-            },
-            {
-              "title": "ממשק משתמש גרפי JavaFX",
-              "subtopics": []
-            },
-            {
-              "title": "עבודה מקבילית ע\"י שימוש בחוטים",
-              "subtopics": []
-            },
-            {
-              "title": "סינכרון בין חוטים",
-              "subtopics": []
+              "title": "0 תלוי הספק",
+              "subtopics": [
+                "היכרות ראשונית עם פיתוח אפליקציות אינטרנט בעזרת ASP.NET"
+              ]
             }
           ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
           "academic_year": "תשפ\"ו",
           "topics_source": {
-            "kind": "braude",
-            "url": "https://info.braude.ac.il/yedion/fireflyweb.aspx?prgname=S_LOOK_FOR_NOSE&arguments=-N61751",
-            "ref": "61751 תכנות מונחה עצמים"
+            "kind": "hit_archive_name",
+            "url": "https://web.archive.org/web/20220107163825id_/https://www.hit.ac.il/.upload/Academics/Yedion/2021-2022/Computer_Science_Syllabus.pdf",
+            "ref": "65313 תכנות מונחה עצמים בסביבת (תשפ\"א)"
           }
         },
         {
@@ -1597,172 +1620,33 @@
           "description": null,
           "topics": [
             {
-              "title": "שימוש בספריית PyTorch לבנייה ולאימון של מודלים בלמידה עמוקה",
-              "subtopics": []
-            },
-            {
-              "title": "הפרספטרון הרב-שכבתי כמודל בסיסי בלמידה עמוקה",
-              "subtopics": []
-            },
-            {
-              "title": "פונקציות מטרה והתאמתן למשימות שונות",
-              "subtopics": []
-            },
-            {
-              "title": "אלגוריתמים לאימון רשתות נוירונים",
-              "subtopics": []
-            },
-            {
-              "title": "שיטות אופטימיזציה ורגולריזציה",
-              "subtopics": []
-            },
-            {
-              "title": "רשתות נוירונים קונבולוציוניות (CNNs)",
-              "subtopics": []
-            },
-            {
-              "title": "רשתות נוירונים נשנות (RNNs)",
-              "subtopics": []
-            },
-            {
-              "title": "ארכיטקטורות מקודד-מפענח",
-              "subtopics": []
-            },
-            {
-              "title": "עיבוד שפה טבעית",
-              "subtopics": []
-            },
-            {
-              "title": "ראייה ממוחשבת",
-              "subtopics": []
-            },
-            {
-              "title": "מודלים גנרטיביים",
-              "subtopics": []
-            },
-            {
-              "title": "הערות",
-              "subtopics": []
-            },
-            {
-              "title": "4098",
-              "subtopics": []
-            },
-            {
-              "title": "$(document).ready(function () {",
-              "subtopics": []
-            },
-            {
-              "title": "if ($(\".wp-VideoStreepResponsive\").length) {",
-              "subtopics": []
-            },
-            {
-              "title": "$(\".wp-VideoStreepResponsive\").attr(\"style\", \"display:none",
-              "subtopics": []
-            },
-            {
-              "title": "\")",
-              "subtopics": []
-            },
-            {
-              "title": "// 0) {",
-              "subtopics": []
-            },
-            {
-              "title": "const idLastDigits = className[0].split('-').pop()",
-              "subtopics": []
-            },
-            {
-              "title": "$(\".remarks-icon-\" + idLastDigits).popover({",
-              "subtopics": []
-            },
-            {
-              "title": "html",
+              "title": "למידה עמוקה על אובייקטים מורכבים",
               "subtopics": [
-                "true"
+                "קנוניזציה",
+                "סימטריזציה ושיטות אינטרינזיות",
+                "איפיון שכבות ליניאריות",
+                "קונבולוציה על חבורה"
               ]
             },
             {
-              "title": "content",
+              "title": "דוגמ אות",
               "subtopics": [
-                "function () {"
+                "תמונות",
+                "קבוצות",
+                "גרפים ואובייקטים תלת מימדיים. כוח הבעה ואוניברסליות"
               ]
             },
             {
-              "title": "return $(\"#course-description-popover-content-\" + idLastDigits).html()",
-              "subtopics": []
-            },
-            {
-              "title": "trigger",
-              "subtopics": [
-                "\"focus\""
-              ]
-            },
-            {
-              "title": "placement",
-              "subtopics": [
-                "\"top\""
-              ]
-            },
-            {
-              "title": "})",
-              "subtopics": []
-            },
-            {
-              "title": "try {",
-              "subtopics": []
-            },
-            {
-              "title": "//for meta data from document librery",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseH1 = ''",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseImageUrl = ''",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseImageTitle = ''",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseImageAlt = ''",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseVideoStreepImageUrl = ''",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseVideoStreepImageTitle = ''",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseVideoStreepImageAlt = ''",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseVideoStreepVideoEmbed = ''",
-              "subtopics": []
-            },
-            {
-              "title": "if ($(\"#carousel-example-generic\").length) {",
-              "subtopics": []
-            },
-            {
-              "title": "var hasImage = false",
+              "title": "להסביר ולהשתמש במושגים בסיסים בתורת החבורות._",
               "subtopics": []
             }
           ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
           "academic_year": "תשפ\"ו",
           "topics_source": {
-            "kind": "openu",
-            "url": "https://www.openu.ac.il/courses/22961.htm",
-            "ref": "22961 למידה עמוקה"
+            "kind": "technion",
+            "url": "https://students.technion.ac.il/local/technionsearch/course/00460215",
+            "ref": "00460215 למידה עמוקה וחבורות"
           }
         },
         {
@@ -2509,10 +2393,27 @@
             "20021"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "למדל בעיות החלטה סדרתית באמצעות כלים מלמידה על ידי חיזוקים",
+              "subtopics": []
+            },
+            {
+              "title": "להפעיל אלגוריתמים ללמידה על ידי חיזוקים על בעיות פשוטות",
+              "subtopics": []
+            },
+            {
+              "title": "להוכיח התכנסות של אלגוריתמי למ",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "technion",
+            "url": "https://students.technion.ac.il/local/technionsearch/course/00970203",
+            "ref": "00970203 למידה על ידי חיזוקים"
+          }
         },
         {
           "code": "21216",
@@ -2528,10 +2429,31 @@
             "21319"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "ניווט רובוטים",
+              "subtopics": []
+            },
+            {
+              "title": "יצירת מציאות חצי וירטואלית",
+              "subtopics": []
+            },
+            {
+              "title": "בקרת איכות בענפים שונים בתעשייה",
+              "subtopics": []
+            },
+            {
+              "title": "מערכת עזר לנהיגת רכבים וכו'",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "hit_archive_name",
+            "url": "https://web.archive.org/web/20220107163825id_/https://www.hit.ac.il/.upload/Academics/Yedion/2021-2022/Computer_Science_Syllabus.pdf",
+            "ref": "65214 ראייה ממוחשבת רבת מבטים"
+          }
         },
         {
           "code": "21217",
@@ -2623,10 +2545,41 @@
             "21185"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "קירובים על ידי יריעות ליניאריות",
+              "subtopics": [
+                "שיטת ריבועים פחותים",
+                "קירובים על ידי פולינומים טריגונומטריים",
+                "קירובים על ידי ספליינים עם צמתים קבועים",
+                "קירובים במידה שווה",
+                "דיסרטיזאציה של בעיות הקירוב הטוב ביותר"
+              ]
+            },
+            {
+              "title": "קירובים על ידי יריעות לא ליניאריות",
+              "subtopics": [
+                "קירובים על ידי ספליינים עם צמתים שאינם קבועים",
+                "קירובים על ידי פונקציות רציונאליות",
+                "קירובים רציונאליים דיסקרטיים"
+              ]
+            },
+            {
+              "title": "אינטרפולציה",
+              "subtopics": [
+                "אינטרפולציה על ידי פולינומים",
+                "אינטרפולציה במרחבים חד ורב מימדים",
+                "אינטרפולציה על ידי ספליינים"
+              ]
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "hit_archive_name",
+            "url": "https://web.archive.org/web/20220107164238id_/https://www.hit.ac.il/.upload/Academics/Yedion/2021-2022/Maths_Syllabus.pdf",
+            "ref": "21518 תורת הקירובים היישומית (תשפ\"א)"
+          }
         },
         {
           "code": "21407",
@@ -4515,11 +4468,11 @@
           "description": null,
           "topics": [
             {
-              "title": "נושאים בסיסיים בשפת ג'אווה",
+              "title": "היסודות בטכנולוגיות דוט-נט – The NET",
               "subtopics": []
             },
             {
-              "title": "מחלקות, בנאים, אובייקטים והרשאות גישה",
+              "title": "Framework ושפת ( C#א' עד ת') תכנות מונחה עצמים: הכמסה",
               "subtopics": []
             },
             {
@@ -4527,48 +4480,26 @@
               "subtopics": []
             },
             {
-              "title": "פולימורפיזם בהורשה",
+              "title": "קומפוזיציה ופולימורפיזם – העמקת ההבנה והניסיון",
               "subtopics": []
             },
             {
-              "title": "ממשקים",
+              "title": "WinForms פיתוח ושימוש בשירותי רשת מבוססי XML ( XML, )Web Services תלוי הספק: מערכות מבוססות Database תוך שימוש ב ADO.NET",
               "subtopics": []
             },
             {
-              "title": "פולימורפיזם בממשקים",
-              "subtopics": []
-            },
-            {
-              "title": "מנגנון החריגות",
-              "subtopics": []
-            },
-            {
-              "title": "מחלקות, ממשקים ושיטות גנריות",
-              "subtopics": []
-            },
-            {
-              "title": "אוספים גנרים )(ADT",
-              "subtopics": []
-            },
-            {
-              "title": "ממשק משתמש גרפי JavaFX",
-              "subtopics": []
-            },
-            {
-              "title": "עבודה מקבילית ע\"י שימוש בחוטים",
-              "subtopics": []
-            },
-            {
-              "title": "סינכרון בין חוטים",
-              "subtopics": []
+              "title": "0 תלוי הספק",
+              "subtopics": [
+                "היכרות ראשונית עם פיתוח אפליקציות אינטרנט בעזרת ASP.NET"
+              ]
             }
           ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
           "academic_year": "תשפ\"ו",
           "topics_source": {
-            "kind": "braude",
-            "url": "https://info.braude.ac.il/yedion/fireflyweb.aspx?prgname=S_LOOK_FOR_NOSE&arguments=-N61751",
-            "ref": "61751 תכנות מונחה עצמים"
+            "kind": "hit_archive_name",
+            "url": "https://web.archive.org/web/20220107163825id_/https://www.hit.ac.il/.upload/Academics/Yedion/2021-2022/Computer_Science_Syllabus.pdf",
+            "ref": "65313 תכנות מונחה עצמים בסביבת (תשפ\"א)"
           }
         },
         {
@@ -5237,10 +5168,55 @@
             "61307"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "מבוא להנדסת תוכנה",
+              "subtopics": []
+            },
+            {
+              "title": "הגדרה וניהול של דרישות",
+              "subtopics": []
+            },
+            {
+              "title": "גישות ומתודולוגיות לניהול פרויקטי תוכנה",
+              "subtopics": []
+            },
+            {
+              "title": "מידול מערכת",
+              "subtopics": []
+            },
+            {
+              "title": "עיצוב התוכנה",
+              "subtopics": []
+            },
+            {
+              "title": "ארכיטקטורה",
+              "subtopics": []
+            },
+            {
+              "title": "עיצוב ומימוש קוד בשיטת תכנות מונחה עצמים",
+              "subtopics": []
+            },
+            {
+              "title": "בדיקות",
+              "subtopics": []
+            },
+            {
+              "title": "ניהול תצורה (קונפיגורציה)",
+              "subtopics": []
+            },
+            {
+              "title": "שימוש מחדש בקוד קיים ותיעוד",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "hit_archive",
+            "url": "https://web.archive.org/web/20220107163825id_/https://www.hit.ac.il/.upload/Academics/Yedion/2021-2022/Computer_Science_Syllabus.pdf",
+            "ref": "63301 הנדסת תוכנה (תשפ\"א)"
+          }
         },
         {
           "code": "63303",
@@ -5258,10 +5234,27 @@
             "67008"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "להכין נתונים לצורך לימוד מכונה",
+              "subtopics": []
+            },
+            {
+              "title": "לממש אלגוריתמים בסיסיים של למידתמכונה",
+              "subtopics": []
+            },
+            {
+              "title": "להשתמש באלגוריתמי למידה מונחית ולשערך את הצלחתם, תוך שימוש בספריות תוכנה סטנדרטיות והתנסות בנתונים",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "technion",
+            "url": "https://students.technion.ac.il/local/technionsearch/course/02360766",
+            "ref": "02360766 מבוא ללמידת מכונה"
+          }
         },
         {
           "code": "62208",
@@ -5346,10 +5339,31 @@
             "62208"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "יכירו מושגי יסוד בחישוביות, כולל תורת האוטומטים, מכונות טיורינג, שפות רגולריות וכריעות",
+              "subtopics": []
+            },
+            {
+              "title": "יכירו מושגי יסוד בתורת הסיבוכיות, כולל המחלקות המרכזיות ,PN,P .ECAPSP ,C-PN",
+              "subtopics": []
+            },
+            {
+              "title": "ידעו להוכיח חברות של בעיה במחלקת סיבוכיות, וידעו להוכיח כר יעות או אי כריעות של בעיה",
+              "subtopics": []
+            },
+            {
+              "title": "יכירו את המשפט המראה שמספר הבעיות הכריעות הוא בר מניה, בעוד שמספר הבעיות הבלתי כריעות הוא לא בר מניה",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "technion",
+            "url": "https://students.technion.ac.il/local/technionsearch/course/00970447",
+            "ref": "00970447 מבוא לחישוביות וסיבוכיות"
+          }
         },
         {
           "code": "21201",
@@ -5479,172 +5493,33 @@
           "description": null,
           "topics": [
             {
-              "title": "שימוש בספריית PyTorch לבנייה ולאימון של מודלים בלמידה עמוקה",
-              "subtopics": []
-            },
-            {
-              "title": "הפרספטרון הרב-שכבתי כמודל בסיסי בלמידה עמוקה",
-              "subtopics": []
-            },
-            {
-              "title": "פונקציות מטרה והתאמתן למשימות שונות",
-              "subtopics": []
-            },
-            {
-              "title": "אלגוריתמים לאימון רשתות נוירונים",
-              "subtopics": []
-            },
-            {
-              "title": "שיטות אופטימיזציה ורגולריזציה",
-              "subtopics": []
-            },
-            {
-              "title": "רשתות נוירונים קונבולוציוניות (CNNs)",
-              "subtopics": []
-            },
-            {
-              "title": "רשתות נוירונים נשנות (RNNs)",
-              "subtopics": []
-            },
-            {
-              "title": "ארכיטקטורות מקודד-מפענח",
-              "subtopics": []
-            },
-            {
-              "title": "עיבוד שפה טבעית",
-              "subtopics": []
-            },
-            {
-              "title": "ראייה ממוחשבת",
-              "subtopics": []
-            },
-            {
-              "title": "מודלים גנרטיביים",
-              "subtopics": []
-            },
-            {
-              "title": "הערות",
-              "subtopics": []
-            },
-            {
-              "title": "4098",
-              "subtopics": []
-            },
-            {
-              "title": "$(document).ready(function () {",
-              "subtopics": []
-            },
-            {
-              "title": "if ($(\".wp-VideoStreepResponsive\").length) {",
-              "subtopics": []
-            },
-            {
-              "title": "$(\".wp-VideoStreepResponsive\").attr(\"style\", \"display:none",
-              "subtopics": []
-            },
-            {
-              "title": "\")",
-              "subtopics": []
-            },
-            {
-              "title": "// 0) {",
-              "subtopics": []
-            },
-            {
-              "title": "const idLastDigits = className[0].split('-').pop()",
-              "subtopics": []
-            },
-            {
-              "title": "$(\".remarks-icon-\" + idLastDigits).popover({",
-              "subtopics": []
-            },
-            {
-              "title": "html",
+              "title": "למידה עמוקה על אובייקטים מורכבים",
               "subtopics": [
-                "true"
+                "קנוניזציה",
+                "סימטריזציה ושיטות אינטרינזיות",
+                "איפיון שכבות ליניאריות",
+                "קונבולוציה על חבורה"
               ]
             },
             {
-              "title": "content",
+              "title": "דוגמ אות",
               "subtopics": [
-                "function () {"
+                "תמונות",
+                "קבוצות",
+                "גרפים ואובייקטים תלת מימדיים. כוח הבעה ואוניברסליות"
               ]
             },
             {
-              "title": "return $(\"#course-description-popover-content-\" + idLastDigits).html()",
-              "subtopics": []
-            },
-            {
-              "title": "trigger",
-              "subtopics": [
-                "\"focus\""
-              ]
-            },
-            {
-              "title": "placement",
-              "subtopics": [
-                "\"top\""
-              ]
-            },
-            {
-              "title": "})",
-              "subtopics": []
-            },
-            {
-              "title": "try {",
-              "subtopics": []
-            },
-            {
-              "title": "//for meta data from document librery",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseH1 = ''",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseImageUrl = ''",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseImageTitle = ''",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseImageAlt = ''",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseVideoStreepImageUrl = ''",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseVideoStreepImageTitle = ''",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseVideoStreepImageAlt = ''",
-              "subtopics": []
-            },
-            {
-              "title": "var CourseDisplay_CourseVideoStreepVideoEmbed = ''",
-              "subtopics": []
-            },
-            {
-              "title": "if ($(\"#carousel-example-generic\").length) {",
-              "subtopics": []
-            },
-            {
-              "title": "var hasImage = false",
+              "title": "להסביר ולהשתמש במושגים בסיסים בתורת החבורות._",
               "subtopics": []
             }
           ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
           "academic_year": "תשפ\"ו",
           "topics_source": {
-            "kind": "openu",
-            "url": "https://www.openu.ac.il/courses/22961.htm",
-            "ref": "22961 למידה עמוקה"
+            "kind": "technion",
+            "url": "https://students.technion.ac.il/local/technionsearch/course/00460215",
+            "ref": "00460215 למידה עמוקה וחבורות"
           }
         },
         {
@@ -6777,10 +6652,40 @@
           "elective": false,
           "prerequisites": [],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "מבני נתונים",
+              "subtopics": [
+                "ניתוח לשיעורין",
+                "ניתוח תחרותי (ערימת פיבונאצ'י, רשימה דינאמית, עץ ליכסון)"
+              ]
+            },
+            {
+              "title": "תכנון לינארי",
+              "subtopics": [
+                "גיאומטריה",
+                "אלגוריתמים (סימפלקס, אליפסואידים)",
+                "תורת הדואליות",
+                "אוב הפרדה"
+              ]
+            },
+            {
+              "title": "גרפים מרחיבים",
+              "subtopics": [
+                "הגדרות",
+                "תכונות",
+                "תורה ספקטרלית",
+                "יישומים אלגוריתמיים"
+              ]
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "openu",
+            "url": "https://www.openu.ac.il/courses/22910.htm",
+            "ref": "22910 נושאים מתקדמים באלגוריתמים"
+          }
         },
         {
           "code": "66004",
@@ -9790,10 +9695,78 @@
             "50014"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "דגימה",
+              "subtopics": [
+                "הגדרה",
+                "תדר",
+                "משפט הדגימה",
+                "קונטיזציה אחידה",
+                "שחזור"
+              ]
+            },
+            {
+              "title": "מערכות בזמן בדיד",
+              "subtopics": [
+                "תכונות",
+                "קונבולוציה בדידה"
+              ]
+            },
+            {
+              "title": "התמרת פוריה בדידה",
+              "subtopics": [
+                "הגדרה ותכונות",
+                "התמרה הפוכה",
+                "צורה מטריציאלית",
+                "ריפוד באפסים",
+                "קונבולוציה ציקלית"
+              ]
+            },
+            {
+              "title": "התמרת פוריה מהירה (",
+              "subtopics": [
+                ")FFT הגדרה",
+                "קונבולוציה ו .(FFT)-ניתוח בתחום התדר: שימוש בחלון מלבן",
+                "חלונות נפוצים"
+              ]
+            },
+            {
+              "title": "התמרת",
+              "subtopics": [
+                "Z הגדרה",
+                "תכונות",
+                "פונקצית מעבר"
+              ]
+            },
+            {
+              "title": "מערכות מתוארות ע\"י משוואות הפרש",
+              "subtopics": []
+            },
+            {
+              "title": "התמרה הפוכה",
+              "subtopics": []
+            },
+            {
+              "title": "מסננים דיגיטליים",
+              "subtopics": [
+                "תכונות",
+                "פונקצית מעבר",
+                "מבוא למסנני FIR ו",
+                "IIR-מסנני Butterworth",
+                "Chebyshev",
+                "Notch",
+                "Winer"
+              ]
+            }
+          ],
           "source_url": "https://www.hit.ac.il/yedion-engineering/",
           "academic_year": "תשפ\"ז",
-          "topics_source": null
+          "topics_source": {
+            "kind": "hit_archive_name",
+            "url": "https://web.archive.org/web/20220107164238id_/https://www.hit.ac.il/.upload/Academics/Yedion/2021-2022/Maths_Syllabus.pdf",
+            "ref": "21314 עיבוד אותות ספרתי"
+          }
         },
         {
           "code": "50074",
@@ -9977,10 +9950,39 @@
             "50226"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "ממשק משתמש ותכנות אפליקציות",
+              "subtopics": []
+            },
+            {
+              "title": "תקשורת עם שרת",
+              "subtopics": []
+            },
+            {
+              "title": "ממשק עם רכיבי חומרה מתקדמים",
+              "subtopics": []
+            },
+            {
+              "title": "ממשק משתמש באפליקציות סלולריות נושאים מתקדמים בתכנה",
+              "subtopics": []
+            },
+            {
+              "title": "חוזיםחכמים",
+              "subtopics": []
+            },
+            {
+              "title": "תכנות מקבילי",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/yedion-engineering/",
           "academic_year": "תשפ\"ז",
-          "topics_source": null
+          "topics_source": {
+            "kind": "technion",
+            "url": "https://students.technion.ac.il/local/technionsearch/course/00450114",
+            "ref": "00450114 מעבדה מתקדמת בתכנה"
+          }
         },
         {
           "code": "50238",
@@ -10214,10 +10216,67 @@
             "50012"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "תיאור כללי של מערכות הספק",
+              "subtopics": []
+            },
+            {
+              "title": "פרמטרים בסיסיים של מערכות הספק",
+              "subtopics": [
+                "קווי תמסורת וכבלים שנאים",
+                "מחוללים סינכרוניים"
+              ]
+            },
+            {
+              "title": "מעגלי תמורה של קווי תמסורת, שנאים, מחוללים ועומסים. מעגל תמורה חד-פאזי של מערכת הספק מסובכת",
+              "subtopics": []
+            },
+            {
+              "title": "קווים ארוכים, בינוניים וקצרים",
+              "subtopics": [
+                "תכונות ופתרונם; חישוב מפלי מתח והפסדי הספק"
+              ]
+            },
+            {
+              "title": "עומסים מחושבים בצמתים ורשתות שקולות במפלסי מתח שונים",
+              "subtopics": []
+            },
+            {
+              "title": "חישוב זרימת ההספקים ברשתות סגורות",
+              "subtopics": []
+            },
+            {
+              "title": "חישוב וניתוח רשתות",
+              "subtopics": [
+                "שיטות מתחי צמתים וזרמי חוגים",
+                "פיתרון בשיטת האיטראציה"
+              ]
+            },
+            {
+              "title": "חישוב מערכת הספק מסובכת בעזרת מחשב",
+              "subtopics": []
+            },
+            {
+              "title": "בעיות מיוחדות במערכות הספק",
+              "subtopics": []
+            },
+            {
+              "title": "תכנון בסיסי של רשתות חלוקה",
+              "subtopics": []
+            },
+            {
+              "title": "תכנון טכנו-כלכלי של מערכות הספק במתח עליון",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/yedion-engineering/",
           "academic_year": "תשפ\"ז",
-          "topics_source": null
+          "topics_source": {
+            "kind": "hit_archive",
+            "url": "https://web.archive.org/web/20180516201257id_/https://www.hit.ac.il/.upload/Academics/Yedion/2017-2018/engineering.pdf",
+            "ref": "50043 מערכות הספק א' 1 (תשע\"ח)"
+          }
         },
         {
           "code": "50052",
@@ -10230,10 +10289,55 @@
             "50018"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "עקרונות התכנון במישור התדר -חזרה",
+              "subtopics": []
+            },
+            {
+              "title": "מערכות עם אי ודאויות, עקרונות כללים של שיטת QFT",
+              "subtopics": []
+            },
+            {
+              "title": "תכנון בקרי PID בשיטת זיגלר-ניקולס עבור מערכות מינימום פאזה",
+              "subtopics": []
+            },
+            {
+              "title": "תכנון בקרי PID של מערכות מושהות בזמן ומערכות שאינן בפאזה מינימאלית",
+              "subtopics": []
+            },
+            {
+              "title": "מבוא למערכות לא-ליניאריות ולדינמיקה לא ליניארית",
+              "subtopics": []
+            },
+            {
+              "title": "שיטת הפונקציה המתארת, מעגלי גבול",
+              "subtopics": []
+            },
+            {
+              "title": "מסלולים במישור הפאזות, שיטת האיזוקלינות",
+              "subtopics": []
+            },
+            {
+              "title": "מערכות בקרה ספרתיות – שיטות אנליזה (.)NYQUIST, RL",
+              "subtopics": []
+            },
+            {
+              "title": "שיטות התמרה מהמישור הרציף למישור הבדיד",
+              "subtopics": []
+            },
+            {
+              "title": "תכנון של מערכות בקרה ספרתיות",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/yedion-engineering/",
           "academic_year": "תשפ\"ז",
-          "topics_source": null
+          "topics_source": {
+            "kind": "hit_archive_name",
+            "url": "https://web.archive.org/web/20180516201257id_/https://www.hit.ac.il/.upload/Academics/Yedion/2017-2018/engineering.pdf",
+            "ref": "55011 בקרה אוטומטית מתקדמת"
+          }
         },
         {
           "code": "50078",
@@ -10246,10 +10350,47 @@
             "50018"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "מטרת המעבדה להדגים יישום שיטות בקרה בסיסיות על גבי מערכות ממשיות",
+              "subtopics": []
+            },
+            {
+              "title": "תכני המעבדה יכללו מידול מערכות",
+              "subtopics": []
+            },
+            {
+              "title": "זיהוי פרמטרים",
+              "subtopics": []
+            },
+            {
+              "title": "ותכן בקרים ליניאריים בשיטות קלאסיות",
+              "subtopics": []
+            },
+            {
+              "title": "בארבעת מפגשי המעבדה",
+              "subtopics": []
+            },
+            {
+              "title": "זיהוי פרמטרים ובקרה של מנוע סרוו",
+              "subtopics": []
+            },
+            {
+              "title": "בקרה על מערכת רחיפה",
+              "subtopics": []
+            },
+            {
+              "title": "ובקרה של מטוטלת הפוכה",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/yedion-engineering/",
           "academic_year": "תשפ\"ז",
-          "topics_source": null
+          "topics_source": {
+            "kind": "technion",
+            "url": "https://students.technion.ac.il/local/technionsearch/course/00450102",
+            "ref": "00450102 מעבדה בבקרה לינארית"
+          }
         },
         {
           "code": "50085",
@@ -10262,10 +10403,31 @@
             "50060"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "הכרות עם אותות המופקים ונמדדים מגוף האדם באמצעות חיישנים שונים: שני מפגשים יעסקו באות דיבור",
+              "subtopics": []
+            },
+            {
+              "title": "ושניים יעסקו באותות ECG ו-PPG",
+              "subtopics": []
+            },
+            {
+              "title": "שיערוך פרמטרים וניתוח אותות אלו באמצעות שיטות עיבוד אותות קלאסיות",
+              "subtopics": []
+            },
+            {
+              "title": "התמודדות עם רעשים שונים ועבודה עם מאגרי נתונים גדולים",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/yedion-engineering/",
           "academic_year": "תשפ\"ז",
-          "topics_source": null
+          "topics_source": {
+            "kind": "technion",
+            "url": "https://students.technion.ac.il/local/technionsearch/course/00450109",
+            "ref": "00450109 מעבדה בעיבוד אותות"
+          }
         },
         {
           "code": "50099",
@@ -10834,10 +10996,35 @@
             "50012"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "המעבדה מקיימת ניסויים במספר תחומים",
+              "subtopics": [
+                "התנסות מעשית באלקטרוניקת הספק",
+                "על ידי בניה",
+                "מדידה וניתוח של ממירים ממותגים"
+              ]
+            },
+            {
+              "title": "התנסות מעשית בעבודהעם מערכות אנרגיה מתחדשת ורכבים חשמליים סימולציה של מערכות הספק גדולות",
+              "subtopics": []
+            },
+            {
+              "title": "בקנה מידה ארצי",
+              "subtopics": []
+            },
+            {
+              "title": "בדגש על עבודה עם מאגרים אנרגטיים ודינאמיקה של מערכות הספק",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/yedion-engineering/",
           "academic_year": "תשפ\"ז",
-          "topics_source": null
+          "topics_source": {
+            "kind": "technion",
+            "url": "https://students.technion.ac.il/local/technionsearch/course/00450106",
+            "ref": "00450106 מעבדה באנרגיה ומערכות הספק"
+          }
         },
         {
           "code": "50051",
@@ -10899,10 +11086,61 @@
             "50043"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "תיאור כללי של מערכות הספק במצבי חרום",
+              "subtopics": []
+            },
+            {
+              "title": "יחידות מנורמלות",
+              "subtopics": [
+                "חישוב מקורב ומדויק"
+              ]
+            },
+            {
+              "title": "שיטות לפישוט מעגלי רשתות",
+              "subtopics": []
+            },
+            {
+              "title": "אופייני נתק וקצר של מחולל סינכרוני(, משולש פוטיה) וקצר תלת-פאזי",
+              "subtopics": []
+            },
+            {
+              "title": "קצר מתמיד של מחולל סינכרוני ושיטות שונות לחישוב זרמי קצר במערכות הספק במצב מתמיד",
+              "subtopics": []
+            },
+            {
+              "title": "תורת הקצר הפתאומי של מחולל סינכרוני",
+              "subtopics": []
+            },
+            {
+              "title": "ניתוח ושיטות שונות לחישוב זרמי קצר במערכות הספק מסובכות",
+              "subtopics": []
+            },
+            {
+              "title": "שיטת מרכיבים סימטריים וחישוב קצרים לא סימטריים",
+              "subtopics": []
+            },
+            {
+              "title": "ויסות מתחים והספקים הגביים במערכות הספק",
+              "subtopics": []
+            },
+            {
+              "title": "יציבות דינאמית של מערכות הספק",
+              "subtopics": []
+            },
+            {
+              "title": "חלוקה כלכלית של הספקים בין תחנות כוח",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/yedion-engineering/",
           "academic_year": "תשפ\"ז",
-          "topics_source": null
+          "topics_source": {
+            "kind": "hit_archive",
+            "url": "https://web.archive.org/web/20180516201257id_/https://www.hit.ac.il/.upload/Academics/Yedion/2017-2018/engineering.pdf",
+            "ref": "50053 מערכות הספק ב' 2 (תשע\"ח)"
+          }
         },
         {
           "code": "50076",
@@ -10931,10 +11169,55 @@
             "50006"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "מבוא לתהליכי ייצור מכשירים במיקרואלקטרוניקה",
+              "subtopics": []
+            },
+            {
+              "title": "מבנה מערכות ואקום, שיטות שיקוע בשכבות דקות",
+              "subtopics": []
+            },
+            {
+              "title": "הכנת מצעים לציפוי, תהליך נידוף תרמי",
+              "subtopics": []
+            },
+            {
+              "title": "מדידות בטכנולוגיית שכבות דקות",
+              "subtopics": []
+            },
+            {
+              "title": "חיתוך וניקוי מצעים במעבדה",
+              "subtopics": []
+            },
+            {
+              "title": "נידוף תרמי של חומרים שונים",
+              "subtopics": []
+            },
+            {
+              "title": "יצירת מערכות שכבתיות עם תכונות של דיודה",
+              "subtopics": []
+            },
+            {
+              "title": "יצירת גופי חימום שכבתיים",
+              "subtopics": []
+            },
+            {
+              "title": "יצירת מערכות שכבתיות למדידת טמפרטורה",
+              "subtopics": []
+            },
+            {
+              "title": "אפיון שכבות דקות ומערכות שכבתיות",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/yedion-engineering/",
           "academic_year": "תשפ\"ז",
-          "topics_source": null
+          "topics_source": {
+            "kind": "hit_archive_name",
+            "url": "https://web.archive.org/web/20180516201257id_/https://www.hit.ac.il/.upload/Academics/Yedion/2017-2018/engineering.pdf",
+            "ref": "50178 מעבדה למיקרואלקטרוניקה ושכבות דקות"
+          }
         },
         {
           "code": "50140",
@@ -11575,10 +11858,27 @@
             "50245"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "למדל בעיות החלטה סדרתית באמצעות כלים מלמידה על ידי חיזוקים",
+              "subtopics": []
+            },
+            {
+              "title": "להפעיל אלגוריתמים ללמידה על ידי חיזוקים על בעיות פשוטות",
+              "subtopics": []
+            },
+            {
+              "title": "להוכיח התכנסות של אלגוריתמי למ",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/yedion-engineering/",
           "academic_year": "תשפ\"ז",
-          "topics_source": null
+          "topics_source": {
+            "kind": "technion",
+            "url": "https://students.technion.ac.il/local/technionsearch/course/00970203",
+            "ref": "00970203 למידה על ידי חיזוקים"
+          }
         },
         {
           "code": "50029",
@@ -11769,10 +12069,35 @@
             "50011"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "הגדרות בסיסיות בתכנון. מערכת, CAE,CAD,CAM הכרת מודלים לתכנון מעגלים אלקטרוניים. תוכנה Spice",
+              "subtopics": []
+            },
+            {
+              "title": "מבוא לתכנון אוטומטים (.)Mealy, Moore",
+              "subtopics": []
+            },
+            {
+              "title": "מבוא לתאימות אלקטרומגנטית (.)EMC",
+              "subtopics": []
+            },
+            {
+              "title": "הכרת מערכות ואמצעים סמוכים כמו מערכת מומחה מבוססת על ידע (, )KBES תכנון תוכנה (, )CASE אמצעי הכנה של תיעוד טכני (.)DTP",
+              "subtopics": []
+            },
+            {
+              "title": "תירגול בתוכנות ( PCB Express , Multisum)EWB(, MicroCap,OrCAD)Pspice וביצוע עבודות בית לפי משימות אישיות",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/yedion-engineering/",
           "academic_year": "תשפ\"ז",
-          "topics_source": null
+          "topics_source": {
+            "kind": "hit_archive",
+            "url": "https://web.archive.org/web/20180516201257id_/https://www.hit.ac.il/.upload/Academics/Yedion/2017-2018/engineering.pdf",
+            "ref": "50063 תיב\"ם אלקטרוני (תשע\"ח)"
+          }
         },
         {
           "code": "50066",
@@ -13298,10 +13623,67 @@
           "elective": false,
           "prerequisites": [],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "היסודות התיאורטיים של חשבונאות ודיווח כספי",
+              "subtopics": []
+            },
+            {
+              "title": "הצגת דוחות כספיים – דוח על המצב הכספי, דוח על הרווח הכולל",
+              "subtopics": []
+            },
+            {
+              "title": "מלאי",
+              "subtopics": []
+            },
+            {
+              "title": "רכוש קבוע והפרשה לפירוק ושיקום",
+              "subtopics": []
+            },
+            {
+              "title": "מדיניות חשבונאית, שינוי אומדן וטעויות",
+              "subtopics": []
+            },
+            {
+              "title": "מענקים ממשלתיים וסיוע ממשלתי – מענק לנכסים",
+              "subtopics": []
+            },
+            {
+              "title": "ירידת ערך נכסים (ברמת הנכס הבודד)",
+              "subtopics": []
+            },
+            {
+              "title": "נדל\"ן להשקעה",
+              "subtopics": []
+            },
+            {
+              "title": "נכסים בלתי מוחשיים",
+              "subtopics": []
+            },
+            {
+              "title": "אירועים לאחר תאריך הדיווח (רקע)",
+              "subtopics": []
+            },
+            {
+              "title": "מכשירים פיננסיים – הצגה ומדידה של הלוואות ואגרות חוב",
+              "subtopics": []
+            },
+            {
+              "title": "1 להשלכות על צבירת נ\"ז בשל חפיפה עם קורס(ים) אחר(ים), ראו פירוט החפיפה",
+              "subtopics": []
+            },
+            {
+              "title": "2 ניתן לגשת לבחינת הפטור ארבע פעמים בלבד. ההרשמה לבחינה כרוכה בתשלום",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-nahat/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "openu",
+            "url": "https://www.openu.ac.il/courses/10863.htm",
+            "ref": "10863 יסודות החשבונאות הפיננסית"
+          }
         },
         {
           "code": "70080",
@@ -13502,10 +13884,70 @@
           "elective": false,
           "prerequisites": [],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "בקוש והצע",
+              "subtopics": [
+                "שווי המשקל בשוק",
+                "מדיניות הממשלה בתחום המיקרו והשפעתה על שווי המשקל"
+              ]
+            },
+            {
+              "title": "פונקצית העלויות וגזירת עקומת ההצע",
+              "subtopics": []
+            },
+            {
+              "title": "התנהגות בתנאי שוק שונים",
+              "subtopics": [
+                "מונופול ותחרות בלתי משוכללת"
+              ]
+            },
+            {
+              "title": "המשק הלאומי",
+              "subtopics": [
+                "החשבונות הלאומיים"
+              ]
+            },
+            {
+              "title": "קביעת התוצר המקומי במשק",
+              "subtopics": []
+            },
+            {
+              "title": "שער הריבית והשפעתו על ההשקעה",
+              "subtopics": []
+            },
+            {
+              "title": "הבקושלכסף",
+              "subtopics": []
+            },
+            {
+              "title": "הבנקים המסחריים",
+              "subtopics": []
+            },
+            {
+              "title": "הבנק המרכזי והצע הכסף",
+              "subtopics": []
+            },
+            {
+              "title": "שווי משקל בשוק הכסף ושווי משקל כללי",
+              "subtopics": []
+            },
+            {
+              "title": "מדיניות הממשלה בתחום המאקרו והשפעתה על התוצר",
+              "subtopics": []
+            },
+            {
+              "title": "שער הריבית ושעור האינפלציה",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-nahat/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "technion",
+            "url": "https://students.technion.ac.il/local/technionsearch/course/00940591",
+            "ref": "00940591 מבוא לכלכלה"
+          }
         },
         {
           "code": "20028",
@@ -13684,10 +14126,39 @@
           "elective": false,
           "prerequisites": [],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "תכון מערכי ייצור ושירות",
+              "subtopics": []
+            },
+            {
+              "title": "תכון מערכות מידע",
+              "subtopics": []
+            },
+            {
+              "title": "ניהול של שרשרות אספקה",
+              "subtopics": []
+            },
+            {
+              "title": "מערכי שירות ועוד",
+              "subtopics": []
+            },
+            {
+              "title": "יסקרו שיטות ומודלים בסיסיים כלים לקבלת החלטות וכלי תוכנה התומכים ביישום",
+              "subtopics": []
+            },
+            {
+              "title": "לקורס יהיה פרויקט מלווה",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-nahat/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "technion",
+            "url": "https://students.technion.ac.il/local/technionsearch/course/00940101",
+            "ref": "00940101 מבוא להנדסת תעשיה וניהול"
+          }
         },
         {
           "code": "70081",
@@ -13698,10 +14169,170 @@
           "elective": false,
           "prerequisites": [],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "פרק 1",
+              "subtopics": []
+            },
+            {
+              "title": "הגדרת השיווק על פי המציאויות החדשות",
+              "subtopics": []
+            },
+            {
+              "title": "פרק 2",
+              "subtopics": []
+            },
+            {
+              "title": "פיתוח ויישום אסטרטגיות ותוכניות שיווקיות",
+              "subtopics": []
+            },
+            {
+              "title": "פרק 3",
+              "subtopics": []
+            },
+            {
+              "title": "זיהוי תובנות שיווקיות וחיזוי ביקושים",
+              "subtopics": []
+            },
+            {
+              "title": "פרק 4",
+              "subtopics": []
+            },
+            {
+              "title": "בניית יחסי נאמנות לטווח ארוך",
+              "subtopics": []
+            },
+            {
+              "title": "פרק 5",
+              "subtopics": []
+            },
+            {
+              "title": "ניתוח שווקים צרכניים ועסקיים",
+              "subtopics": []
+            },
+            {
+              "title": "פרק 6",
+              "subtopics": []
+            },
+            {
+              "title": "זיהוי פלחי שוק ושוקי מטרה",
+              "subtopics": []
+            },
+            {
+              "title": "פרק 7",
+              "subtopics": []
+            },
+            {
+              "title": "בניית מיצוב המותג ויכולת תחרותית",
+              "subtopics": []
+            },
+            {
+              "title": "פרק 8",
+              "subtopics": []
+            },
+            {
+              "title": "יצירת ערך מותג והאצת צמיחה",
+              "subtopics": []
+            },
+            {
+              "title": "פרק 9",
+              "subtopics": []
+            },
+            {
+              "title": "גיבוש אסטרטגיית מוצר והצגת הצעות חדשות",
+              "subtopics": []
+            },
+            {
+              "title": "פרק 10",
+              "subtopics": []
+            },
+            {
+              "title": "עיצוב וניהול שירותים",
+              "subtopics": []
+            },
+            {
+              "title": "פרק 11",
+              "subtopics": []
+            },
+            {
+              "title": "פיתוח אסטרטגיות ותוכניות המחרה",
+              "subtopics": []
+            },
+            {
+              "title": "פרק 12",
+              "subtopics": []
+            },
+            {
+              "title": "תכנון וניהול ערוצי שיווק משולבים",
+              "subtopics": []
+            },
+            {
+              "title": "פרק 13",
+              "subtopics": []
+            },
+            {
+              "title": "ניהול עסקי קמעונות, סיטונות ולוגיסטיקה",
+              "subtopics": []
+            },
+            {
+              "title": "פרק 14",
+              "subtopics": []
+            },
+            {
+              "title": "תכנון וניהול תקשורת שיווקית משולבת",
+              "subtopics": []
+            },
+            {
+              "title": "פרק 15",
+              "subtopics": []
+            },
+            {
+              "title": "ניהול תקשורת המונים",
+              "subtopics": [
+                "פרסום",
+                "קידום מכירות",
+                "אירועים וחוויות",
+                "ויחסי ציבור"
+              ]
+            },
+            {
+              "title": "פרק 16",
+              "subtopics": []
+            },
+            {
+              "title": "ניהול תקשורת דיגיטלית",
+              "subtopics": [
+                "תקשורת מקוונת",
+                "רשתות חברתיות",
+                "וניידים"
+              ]
+            },
+            {
+              "title": "פרק 17",
+              "subtopics": []
+            },
+            {
+              "title": "ניהול תקשורת אישית",
+              "subtopics": [
+                "שיווק ישיר ושיווק במסדי נתונים ומכירה אישית"
+              ]
+            },
+            {
+              "title": "פרק 18",
+              "subtopics": []
+            },
+            {
+              "title": "ניהול שיווק אחראי בכלכלה הגלובלית",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-nahat/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "openu",
+            "url": "https://www.openu.ac.il/courses/10281.htm",
+            "ref": "10281 ניהול השיווק"
+          }
         },
         {
           "code": "70170",
@@ -13875,10 +14506,71 @@
           "elective": false,
           "prerequisites": [],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "עקרונות מערכות בסיסי נתונים ומושגים יסודיים הקשורים במערכות בסיסי נתונים",
+              "subtopics": []
+            },
+            {
+              "title": "רמות הפשטה של נתונים",
+              "subtopics": []
+            },
+            {
+              "title": "מודלים של נתונים",
+              "subtopics": []
+            },
+            {
+              "title": "אי תלות בנתונים",
+              "subtopics": []
+            },
+            {
+              "title": "שפות להגדרת נתונים ולטיפול בנתונים",
+              "subtopics": []
+            },
+            {
+              "title": "מבנה מערכת בסיס נתונים",
+              "subtopics": []
+            },
+            {
+              "title": "מודל ישויות קשרים",
+              "subtopics": []
+            },
+            {
+              "title": "מודל הרשת",
+              "subtopics": []
+            },
+            {
+              "title": "מודל היררכי",
+              "subtopics": []
+            },
+            {
+              "title": "מודל היחסים",
+              "subtopics": []
+            },
+            {
+              "title": "תיכון בסיסי נתונים יחסיים",
+              "subtopics": []
+            },
+            {
+              "title": "נרמול באמצעות תלויות פונקציונאליות ורב-ערכיות",
+              "subtopics": []
+            },
+            {
+              "title": "שפות שאילתות פורמליות ומסחריות עם דגש על",
+              "subtopics": []
+            },
+            {
+              "title": "SQL מיפוי קבצים",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-nahat/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "hit_archive_name",
+            "url": "https://web.archive.org/web/20220107163825id_/https://www.hit.ac.il/.upload/Academics/Yedion/2021-2022/Computer_Science_Syllabus.pdf",
+            "ref": "61303 מערכות בסיסי נתונים"
+          }
         },
         {
           "code": "70176",
@@ -13892,10 +14584,51 @@
             "20027"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "מתודולוגיה של חקר ביצועים",
+              "subtopics": []
+            },
+            {
+              "title": "תכנון לינארי",
+              "subtopics": []
+            },
+            {
+              "title": "ניסוח בעיות שונות כבעיות בתכנון לינארי",
+              "subtopics": []
+            },
+            {
+              "title": "אלגוריתמים לפתרון בעיות ת\"ל",
+              "subtopics": []
+            },
+            {
+              "title": "דואליות וניתוח פוסט-אופטימלי",
+              "subtopics": []
+            },
+            {
+              "title": "תכנון בשלמים ושיטות סיעוף וחתכים",
+              "subtopics": []
+            },
+            {
+              "title": "זרימה ברשתות",
+              "subtopics": []
+            },
+            {
+              "title": "תורת המשחקים",
+              "subtopics": []
+            },
+            {
+              "title": "תכנון דינמי",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-nahat/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "technion",
+            "url": "https://students.technion.ac.il/local/technionsearch/course/00940312",
+            "ref": "00940312 מודלים דטרמיניסטים בחקר ביצועים"
+          }
         },
         {
           "code": "20176",
@@ -13949,10 +14682,71 @@
           "elective": false,
           "prerequisites": [],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "יסודות השפה",
+              "subtopics": []
+            },
+            {
+              "title": "בקרת זרימה ומשפטי תנאי",
+              "subtopics": []
+            },
+            {
+              "title": "לולאות",
+              "subtopics": []
+            },
+            {
+              "title": "פונקציות",
+              "subtopics": []
+            },
+            {
+              "title": "מצבים חריגים",
+              "subtopics": []
+            },
+            {
+              "title": "מבני נתונים",
+              "subtopics": []
+            },
+            {
+              "title": "רקורסיה",
+              "subtopics": []
+            },
+            {
+              "title": "יעילות",
+              "subtopics": []
+            },
+            {
+              "title": "חיפוש ומיון",
+              "subtopics": []
+            },
+            {
+              "title": "קבצים",
+              "subtopics": []
+            },
+            {
+              "title": "תכנות מונחה עצמים",
+              "subtopics": []
+            },
+            {
+              "title": "חבילות של שפת פייתון",
+              "subtopics": []
+            },
+            {
+              "title": "תרגול",
+              "subtopics": []
+            },
+            {
+              "title": "1 קורס זה אינו מיועד ללומדים בתוכניות לתארים במדעי המחשב",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-nahat/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "openu",
+            "url": "https://www.openu.ac.il/courses/20605.htm",
+            "ref": "20605 יסודות התכנות בשפת פייתון"
+          }
         },
         {
           "code": "70076",
@@ -13966,10 +14760,63 @@
             "70181"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "הפונקציה המימונית בארגון",
+              "subtopics": []
+            },
+            {
+              "title": "ערך הזמן של הכסף",
+              "subtopics": []
+            },
+            {
+              "title": "חישובי ריבית",
+              "subtopics": []
+            },
+            {
+              "title": "חישובי הלוואות ולוחות סילוקין",
+              "subtopics": []
+            },
+            {
+              "title": "תמחור אג\"ח",
+              "subtopics": []
+            },
+            {
+              "title": "השוואה בין חלופות השקעה (NPV,IRR,PI )",
+              "subtopics": []
+            },
+            {
+              "title": "בניית תזרימי מזומנים של השקעות",
+              "subtopics": []
+            },
+            {
+              "title": "אי וודאות וסיכון בהשקעות",
+              "subtopics": []
+            },
+            {
+              "title": "מודל תיקי השקעות של מרקוביץ",
+              "subtopics": []
+            },
+            {
+              "title": "מודל ה- CAPM לתמחור נכסים פיננסיים",
+              "subtopics": []
+            },
+            {
+              "title": "מבנה ההון של החברה ומודל מודליאני ומילר",
+              "subtopics": []
+            },
+            {
+              "title": "מחיר ההון על בסיס מודל ה- WACC",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-nahat/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "openu",
+            "url": "https://www.openu.ac.il/courses/10230.htm",
+            "ref": "10230 יסודות המימון"
+          }
         },
         {
           "code": "70085",
@@ -14063,10 +14910,43 @@
             "70181"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "מבוא להסתברות",
+              "subtopics": []
+            },
+            {
+              "title": "התניה הסתברותית ושימושיה",
+              "subtopics": []
+            },
+            {
+              "title": "שרשראות מרקוב",
+              "subtopics": []
+            },
+            {
+              "title": "התפלגות אקספוננציאלית ותהליך פואסון",
+              "subtopics": []
+            },
+            {
+              "title": "שרשראות מרקוב משובצות בזמן",
+              "subtopics": []
+            },
+            {
+              "title": "תורת התורים",
+              "subtopics": []
+            },
+            {
+              "title": "1 אין אפשרות לכתוב עבודה סמינריונית במסגרת קורס זה",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-nahat/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "openu",
+            "url": "https://www.openu.ac.il/courses/10907.htm",
+            "ref": "10907 הסתברות ומודלים סטוכסטיים בחקר ביצועים"
+          }
         },
         {
           "code": "70015",
@@ -14194,44 +15074,71 @@
           "description": null,
           "topics": [
             {
-              "title": "ניהול ובקרת פרויקטים",
+              "title": "הכרת התחום – תיאוריית ניהול הסיכונים",
               "subtopics": []
             },
             {
-              "title": "הנושאים שילמדו כוללים מודלים לשלב ייזום הפרויקט (עצי החלטה",
+              "title": "גישת",
               "subtopics": []
             },
             {
-              "title": "תורת התועלת ופיתוח מקבילי(",
+              "title": "PMBOK תקנים לניהול סיכונים",
               "subtopics": []
             },
             {
-              "title": "תכולת הפרויקט )בניית WBS",
+              "title": "מתודולוגיות ופרקטיקה להגדרת הסיכונים",
               "subtopics": []
             },
             {
-              "title": "מודלי רשתות לפרויקט(",
+              "title": "אבחונם ולניהול סיכונים פרויקטאליים – זיהוי סיכונים",
               "subtopics": []
             },
             {
-              "title": "שיטות לתכנון ותזמון פרויקטים והחלקת משאבים",
+              "title": "כימות סיכונים",
               "subtopics": []
             },
             {
-              "title": "שיטות לניהול סיכונים",
+              "title": "דירוג סיכונים",
               "subtopics": []
             },
             {
-              "title": "שיטות בקרה ו- AGILE",
+              "title": "ניתוח עלות תועלת קביעת חלופות להתמודדות -גידור",
               "subtopics": []
+            },
+            {
+              "title": "אימוץ",
+              "subtopics": []
+            },
+            {
+              "title": "מעקב ובקרה",
+              "subtopics": []
+            },
+            {
+              "title": "גישות כמותיות לניהול סיכונים – מודלים כלכליים",
+              "subtopics": []
+            },
+            {
+              "title": "ביטוח",
+              "subtopics": []
+            },
+            {
+              "title": "חלוקת סיכון",
+              "subtopics": []
+            },
+            {
+              "title": "הרחבות",
+              "subtopics": [
+                "ניהול סיכונים הנובעים מתחרות באמצעות טכנולוגיית מידע",
+                "ניהול סיכונים תפעוליים"
+              ]
             }
           ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-nahat/",
           "academic_year": "תשפ\"ו",
           "topics_source": {
-            "kind": "technion",
-            "url": "https://students.technion.ac.il/local/technionsearch/course/00950139",
-            "ref": "00950139 ניהול פרויקטים"
+            "kind": "hit_archive_name",
+            "url": "https://web.archive.org/web/20240601160150id_/https://www.hit.ac.il/.upload/Academics/Yedion/2023-2024/nahat.pdf",
+            "ref": "72015 ניהול סיכונים בפרויקטים (תשפ\"ד)"
           }
         },
         {
@@ -14245,10 +15152,73 @@
             "70035"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "מבוא",
+              "subtopics": [
+                "התפתחות העולם העיסקי",
+                "יעדים אסטרטגיים",
+                "מערכות המפעל התעשייתי",
+                "ניהול הייצור ומטרותיו"
+              ]
+            },
+            {
+              "title": "חיזוי",
+              "subtopics": [
+                "הבעיה",
+                "הצורך",
+                "מושגי יסוד",
+                "מודלים סיבתיים",
+                "סדרות עיתיות",
+                "שיטות חיזוי לסדרות עיתיות סטציונריות",
+                "עם מגמה ועם עונתיות",
+                "עקרונות יישום"
+              ]
+            },
+            {
+              "title": "תכנון מצרפי",
+              "subtopics": [
+                "הצגת הבעיה",
+                "מטרות אפשריות",
+                "הפרמטרים ומשתני ההחלטה",
+                "שיטות תכנון היוריסטיות",
+                "ניסוח הבעיה כבעית תכנות ליניארי"
+              ]
+            },
+            {
+              "title": "תורת השיבוץ",
+              "subtopics": [
+                "הגדרת הבעיה",
+                "חשיבותה",
+                "הסיבוכיות",
+                "סוגים של בעיות שיבוץ",
+                "כללים היוריסטים פשוטים",
+                "פונקציות מטרה אקוויולנטיות"
+              ]
+            },
+            {
+              "title": "שיבוץ דטרמיניסטי -ניתוח סטטי",
+              "subtopics": [
+                "משפטי יסוד בשיבוץ על משאב יחיד",
+                "מינימום משימות מפגרות",
+                "הסתעף וחסום למזעור סכום הפיגורים המשוקלל",
+                "מכונות במקביל שיטות אופטימאליות היוריסטיות ותכנות ליניארי",
+                "Flow-Shop אלגוריתם ( Johnson שתיים ושלש מכונות( היוריסטיקות וחסמים )ריבוי מכונות): Jobshop",
+                "כללים היוריסטיים ותכנות ליניארי. שיבוץ דינמי. שיבוץ סטוכסטי"
+              ]
+            },
+            {
+              "title": "איזון קוי",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-nahat/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "braude",
+            "url": "https://info.braude.ac.il/yedion/fireflyweb.aspx?prgname=S_LOOK_FOR_NOSE&arguments=-N51131",
+            "ref": "51131 ניהול מערכות ייצור"
+          }
         },
         {
           "code": "70093",
@@ -14263,10 +15233,55 @@
             "70053"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "מבוא לחקר עבודה",
+              "subtopics": []
+            },
+            {
+              "title": "הנדסת שיטות",
+              "subtopics": []
+            },
+            {
+              "title": "חקר זמן ישיר והערכת קצב",
+              "subtopics": []
+            },
+            {
+              "title": "תדירות, תוספות אי-רציפות, חקר זמן רציף ותקן זמן לעבודת צוות",
+              "subtopics": []
+            },
+            {
+              "title": "דגימת עבודה",
+              "subtopics": []
+            },
+            {
+              "title": "תקני זמן לעובד או לצוות המפעילים מכונה",
+              "subtopics": []
+            },
+            {
+              "title": "שיטות סינטטיות ואנליטיות לקביעת תקני זמן",
+              "subtopics": []
+            },
+            {
+              "title": "שיטת MOST לקביעת תקני זמן",
+              "subtopics": []
+            },
+            {
+              "title": "עקומות למידה",
+              "subtopics": []
+            },
+            {
+              "title": "שיטות שכר עידוד",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-nahat/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "openu",
+            "url": "https://www.openu.ac.il/courses/10715.htm",
+            "ref": "10715 חקר עבודה: הנדסת שיטות, מדידת עבודה והערכת ביצועים"
+          }
         },
         {
           "code": "70179",
@@ -20297,10 +21312,39 @@
             "30446"
           ],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "הכרת האמנות הישראלית החל מהקמת ביה\"ס לאמנויות \"בצלאל\"",
+              "subtopics": []
+            },
+            {
+              "title": "1906",
+              "subtopics": []
+            },
+            {
+              "title": "ועד ימינו",
+              "subtopics": []
+            },
+            {
+              "title": "מבעד לחתכים תימטיים",
+              "subtopics": []
+            },
+            {
+              "title": "בבעיית ייצוג המציאות הארצישראלית; החל מהגישה הרומנטית – אוריינטליסטית בתחילת הדרך ועד לפלורליזם העכשווי",
+              "subtopics": []
+            },
+            {
+              "title": "בין סגנון היצירה המודרני לבין דימוייהתנ\"ך והמזרח הקדום",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-design/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "hit_archive_name",
+            "url": "https://web.archive.org/web/20130121232727id_/https://www.hit.ac.il/.upload/Academics/Yedion/2012/silabus2012_design.pdf",
+            "ref": "תולדות האמנות הישראלית (תשע\"ב)"
+          }
         },
         {
           "code": "31929",
@@ -21135,10 +22179,83 @@
           "elective": false,
           "prerequisites": [],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "הצגת תחום הביטוי הגרפי למעצבים תעשייתיים",
+              "subtopics": []
+            },
+            {
+              "title": "היכרות עם מושגי יסוד",
+              "subtopics": []
+            },
+            {
+              "title": "הבנת המורכבות",
+              "subtopics": []
+            },
+            {
+              "title": "והתנסות ראשונית בעיצוב גרפי",
+              "subtopics": []
+            },
+            {
+              "title": "הבנת תהליכים בתקשורת חזותית",
+              "subtopics": []
+            },
+            {
+              "title": "היכרות עם מרכיבי השפה החזותית",
+              "subtopics": []
+            },
+            {
+              "title": "הכרת מושגי יסוד בטכנולוגיות דפוס נייר",
+              "subtopics": []
+            },
+            {
+              "title": "מבוא לטיפוגרפיה",
+              "subtopics": []
+            },
+            {
+              "title": "הבאה לדפוס",
+              "subtopics": []
+            },
+            {
+              "title": "וצבע",
+              "subtopics": []
+            },
+            {
+              "title": "עקרונות בעיצוב גרפי ויישומם בתחומים שונים -לוגו",
+              "subtopics": []
+            },
+            {
+              "title": "סמל",
+              "subtopics": []
+            },
+            {
+              "title": "אריזה",
+              "subtopics": []
+            },
+            {
+              "title": "שילוט",
+              "subtopics": []
+            },
+            {
+              "title": "פרסום",
+              "subtopics": []
+            },
+            {
+              "title": "מדיה אלקטרונית וירטואלית",
+              "subtopics": []
+            },
+            {
+              "title": "כמו כן ייערך סיור מקצועי בכדי לעקוב מקרוב אחר תהליכי ההפקה של חומר מודפס",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-design/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "hit_archive_name",
+            "url": "https://web.archive.org/web/20130121232727id_/https://www.hit.ac.il/.upload/Academics/Yedion/2012/silabus2012_design.pdf",
+            "ref": "גרפיקה לעיצוב תעשייתי (תשע\"ב)"
+          }
         },
         {
           "code": "32011",
@@ -21670,10 +22787,74 @@
           "elective": false,
           "prerequisites": [],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "מבוא",
+              "subtopics": [
+                "מה בין יצירתיות",
+                "חדשנות וחשיבה יצירתית",
+                "חשיבות של חדשנות וחשיבה המצאתית בעידן הגלובלי וכמיומנות אישית וקבוצתית. מאפייני רעיונות יצירתיים",
+                "דוגמאות לסוגי בעיות ופתרונותיהן"
+              ]
+            },
+            {
+              "title": "חסמי ומאיצי יצירתיות",
+              "subtopics": [
+                "דוגמאות ומנגנוני השפעה על יצירתיות -אישיים וארגוניים"
+              ]
+            },
+            {
+              "title": "טכניקות וכלים נפוצים",
+              "subtopics": [
+                "חשיבה לטראלית",
+                "חשיבה אנאלוגית – Mind Mapping",
+                "Conceptual Blending",
+                "דוגמאות ותרגולים"
+              ]
+            },
+            {
+              "title": "המצאות מחקות טבע Bio-Inspired Creativity",
+              "subtopics": []
+            },
+            {
+              "title": "סגנונות חדשנות ויצירתיות. הדגמת התפתחות מוצרים לפי חמש רמות המצאתיות במיקוד על חדשנות טכנולוגיית",
+              "subtopics": []
+            },
+            {
+              "title": "עקרונות-העל של חשיבה המצאתית והמחשתם",
+              "subtopics": [
+                "פרדוקסאליות",
+                "העולם הסגור",
+                "השינוי האיכותי",
+                "פונקציונאלית בעקבות צורה"
+              ]
+            },
+            {
+              "title": "סקירת שיטת ה( TRIZ כשיטה לפתרון בעיות( Theory. of Inventive Problem Solving",
+              "subtopics": []
+            },
+            {
+              "title": "שיטת ה( SIT המשך)",
+              "subtopics": [
+                "c. איחוד d. הכפלה",
+                "e. תלות בתכונה -יצירת קשר חדש בין משתנים של המערכת שלא היו קשורים קודם לכן"
+              ]
+            },
+            {
+              "title": "נושאים מתקדמים",
+              "subtopics": [
+                "חדשנות סובבת בינה מלאכותית",
+                "מדעי הנתונים וטכנולוגיה בחזית הידע העולמית Data & AI Driven - Innovation and Creativity"
+              ]
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-design/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "braude",
+            "url": "https://info.braude.ac.il/yedion/fireflyweb.aspx?prgname=S_LOOK_FOR_NOSE&arguments=-N251513",
+            "ref": "251513 חשיבה יצירתית שיטתית"
+          }
         },
         {
           "code": "30346",
@@ -21917,10 +23098,47 @@
           "elective": false,
           "prerequisites": [],
           "description": null,
-          "topics": [],
+          "topics": [
+            {
+              "title": "קורס זה מביא היבטים תיאורטיים להבנה עמוקה יותר של האופן והסביבה בהם פועל העיצוב",
+              "subtopics": []
+            },
+            {
+              "title": "אופני השימוש בכלים אלה",
+              "subtopics": []
+            },
+            {
+              "title": "תהליך העיצוב",
+              "subtopics": []
+            },
+            {
+              "title": "שיטות מחקר ותיעוד בעיצוב",
+              "subtopics": []
+            },
+            {
+              "title": "שיטות לניתוח של מצבים ובעיות בעיצוב",
+              "subtopics": []
+            },
+            {
+              "title": "עם דגש בהיבט התקשורתי",
+              "subtopics": []
+            },
+            {
+              "title": "הסקת מסקנות והגדרת אופיון (.)brief שיטות לחיפוש אחר רעיונות שונים ושבירת עכבות שכליות -סיעור מוחות וסינקטיקה",
+              "subtopics": []
+            },
+            {
+              "title": "פרקים נבחרים במחשבת העיצוב לתקשורת חזותית",
+              "subtopics": []
+            }
+          ],
           "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-design/",
           "academic_year": "תשפ\"ו",
-          "topics_source": null
+          "topics_source": {
+            "kind": "hit_archive_name",
+            "url": "https://web.archive.org/web/20130121232727id_/https://www.hit.ac.il/.upload/Academics/Yedion/2012/silabus2012_design.pdf",
+            "ref": "מתודולוגיה תקשורת חזותית 1 (תשע\"ב)"
+          }
         },
         {
           "code": "30356",

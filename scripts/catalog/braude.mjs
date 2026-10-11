@@ -69,7 +69,8 @@ export async function loadBraudeIndex(cacheDir) {
   return list;
 }
 
-const START = /(נושאי הלימוד|נושאי הקורס|תוכן הקורס|פירוט נושאי הלימוד)\s*:/;
+// Some syllabi drop the colon: "נושאי הקורס 1. מבוא: ...".
+const START = /(נושאי הלימוד|נושאי הקורס|תוכן הקורס|פירוט נושאי (הלימוד|ההרצאות))\s*(:|(?=\s+1\.))/;
 const END = /(ספרות|ספרי|ביבליוגרפיה|דרישות|מטלות|הערכה|ציון|הרכב|חתימה|אישורים)\s*:?/;
 
 export async function loadBraudeTopics(code, cacheDir) {
