@@ -163,11 +163,32 @@ courses (
   institution_id uuid FK, department_id uuid FK,
   code text, name text NOT NULL,
   year_level smallint, semester text,
+  credits numeric(4,1), description text, source_url text,   -- 20261010000001
   is_active boolean DEFAULT true,
   UNIQUE (institution_id, code) WHERE code IS NOT NULL
 )
 INDEX courses (institution_id, department_id) WHERE is_active
+
+-- Syllabus (20260925000001 + 20261010000001): topic → subtopic, one level.
+course_topics (
+  id uuid PK, course_id uuid FK ON DELETE CASCADE,
+  parent_id uuid FK course_topics NULL,        -- NULL = top-level topic
+  position smallint, title text, description text,
+  source text  -- manual | official_description | official_syllabus | equivalent_course | ai_draft
+  status text  -- verified | draft (borrowed/generated)
+  source_ref text, source_url text, is_active boolean,
+  UNIQUE (course_id, position) WHERE parent_id IS NULL,
+  UNIQUE (parent_id, position) WHERE parent_id IS NOT NULL
+)
+-- progress_percent counts top-level topics only.
+
+room_topics (room_id FK, topic_id FK, PK (room_id, topic_id))
+-- written only via RPC set_room_topics(room_id, topic_ids[]): active owner,
+-- active room, topics of the room's course, ≤10; refreshes rooms.topic
+-- (the text the AI prompt uses as {room_topic}).
 ```
+
+הקטלוג והסילבוס נקלטים ע"י `scripts/catalog/*` ממקורות ציבוריים ומיוצרים כ-migration (`20261010000002_hit_catalog.sql`). פירוט המקורות וסדר העדיפות: `supabase/catalog/README.md`.
 
 ### 3.2 משתמשים
 

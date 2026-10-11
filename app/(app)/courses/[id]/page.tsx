@@ -25,6 +25,7 @@ import { AddTestForm } from "@/components/courses/add-test-form";
 import { RosterList } from "@/components/courses/roster-list";
 import { FavoriteButton } from "@/components/courses/favorite-button";
 import { TopicStepper } from "@/components/courses/topic-stepper";
+import { SyllabusList } from "@/components/courses/syllabus-list";
 import { AvailabilityCard } from "@/components/courses/availability-card";
 import { InviteToStudyButton } from "@/components/courses/invite-to-study-button";
 import { EventRegisterButton } from "@/components/courses/event-register-button";
@@ -45,11 +46,20 @@ import type { StudyActivity } from "@/lib/repositories/availability";
 
 const TABS = [
   { id: "overview", label: "סקירה" },
+  { id: "syllabus", label: "סילבוס" },
   { id: "rooms", label: "חדרי לימוד" },
   { id: "materials", label: "חומרים" },
   { id: "partners", label: "שותפים" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
+
+// Syllabus topics for the room form, the current topic pre-selected.
+function roomTopicProps(data: CourseDetailData) {
+  return {
+    topics: data.topics.topics.map((t) => ({ id: t.id, title: t.title })),
+    defaultTopicIds: data.topics.current ? [data.topics.current.id] : [],
+  };
+}
 
 const ACTIVITY_ICON: Record<StudyActivity, typeof BookOpenIcon> = {
   summaries: BookOpenIcon,
@@ -167,7 +177,12 @@ export default async function CourseDetailPage({
               )}
               <div className="flex gap-2">
                 {data.isEnrolled && (
-                  <CreateRoomForm courseId={course.id} trigger="glass" className="grow" />
+                  <CreateRoomForm
+                    courseId={course.id}
+                    trigger="glass"
+                    className="grow"
+                    {...roomTopicProps(data)}
+                  />
                 )}
                 <FavoriteButton
                   courseId={course.id}
@@ -230,7 +245,10 @@ export default async function CourseDetailPage({
 
       <div className="flex flex-col gap-5 xl:flex-row xl:items-start">
         <div className="flex min-w-0 grow flex-col gap-5">
-          {!data.isEnrolled ? (
+          {/* The syllabus is public: it is how a student decides to enroll. */}
+          {activeTab === "syllabus" ? (
+            <SyllabusList topics={data.topics.topics} />
+          ) : !data.isEnrolled ? (
             <NotEnrolled courseId={course.id} />
           ) : activeTab === "partners" ? (
             <RosterList classmates={data.classmates} />
@@ -342,6 +360,7 @@ function Overview({
             courseId={course.id}
             trigger="brand"
             defaultTopic={data.topics.current?.title ?? ""}
+            {...roomTopicProps(data)}
           />
         )}
       </div>
@@ -447,7 +466,7 @@ function RoomsTab({ data }: { data: CourseDetailData }) {
     <section className="flex flex-col gap-4 rounded-[22px] border border-border bg-card p-6">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-bold">חדרי לימוד</h2>
-        <CreateRoomForm courseId={course.id} />
+        <CreateRoomForm courseId={course.id} {...roomTopicProps(data)} />
       </div>
       {data.myRoomsForCourse.length === 0 && data.joinableOpenRooms.length === 0 ? (
         <p className="text-sm text-muted-foreground">אין חדרים פעילים בקורס כרגע.</p>

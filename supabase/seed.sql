@@ -368,7 +368,7 @@ UNION ALL
 SELECT '00000000-0000-0000-0003-000000000005'::uuid, t.pos, t.title
   FROM (VALUES (1, 'מרחבי הסתברות'), (2, 'הסתברות מותנית'), (3, 'משתנים מקריים'),
                (4, 'תוחלת ושונות'), (5, 'התפלגויות נפוצות')) AS t (pos, title)
-ON CONFLICT (course_id, position) DO NOTHING;
+ON CONFLICT (course_id, position) WHERE parent_id IS NULL DO NOTHING;
 
 -- a1: CS-201 topics 1-13 mastered, 14 in progress; MATH-110 all mastered.
 INSERT INTO public.topic_progress (user_id, topic_id, status, updated_at)

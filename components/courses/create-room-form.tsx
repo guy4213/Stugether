@@ -17,6 +17,9 @@ import {
 } from "@/components/ui/dialog";
 import { createRoomForCourse } from "@/lib/courses/actions";
 
+// Matches set_room_topics (TOO_MANY_TOPICS above 10).
+const MAX_TOPICS = 10;
+
 // "פתיחת חדר". trigger: glass (course banner) / brand (overview card) /
 // soft (rooms tab). Open rooms are announced to the course and joinable
 // without an invitation (up to 4).
@@ -25,6 +28,8 @@ export function CreateRoomForm({
   courses,
   trigger = "soft",
   defaultTopic = "",
+  topics = [],
+  defaultTopicIds = [],
   className,
 }: {
   // Either a fixed course (course page) or a list to pick from (dashboard
@@ -33,6 +38,10 @@ export function CreateRoomForm({
   courses?: { id: string; name: string }[];
   trigger?: "glass" | "brand" | "soft";
   defaultTopic?: string;
+  // The course syllabus (fixed-course usage). When present, the room's topics
+  // are picked from it instead of typed.
+  topics?: { id: string; title: string }[];
+  defaultTopicIds?: string[];
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -40,13 +49,27 @@ export function CreateRoomForm({
   const courseId = fixedCourseId ?? pickedCourseId;
   const [name, setName] = useState("");
   const [topic, setTopic] = useState(defaultTopic);
+  const [topicIds, setTopicIds] = useState<string[]>(defaultTopicIds);
+  const pickTopics = Boolean(fixedCourseId) && topics.length > 0;
+
+  function toggleTopic(id: string, checked: boolean) {
+    setTopicIds((ids) =>
+      checked ? (ids.length >= MAX_TOPICS ? ids : [...ids, id]) : ids.filter((x) => x !== id),
+    );
+  }
   const [isOpenRoom, setIsOpenRoom] = useState(true);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     startTransition(async () => {
-      const result = await createRoomForCourse(courseId, name, topic, isOpenRoom);
+      const result = await createRoomForCourse(
+        courseId,
+        name,
+        pickTopics ? "" : topic,
+        isOpenRoom,
+        pickTopics ? topicIds : [],
+      );
       // On success the action redirects and never returns; only a failure
       // (a plain ActionResult) reaches this branch.
       if (result && !result.ok) toast.error(result.error ?? "משהו השתבש");
@@ -101,13 +124,41 @@ export function CreateRoomForm({
             maxLength={100}
             required
           />
-          <Input
-            placeholder="נושא (לא חובה)"
-            aria-label="נושא"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            maxLength={500}
-          />
+          {pickTopics ? (
+            <fieldset className="flex flex-col gap-1.5">
+              <legend className="mb-1 text-sm font-semibold">
+                נושאי החדר{" "}
+                <span className="font-normal text-muted-foreground">(עד {MAX_TOPICS})</span>
+              </legend>
+              <div className="flex max-h-52 flex-col gap-1 overflow-y-auto rounded-lg border border-input p-2">
+                {topics.map((t) => {
+                  const checked = topicIds.includes(t.id);
+                  return (
+                    <label
+                      key={t.id}
+                      className="flex items-start gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-accent"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        disabled={!checked && topicIds.length >= MAX_TOPICS}
+                        onCheckedChange={(v) => toggleTopic(t.id, v === true)}
+                        className="mt-0.5"
+                      />
+                      <span>{t.title}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          ) : (
+            <Input
+              placeholder="נושא (לא חובה)"
+              aria-label="נושא"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              maxLength={500}
+            />
+          )}
           <label className="flex items-start gap-2.5 text-sm">
             <Checkbox
               checked={isOpenRoom}

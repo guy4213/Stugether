@@ -311,6 +311,11 @@ const TOPICS: CourseTopic[] = Object.entries(TOPIC_TITLES).flatMap(([courseId, t
     course_id: courseId,
     position: i + 1,
     title,
+    source: "manual" as const,
+    status: "verified" as const,
+    source_ref: null,
+    source_url: null,
+    subtopics: [],
   })),
 );
 
