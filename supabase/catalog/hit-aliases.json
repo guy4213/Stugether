@@ -1,0 +1,65 @@
+{
+  "note": "Hand-checked equivalents for HIT courses whose names differ from every source. Key = HIT course code. Each alternative is tried in order; topics are still read from the source. Only list a pair when it is clearly the same course.",
+  "aliases": {
+    "21215": [{ "source": "technion", "code": "00970203", "name": "למידה על ידי חיזוקים" }],
+    "51095": [{ "source": "technion", "code": "00970203", "name": "למידה על ידי חיזוקים" }],
+    "21216": [{ "source": "hit_archive", "code": "65214", "name": "ראייה ממוחשבת רבת מבטים" }],
+    "67008": [{ "source": "braude", "code": "51021", "name": "מבוא למדעי הנתונים" }],
+    "63303": [
+      { "source": "technion", "code": "02360766", "name": "מבוא ללמידת מכונה" },
+      { "source": "openu", "code": "20942", "name": "מבוא ללמידת מכונה" }
+    ],
+    "61306": [{ "source": "technion", "code": "00970447", "name": "מבוא לחישוביות וסיבוכיות" }],
+    "66003": [{ "source": "openu", "code": "22910", "name": "נושאים מתקדמים באלגוריתמים" }],
+    "50060": [
+      { "source": "hit_archive", "code": "21314", "name": "עיבוד אותות ספרתי" },
+      { "source": "technion", "code": "00460745", "name": "עבוד ספרתי של אותות" }
+    ],
+    "50237": [{ "source": "technion", "code": "00450114", "name": "מעבדה מתקדמת בתכנה" }],
+    "50052": [{ "source": "hit_archive", "code": "55011", "name": "בקרה אוטומטית מתקדמת" }],
+    "50078": [{ "source": "technion", "code": "00450102", "name": "מעבדה בבקרה לינארית" }],
+    "50085": [{ "source": "technion", "code": "00450109", "name": "מעבדה בעיבוד אותות" }],
+    "50047": [{ "source": "technion", "code": "00450106", "name": "מעבדה באנרגיה ומערכות הספק" }],
+    "50082": [
+      { "source": "hit_archive", "code": "50178", "name": "מעבדה למיקרואלקטרוניקה ושכבות דקות" }
+    ],
+    "70079": [
+      { "source": "openu", "code": "10863", "name": "יסודות החשבונאות הפיננסית" },
+      { "source": "openu", "code": "10708", "name": "יסודות החשבונאות הפיננסית והניהולית" }
+    ],
+    "71023": [{ "source": "technion", "code": "00940591", "name": "מבוא לכלכלה" }],
+    "70053": [{ "source": "technion", "code": "00940101", "name": "מבוא להנדסת תעשיה וניהול" }],
+    "70081": [
+      { "source": "openu", "code": "10281", "name": "ניהול השיווק" },
+      { "source": "openu", "code": "13003", "name": "שיווק" }
+    ],
+    "70175": [
+      { "source": "hit_archive", "code": "61303", "name": "מערכות בסיסי נתונים" },
+      { "source": "openu", "code": "20277", "name": "מערכות בסיסי-נתונים" }
+    ],
+    "70176": [
+      { "source": "technion", "code": "00940312", "name": "מודלים דטרמיניסטים בחקר ביצועים" },
+      { "source": "openu", "code": "20297", "name": "מודלים דטרמיניסטיים בחקר ביצועים" }
+    ],
+    "70177": [
+      { "source": "openu", "code": "10907", "name": "הסתברות ומודלים סטוכסטיים בחקר ביצועים" }
+    ],
+    "70048": [{ "source": "openu", "code": "20605", "name": "יסודות התכנות בשפת פייתון" }],
+    "70076": [{ "source": "openu", "code": "10230", "name": "יסודות המימון" }],
+    "70092": [{ "source": "braude", "code": "51131", "name": "ניהול מערכות ייצור" }],
+    "70093": [
+      {
+        "source": "openu",
+        "code": "10715",
+        "name": "חקר עבודה: הנדסת שיטות, מדידת עבודה והערכת ביצועים"
+      }
+    ],
+    "13135": [
+      {
+        "source": "openu",
+        "code": "10285",
+        "name": "שיטות מחקר במדעי החברה: עקרונות המחקר וסגנונותיו"
+      }
+    ]
+  }
+}

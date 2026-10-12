@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { enroll, unenroll } from "@/lib/repositories/enrollments";
 import { createRoom } from "@/lib/repositories/rooms";
+import { setRoomTopics } from "@/lib/repositories/topics";
 import { createTest, type EventKind } from "@/lib/repositories/tests";
 import { getCurrentUser } from "@/lib/auth/session";
 import { DEMO_READ_ONLY } from "@/lib/demo/constants";
@@ -48,13 +49,16 @@ export async function unenrollFromCourse(courseId: string): Promise<ActionResult
 }
 
 // Creates the room then navigates straight into it — redirect() throws, so
-// this never returns a normal ActionResult on success.
+// this never returns a normal ActionResult on success. topicIds link syllabus
+// topics (set_room_topics also writes their titles into rooms.topic).
 export async function createRoomForCourse(
   courseId: string,
   name: string,
   topic: string,
   isOpen = false,
+  topicIds: string[] = [],
 ): Promise<ActionResult> {
+  if (topicIds.length > 10) return { ok: false, error: "אפשר לבחור עד 10 נושאים" };
   const user = await getCurrentUser();
   if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
@@ -71,6 +75,14 @@ export async function createRoomForCourse(
     });
   } catch {
     return { ok: false, error: "לא ניתן ליצור חדר לימוד" };
+  }
+
+  if (topicIds.length > 0) {
+    try {
+      await setRoomTopics(supabase, room.id, topicIds);
+    } catch {
+      // The room exists; without the links it still works as a general room.
+    }
   }
 
   redirect(`/rooms/${room.id}`);
