@@ -11,6 +11,7 @@ import {
 } from "@/lib/repositories/notifications";
 import { listOpenRooms } from "@/lib/repositories/rooms";
 import { listMyEnrollments } from "@/lib/repositories/enrollments";
+import { listPendingJoinRequests } from "@/lib/repositories/join-requests";
 import { israelDayKey } from "@/lib/stats/streak";
 import { getDemoScenario } from "@/lib/demo/state";
 import { demoNotifications } from "@/lib/demo/fixtures";
@@ -31,6 +32,7 @@ export function parseNotificationCategory(value: string | undefined): Notificati
 export type NotificationAction =
   | { kind: "invitation"; invitation: PendingInvitation }
   | { kind: "join"; roomId: string }
+  | { kind: "join_request"; requestId: string }
   | { kind: "room"; roomId: string }
   | { kind: "course"; courseId: string; label: string }
   | null;
@@ -54,16 +56,25 @@ async function loadNotificationsData(userId: string, category: NotificationCateg
   const supabase = await createClient();
   const weekAgo = new Date(Date.now() - 7 * 86_400_000);
 
-  const [notifications, invitations, summaryAll, summaryWeek, preferences, myRooms, enrollments] =
-    await Promise.all([
-      listNotifications(supabase, userId, { category: category ?? undefined, limit: 100 }),
-      listPendingInvitations(supabase),
-      getNotificationSummary(supabase, null),
-      getNotificationSummary(supabase, weekAgo),
-      getNotificationPreferences(supabase, userId),
-      getCachedMyActiveRooms(userId),
-      listMyEnrollments(supabase, userId),
-    ]);
+  const [
+    notifications,
+    invitations,
+    summaryAll,
+    summaryWeek,
+    preferences,
+    myRooms,
+    enrollments,
+    joinRequests,
+  ] = await Promise.all([
+    listNotifications(supabase, userId, { category: category ?? undefined, limit: 100 }),
+    listPendingInvitations(supabase),
+    getNotificationSummary(supabase, null),
+    getNotificationSummary(supabase, weekAgo),
+    getNotificationPreferences(supabase, userId),
+    getCachedMyActiveRooms(userId),
+    listMyEnrollments(supabase, userId),
+    listPendingJoinRequests(supabase, {}),
+  ]);
 
   const courseIds = enrollments.filter((e) => e.status === "active").map((e) => e.course_id);
   const openRooms = await listOpenRooms(supabase, courseIds);
@@ -72,11 +83,21 @@ async function loadNotificationsData(userId: string, category: NotificationCateg
   );
   const myRoomIds = new Set(myRooms.map((r) => r.id));
   const invitationById = new Map(invitations.map((i) => [i.id, i]));
+  // Requests to rooms I created that still wait for my answer.
+  const pendingRequestIds = new Set(
+    joinRequests.filter((q) => q.user_id !== userId).map((q) => q.id),
+  );
 
   const items: NotificationItem[] = notifications.map((n) => {
     let action: NotificationAction = null;
     if (n.type === "room_invitation" && n.invitation_id && invitationById.has(n.invitation_id)) {
       action = { kind: "invitation", invitation: invitationById.get(n.invitation_id)! };
+    } else if (
+      n.type === "room_join_request" &&
+      n.request_id &&
+      pendingRequestIds.has(n.request_id)
+    ) {
+      action = { kind: "join_request", requestId: n.request_id };
     } else if (n.room_id && myRoomIds.has(n.room_id)) {
       action = { kind: "room", roomId: n.room_id };
     } else if (n.type === "room_opened" && n.room_id && joinable.has(n.room_id)) {

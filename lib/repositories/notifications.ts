@@ -6,7 +6,11 @@ export type NotificationType =
   | "room_joined"
   | "event_scheduled"
   | "course_recommendation"
-  | "system";
+  | "system"
+  | "room_join_request"
+  | "room_join_decided"
+  | "session_proposed"
+  | "session_scheduled";
 
 export type NotificationCategory = "invitations" | "rooms" | "courses" | "system";
 
@@ -20,6 +24,7 @@ export interface AppNotification {
   room_id: string | null;
   invitation_id: string | null;
   event_id: string | null;
+  request_id: string | null;
   title: string;
   body: string | null;
   read_at: string | null;

@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import {
   BellIcon,
   CalendarCheckIcon,
+  CalendarClockIcon,
+  DoorOpenIcon,
   MailIcon,
   StarIcon,
   UserPlusIcon,
@@ -21,6 +23,7 @@ import {
   declineRoomInvitation,
   markNotificationRead,
 } from "@/lib/notifications/actions";
+import { decideJoinRequestAction } from "@/lib/rooms/actions";
 import type { NotificationItem } from "@/lib/notifications/queries";
 import type { NotificationType } from "@/lib/repositories/notifications";
 
@@ -34,6 +37,13 @@ const TYPE_ICON: Record<NotificationType, { icon: LucideIcon; tile: string; fill
   room_joined: { icon: UserPlusIcon, tile: "bg-rose-soft text-rose" },
   course_recommendation: { icon: StarIcon, tile: "bg-warning-soft text-warning", filled: true },
   system: { icon: BellIcon, tile: "bg-success-soft text-secondary", filled: true },
+  room_join_request: { icon: DoorOpenIcon, tile: "bg-warning-soft text-warning-ink" },
+  room_join_decided: { icon: DoorOpenIcon, tile: "bg-success-soft text-success-ink" },
+  session_proposed: { icon: CalendarClockIcon, tile: "bg-primary-tint text-primary" },
+  session_scheduled: {
+    icon: CalendarCheckIcon,
+    tile: "bg-brand-diag text-white shadow-[0_8px_16px_-8px_rgba(37,99,235,.6)]",
+  },
 };
 
 // One notification row (Notifications.dc.html): tinted icon tile, title +
@@ -64,6 +74,20 @@ export function NotificationRow({ item, time }: { item: NotificationItem; time: 
         return;
       }
       if (accept && "roomId" in result && result.roomId) router.push(`/rooms/${result.roomId}`);
+    });
+  }
+
+  function decide(approve: boolean) {
+    if (item.action?.kind !== "join_request") return;
+    const requestId = item.action.requestId;
+    startTransition(async () => {
+      const result = await decideJoinRequestAction(requestId, approve);
+      if (!result.ok) {
+        toast.error(result.error ?? "משהו השתבש");
+        return;
+      }
+      toast.success(approve ? "הסטודנט/ית נכנס/ה לחדר" : "הבקשה נדחתה");
+      router.refresh();
     });
   }
 
@@ -117,6 +141,21 @@ export function NotificationRow({ item, time }: { item: NotificationItem; time: 
               אישור
             </Button>
             <Button variant="quiet" size="chip" disabled={pending} onClick={() => respond(false)}>
+              דחייה
+            </Button>
+          </>
+        )}
+        {item.action?.kind === "join_request" && (
+          <>
+            <Button
+              variant="outline-primary"
+              size="chip"
+              disabled={pending}
+              onClick={() => decide(true)}
+            >
+              אישור כניסה
+            </Button>
+            <Button variant="quiet" size="chip" disabled={pending} onClick={() => decide(false)}>
               דחייה
             </Button>
           </>

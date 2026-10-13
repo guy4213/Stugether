@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   createRoom,
-  joinOpenRoom,
   leaveRoom,
   listMyActiveRooms,
   removeMember,
@@ -13,6 +12,11 @@ import {
   updateRoom,
 } from "@/lib/repositories/rooms";
 import { createInvitation, revokeInvitation } from "@/lib/repositories/invitations";
+import {
+  cancelRoomJoinRequest,
+  decideRoomJoinRequest,
+  requestRoomJoin,
+} from "@/lib/repositories/join-requests";
 import {
   listRoomMessages,
   markRoomRead,
@@ -25,21 +29,27 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { DEMO_READ_ONLY } from "@/lib/demo/constants";
 
 export type ActionResult = { ok: boolean; error?: string };
+export type JoinResult = ActionResult & { requested?: boolean };
 
 function errorCode(err: unknown): string {
   const e = err as { message?: string; code?: string } | null;
   return `${e?.code ?? ""} ${e?.message ?? ""}`;
 }
 
-// Join an open room of one of my courses, then go straight into it.
-// redirect() throws, so a successful call never returns.
-export async function joinOpenRoomAction(roomId: string): Promise<ActionResult> {
+// Join an open room of one of my courses, then go straight into it. A room
+// that is in session asks its creator first ({ requested: true }).
+// redirect() throws, so a direct join never returns.
+export async function joinOpenRoomAction(roomId: string): Promise<JoinResult> {
   const user = await getCurrentUser();
   if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
   try {
-    await joinOpenRoom(supabase, roomId);
+    const outcome = await requestRoomJoin(supabase, roomId);
+    if (outcome === "requested") {
+      revalidatePath("/", "layout");
+      return { ok: true, requested: true };
+    }
   } catch (err) {
     const code = errorCode(err);
     if (code.includes("ROOM_FULL")) return { ok: false, error: "החדר מלא (4 משתתפים)" };
@@ -48,6 +58,42 @@ export async function joinOpenRoomAction(roomId: string): Promise<ActionResult> 
   }
   revalidatePath("/", "layout");
   redirect(`/rooms/${roomId}`);
+}
+
+export async function cancelJoinRequestAction(roomId: string): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
+  if (!user) return { ok: false, error: "יש להתחבר מחדש" };
+  const supabase = await createClient();
+  try {
+    await cancelRoomJoinRequest(supabase, roomId);
+  } catch {
+    return { ok: false, error: "ביטול הבקשה נכשל" };
+  }
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+// Room creator: approve / decline a request to join a room in session.
+export async function decideJoinRequestAction(
+  requestId: string,
+  approve: boolean,
+): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
+  if (!user) return { ok: false, error: "יש להתחבר מחדש" };
+  const supabase = await createClient();
+  try {
+    await decideRoomJoinRequest(supabase, requestId, approve);
+  } catch (err) {
+    const code = errorCode(err);
+    if (code.includes("ROOM_FULL")) return { ok: false, error: "החדר מלא (4 משתתפים)" };
+    if (code.includes("REQUEST_NOT_PENDING")) return { ok: false, error: "הבקשה כבר טופלה" };
+    if (code.includes("NOT_ROOM_OWNER")) return { ok: false, error: "רק יוצר/ת החדר יכול/ה לאשר" };
+    return { ok: false, error: "הפעולה נכשלה. נסו שוב" };
+  }
+  revalidatePath("/", "layout");
+  return { ok: true };
 }
 
 // "הזמנה ללמידה": invite a classmate into my active room for this course, or

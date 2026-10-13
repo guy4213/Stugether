@@ -682,6 +682,10 @@ const CATEGORY: Record<NotificationType, NotificationCategory> = {
   event_scheduled: "courses",
   course_recommendation: "courses",
   system: "system",
+  room_join_request: "invitations",
+  room_join_decided: "rooms",
+  session_proposed: "rooms",
+  session_scheduled: "rooms",
 };
 
 function notifications(scenario: DemoScenario, t: Clock): AppNotification[] {
@@ -702,6 +706,7 @@ function notifications(scenario: DemoScenario, t: Clock): AppNotification[] {
     type,
     category: CATEGORY[type],
     actor_id: null,
+    request_id: null,
     course_id: null,
     room_id: null,
     invitation_id: null,
@@ -1127,7 +1132,13 @@ export function demoCourseDetail(scenario: DemoScenario, courseId: string): Cour
     activeRoomCount: roomCount(scenario, courseId),
     myRoomsForCourse: myRooms(scenario, t).filter((r) => r.course_id === courseId),
     joinableOpenRooms: isEnrolled
-      ? openRooms(scenario, t).filter((r) => r.course_id === courseId)
+      ? openRooms(scenario, t)
+          .filter((r) => r.course_id === courseId)
+          .map((r) => ({
+            ...r,
+            live: isRoomLive({ status: "active", ...r }, t.now),
+            requested: false,
+          }))
       : [],
     topics: summarizeTopics(
       TOPICS.filter((x) => x.course_id === courseId),
@@ -1206,6 +1217,11 @@ export function demoRoom(scenario: DemoScenario, roomId: string): RoomPageData |
     invitations: [],
     inviteCandidates: candidates,
     openSeats: Math.max(0, 4 - memberIds.length),
+    // The live room I created has one classmate waiting to come in.
+    joinRequests:
+      scenario === "active" && owner === ME.id
+        ? [{ id: demoId(10, 1), userId: PERSON_ID.p6, name: byId.get(PERSON_ID.p6)!.full_name }]
+        : [],
     demoPresence: ROOM_PRESENCE[r.id] ?? [ME.id],
   };
 }

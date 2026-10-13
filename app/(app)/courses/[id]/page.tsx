@@ -319,7 +319,13 @@ function Overview({
             <Link href={`/rooms/${myRoomId}`}>כניסה לחדר</Link>
           </Button>
         ) : openRoom ? (
-          <JoinRoomButton roomId={openRoom.room_id} variant="brand" size="xl">
+          <JoinRoomButton
+            roomId={openRoom.room_id}
+            live={openRoom.live}
+            requested={openRoom.requested}
+            variant="brand"
+            size="xl"
+          >
             הצטרפות לחדר
           </JoinRoomButton>
         ) : (
@@ -437,9 +443,16 @@ function RoomsTab({ data }: { data: CourseDetailData }) {
                 <p className="truncate font-semibold">{room.name}</p>
                 <p className="truncate text-[13px] text-muted-foreground">
                   {room.creator_name} · {room.member_count}/4 משתתפים
+                  {room.live ? " · מפגש פעיל עכשיו" : ""}
                 </p>
               </div>
-              <JoinRoomButton roomId={room.room_id} variant="outline-primary" size="chip" />
+              <JoinRoomButton
+                roomId={room.room_id}
+                live={room.live}
+                requested={room.requested}
+                variant="outline-primary"
+                size="chip"
+              />
             </li>
           ))}
         </ul>

@@ -9,6 +9,7 @@ import {
   listRoomPendingInvitations,
 } from "@/lib/repositories/invitations";
 import { listPublicProfiles } from "@/lib/repositories/profiles";
+import { listPendingJoinRequests } from "@/lib/repositories/join-requests";
 import { getDemoScenario } from "@/lib/demo/state";
 import { demoRoom } from "@/lib/demo/fixtures";
 
@@ -33,14 +34,18 @@ async function loadRoomPageData(roomId: string, userId: string) {
   const room = await getRoom(supabase, roomId);
   if (!room) return null;
 
-  const [members, messages, course, settings, invitations, classmates] = await Promise.all([
-    listRoomMembers(supabase, roomId),
-    listRoomMessages(supabase, roomId, { limit: PAGE_SIZE }),
-    getCourse(supabase, room.course_id),
-    getAppSettings(supabase),
-    listRoomPendingInvitations(supabase, roomId),
-    listEnrolledCourseStudents(supabase, room.course_id),
-  ]);
+  const isCreator = room.created_by === userId;
+  const [members, messages, course, settings, invitations, classmates, joinRequests] =
+    await Promise.all([
+      listRoomMembers(supabase, roomId),
+      listRoomMessages(supabase, roomId, { limit: PAGE_SIZE }),
+      getCourse(supabase, room.course_id),
+      getAppSettings(supabase),
+      listRoomPendingInvitations(supabase, roomId),
+      listEnrolledCourseStudents(supabase, room.course_id),
+      // Requests to join while the room is in session — the creator answers.
+      isCreator ? listPendingJoinRequests(supabase, { roomId }) : Promise.resolve([]),
+    ]);
 
   const activeMembers = members.filter((m) => !m.left_at);
   // A super_admin can SELECT the room row but is not a member: they get the
@@ -51,7 +56,9 @@ async function loadRoomPageData(roomId: string, userId: string) {
   const knownIds = new Set(classmates.map((c) => c.id));
   const extra = await listPublicProfiles(
     supabase,
-    invitations.map((i) => i.invitee_user_id).filter((id) => !knownIds.has(id)),
+    [...invitations.map((i) => i.invitee_user_id), ...joinRequests.map((q) => q.user_id)].filter(
+      (id) => !knownIds.has(id),
+    ),
   );
   const nameById = new Map([...classmates, ...extra].map((p) => [p.id, p.full_name]));
 
@@ -83,6 +90,11 @@ async function loadRoomPageData(roomId: string, userId: string) {
       .map((c) => ({ id: c.id, name: c.full_name, avatarPath: c.avatar_url }))
       .sort((a, b) => a.name.localeCompare(b.name, "he")),
     openSeats: Math.max(0, openSeats),
+    joinRequests: joinRequests.map((q) => ({
+      id: q.id,
+      userId: q.user_id,
+      name: nameById.get(q.user_id) ?? "סטודנט/ית",
+    })),
     // Demo mode only: fixed "who is online" instead of realtime presence.
     demoPresence: null as string[] | null,
   };

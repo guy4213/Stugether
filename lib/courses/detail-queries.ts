@@ -5,6 +5,8 @@ import { getCourse, listDepartments } from "@/lib/repositories/catalog";
 import { countActiveStudentsByCourseIds, listMyEnrollments } from "@/lib/repositories/enrollments";
 import { listEnrolledCourseStudents } from "@/lib/repositories/invitations";
 import { countActiveRoomsByCourseIds, listOpenRooms } from "@/lib/repositories/rooms";
+import { listPendingJoinRequests } from "@/lib/repositories/join-requests";
+import { isRoomLive } from "@/lib/stats/live";
 import { listEventRegistrations, listTestsForCourse } from "@/lib/repositories/tests";
 import { listCourseTopics, listMyTopicProgress } from "@/lib/repositories/topics";
 import { listFavoriteCourseIds } from "@/lib/repositories/favorites";
@@ -66,6 +68,7 @@ async function loadCourseDetailData(userId: string, courseId: string) {
     openRoomRows,
     registrationRows,
     sharedCourses,
+    myJoinRequests,
   ] = await Promise.all([
     pCourse,
     getCachedOwnProfile(userId),
@@ -82,6 +85,7 @@ async function loadCourseDetailData(userId: string, courseId: string) {
     listOpenRooms(supabase, [courseId]),
     pNextEvent.then((e) => (e ? listEventRegistrations(supabase, [e.id]) : [])),
     pShared,
+    listPendingJoinRequests(supabase, { userId }),
   ]);
 
   const myEnrollment = myEnrollments.find((e) => e.course_id === courseId) ?? null;
@@ -135,7 +139,18 @@ async function loadCourseDetailData(userId: string, courseId: string) {
   const myRoomsForCourse = myActiveRooms.filter(
     (r) => r.course_id === courseId && r.status === "active",
   );
-  const joinableOpenRooms = openRooms.filter((r) => !r.is_member && r.member_count < 4);
+  const requestedRoomIds = new Set(myJoinRequests.map((q) => q.room_id));
+  // A room in session asks its creator before letting someone in.
+  const joinableOpenRooms = openRooms
+    .filter((r) => !r.is_member && r.member_count < 4)
+    .map((r) => ({
+      ...r,
+      live: isRoomLive(
+        { status: "active", last_message_at: r.last_message_at, created_at: r.created_at },
+        now,
+      ),
+      requested: requestedRoomIds.has(r.room_id),
+    }));
   const registeredIds = registrations.map((r) => r.user_id);
 
   return {
