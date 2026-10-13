@@ -15,6 +15,8 @@ function useUrlParams() {
   function navigate(mutate: (params: URLSearchParams) => void) {
     const params = new URLSearchParams(searchParams.toString());
     mutate(params);
+    // A new search / filter / sort starts from the first page.
+    params.delete("page");
     const qs = params.toString();
     startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
   }

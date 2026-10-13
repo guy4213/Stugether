@@ -57,7 +57,20 @@ export function groupBySemester(courses: Course[]): SemesterGroup[] {
   return groups;
 }
 
-type CourseFilters = { q?: string; departmentId?: string; favorites?: boolean; sort?: CourseSort };
+type CourseFilters = {
+  q?: string;
+  departmentId?: string;
+  favorites?: boolean;
+  sort?: CourseSort;
+  page?: number;
+};
+
+export const COURSES_PAGE_SIZE = 32;
+
+export function parseCoursePage(value: string | undefined): number {
+  const page = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(page) && page > 0 ? page : 1;
+}
 
 export async function getCoursesPageData(userId: string, filters: CourseFilters) {
   const demo = await getDemoScenario();
@@ -83,6 +96,7 @@ async function loadCoursesPageData(userId: string, filters: CourseFilters) {
   const empty = {
     courses: [],
     semesterGroups: null,
+    pagination: { page: 1, pageCount: 1, total: 0 },
     departments: [],
     favoriteIds: new Set(favoriteIds),
     roomCounts: {} as Record<string, number>,
@@ -130,7 +144,7 @@ function shapeCoursesPage({
   const q = filters.q?.trim().toLowerCase();
   const activity = (id: string) => (studentCounts[id] ?? 0) + (roomCounts[id] ?? 0) * 2;
 
-  const courses = allCourses
+  const matching = allCourses
     .filter((c) => {
       if (filters.departmentId && c.department_id !== filters.departmentId) return false;
       if (filters.favorites && !favoriteSet.has(c.id)) return false;
@@ -157,15 +171,20 @@ function shapeCoursesPage({
   const sum = (counts: Record<string, number>) =>
     Object.values(counts).reduce((s, n) => s + Number(n), 0);
 
-  // Grouping only helps when the catalog has a study plan to group by.
-  const semesterGroups =
-    filters.sort === "semester" && courses.some((c) => c.year_level !== null)
-      ? groupBySemester(courses)
-      : null;
+  // Grouping only helps when the catalog has a study plan to group by. It is
+  // applied before paging so pages follow the study plan.
+  const grouped = filters.sort === "semester" && matching.some((c) => c.year_level !== null);
+  const ordered = grouped ? groupBySemester(matching).flatMap((g) => g.courses) : matching;
+
+  const pageCount = Math.max(1, Math.ceil(ordered.length / COURSES_PAGE_SIZE));
+  const page = Math.min(filters.page ?? 1, pageCount);
+  const courses = ordered.slice((page - 1) * COURSES_PAGE_SIZE, page * COURSES_PAGE_SIZE);
+  const semesterGroups = grouped ? groupBySemester(courses) : null;
 
   return {
     courses,
     semesterGroups,
+    pagination: { page, pageCount, total: ordered.length },
     departments,
     favoriteIds: favoriteSet,
     roomCounts,

@@ -5,7 +5,8 @@ import { CourseSearchBox, CoursesFilterBar } from "@/components/courses/filter-b
 import { CourseCard } from "@/components/courses/course-card";
 import { OnboardingBanner } from "@/components/auth/onboarding-banner";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getCoursesPageData, parseCourseSort } from "@/lib/courses/queries";
+import { CoursesPagination } from "@/components/courses/pagination";
+import { getCoursesPageData, parseCoursePage, parseCourseSort } from "@/lib/courses/queries";
 
 // Course discovery per Discover.dc.html ("גילוי קורסים").
 export default async function CoursesPage({
@@ -17,18 +18,22 @@ export default async function CoursesPage({
     favorites?: string;
     sort?: string;
     onboarding?: string;
+    page?: string;
   }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const { q, departmentId, favorites, sort, onboarding } = await searchParams;
+  const { q, departmentId, favorites, sort, onboarding, page } = await searchParams;
   const data = await getCoursesPageData(user.id, {
     q,
     departmentId,
     favorites: favorites === "1",
     sort: parseCourseSort(sort, departmentId),
+    page: parseCoursePage(page),
   });
+  const { pagination } = data;
+  const lastPage = pagination.page === pagination.pageCount;
   const departmentNameById = new Map(data.departments.map((d) => [d.id, d.name]));
   const filtered = Boolean(q || departmentId || favorites);
   const renderCard = (course: (typeof data.courses)[number]) => (
@@ -112,26 +117,34 @@ export default async function CoursesPage({
             {!data.semesterGroups && data.courses.map(renderCard)}
 
             {/* Only a super_admin can add catalog courses, so this card resets
-                the search instead of offering "הוספת קורס חדש". */}
-            <Link
-              href="/courses"
-              className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-[22px] border-2 border-dashed border-switch-off bg-surface-2 p-6 text-center text-primary-strong"
-            >
-              <span className="flex size-[60px] items-center justify-center rounded-full bg-brand-diag text-white shadow-glow-blue">
-                <PlusIcon className="size-[26px]" strokeWidth={2.4} aria-hidden />
-              </span>
-              <span className="text-[17px] font-bold text-foreground">
-                {data.courses.length === 0
-                  ? favorites === "1"
-                    ? "עדיין לא סימנתם קורסים כמועדפים"
-                    : "לא נמצאו קורסים תואמים"
-                  : "לא מצאתם את הקורס?"}
-              </span>
-              <span className="text-sm font-semibold">
-                {filtered ? "ניקוי החיפוש והסינון" : "פנו למנהל המערכת להוספת קורס"}
-              </span>
-            </Link>
+                the search instead of offering "הוספת קורס חדש". Last page only. */}
+            {lastPage && (
+              <Link
+                href="/courses"
+                className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-[22px] border-2 border-dashed border-switch-off bg-surface-2 p-6 text-center text-primary-strong"
+              >
+                <span className="flex size-[60px] items-center justify-center rounded-full bg-brand-diag text-white shadow-glow-blue">
+                  <PlusIcon className="size-[26px]" strokeWidth={2.4} aria-hidden />
+                </span>
+                <span className="text-[17px] font-bold text-foreground">
+                  {data.courses.length === 0
+                    ? favorites === "1"
+                      ? "עדיין לא סימנתם קורסים כמועדפים"
+                      : "לא נמצאו קורסים תואמים"
+                    : "לא מצאתם את הקורס?"}
+                </span>
+                <span className="text-sm font-semibold">
+                  {filtered ? "ניקוי החיפוש והסינון" : "פנו למנהל המערכת להוספת קורס"}
+                </span>
+              </Link>
+            )}
           </div>
+
+          <CoursesPagination
+            page={pagination.page}
+            pageCount={pagination.pageCount}
+            params={{ q, departmentId, favorites, sort }}
+          />
         </>
       )}
     </main>
