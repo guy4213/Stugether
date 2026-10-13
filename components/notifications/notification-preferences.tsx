@@ -18,6 +18,11 @@ const ROWS: { key: NotificationPreferenceKey; title: string; description: string
   },
   { key: "course_recs", title: "המלצות קורסים", description: "קורסים שמתאימים למסלול שלך" },
   { key: "system_updates", title: "עדכוני מערכת", description: "פיצ׳רים חדשים ותחזוקה" },
+  {
+    key: "email_invites",
+    title: "מייל על הזמנה",
+    description: "מייל כשמזמינים אותך לחדר לימוד",
+  },
 ];
 
 export function NotificationPreferences({ preferences }: { preferences: Prefs }) {

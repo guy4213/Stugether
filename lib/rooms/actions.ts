@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   createRoom,
@@ -27,9 +29,29 @@ import {
 import { getCourse } from "@/lib/repositories/catalog";
 import { getCurrentUser } from "@/lib/auth/session";
 import { DEMO_READ_ONLY } from "@/lib/demo/constants";
+import { sendRoomInvitationEmails } from "@/lib/email/invitations";
 
 export type ActionResult = { ok: boolean; error?: string };
 export type JoinResult = ActionResult & { requested?: boolean };
+
+// Origin for links in emails, from the request (no SITE_URL env var; same as
+// lib/auth/actions.ts).
+async function requestOrigin(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+// Invitation emails go out after the response; the invite itself is done.
+async function emailInvitees(roomId: string, inviterId: string, inviteeIds: string[]) {
+  const origin = await requestOrigin();
+  after(() =>
+    sendRoomInvitationEmails({ roomId, inviterId, inviteeIds, origin }).catch((err) =>
+      console.error("[email] invitation emails failed", err),
+    ),
+  );
+}
 
 function errorCode(err: unknown): string {
   const e = err as { message?: string; code?: string } | null;
@@ -127,6 +149,7 @@ export async function inviteToStudy(
       inviterId: user.id,
       inviteeUserId: inviteeId,
     });
+    await emailInvitees(room.id, user.id, [inviteeId]);
   } catch (err) {
     const code = errorCode(err);
     if (code.includes("23505")) return { ok: false, error: "כבר נשלחה הזמנה" };
@@ -155,16 +178,18 @@ export async function inviteToRoom(
   if (ids.length === 0) return { ok: false, error: "יש לבחור לפחות סטודנט/ית אחד/ת" };
 
   const supabase = await createClient();
-  let sent = 0;
+  const invited: string[] = [];
   let duplicate = false;
   for (const inviteeUserId of ids) {
     try {
       await createInvitation(supabase, { roomId, inviterId: user.id, inviteeUserId });
-      sent++;
+      invited.push(inviteeUserId);
     } catch (err) {
       if (errorCode(err).includes("23505")) duplicate = true;
     }
   }
+  const sent = invited.length;
+  if (sent > 0) await emailInvitees(roomId, user.id, invited);
   revalidatePath(`/rooms/${roomId}`);
   if (sent === 0) {
     return {

@@ -18,6 +18,7 @@ const PREFERENCE_KEYS: NotificationPreferenceKey[] = [
   "messages_invites",
   "course_recs",
   "system_updates",
+  "email_invites",
 ];
 
 function revalidateNotificationViews() {

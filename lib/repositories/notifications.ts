@@ -36,6 +36,8 @@ export interface NotificationPreferences {
   messages_invites: boolean;
   course_recs: boolean;
   system_updates: boolean;
+  /** Email on a room invitation (20261013000005). */
+  email_invites: boolean;
 }
 
 export type NotificationPreferenceKey = keyof NotificationPreferences;
@@ -46,6 +48,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   messages_invites: true,
   course_recs: false,
   system_updates: true,
+  email_invites: true,
 };
 
 export async function listNotifications(
@@ -120,7 +123,7 @@ export async function getNotificationPreferences(
 ): Promise<NotificationPreferences> {
   const { data, error } = await client
     .from("notification_preferences")
-    .select("live_rooms, messages_invites, course_recs, system_updates")
+    .select("live_rooms, messages_invites, course_recs, system_updates, email_invites")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw error;

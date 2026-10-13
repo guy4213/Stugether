@@ -7,18 +7,19 @@
 
 ## 1. Stack
 
-| רכיב                           | בחירה                                     | נימוק                                  |
-| ------------------------------ | ----------------------------------------- | -------------------------------------- |
-| Frontend                       | Next.js (App Router) + TypeScript         | SSR, Server Components, קרוב ל-Vercel  |
-| Styling                        | Tailwind + logical properties             | RTL native ב-Tailwind 3.3+, בלי plugin |
-| פונט                           | Heebo דרך `next/font`                     | עברית, self-hosted, בלי CLS            |
-| UI                             | shadcn/ui + Radix                         | מהירות פיתוח. דורש RTL audit           |
-| DB / Auth / Realtime / Storage | Supabase (Postgres)                       | RLS, Realtime ו-Auth בחבילה אחת        |
-| **לוגיקת AI**                  | **Next.js Route Handlers (Node runtime)** | ראה §1.1                               |
-| AI                             | Gemini API, streaming                     | מפתח על שם הלקוח                       |
-| Hosting                        | Vercel                                    |                                        |
-| Errors                         | Sentry (free tier)                        | חובה ל-4 חודשי התחזוקה                 |
-| Cron                           | **אין**                                   | ראה §6.4                               |
+| רכיב                           | בחירה                                         | נימוק                                                                |
+| ------------------------------ | --------------------------------------------- | -------------------------------------------------------------------- |
+| Frontend                       | Next.js (App Router) + TypeScript             | SSR, Server Components, קרוב ל-Vercel                                |
+| Styling                        | Tailwind + logical properties                 | RTL native ב-Tailwind 3.3+, בלי plugin                               |
+| פונט                           | Heebo דרך `next/font`                         | עברית, self-hosted, בלי CLS                                          |
+| UI                             | shadcn/ui + Radix                             | מהירות פיתוח. דורש RTL audit                                         |
+| DB / Auth / Realtime / Storage | Supabase (Postgres)                           | RLS, Realtime ו-Auth בחבילה אחת                                      |
+| **לוגיקת AI**                  | **Next.js Route Handlers (Node runtime)**     | ראה §1.1                                                             |
+| AI                             | Gemini API, streaming                         | מפתח על שם הלקוח                                                     |
+| Hosting                        | Vercel                                        |                                                                      |
+| Errors                         | Sentry (free tier)                            | חובה ל-4 חודשי התחזוקה                                               |
+| Cron                           | **אין**                                       | ראה §6.4                                                             |
+| Email                          | SMTP של הלקוח דרך `nodemailer` (`lib/email/`) | מייל על הזמנה לחדר, אחרי התגובה (`after()`). בלי `SMTP_HOST` — no-op |
 
 ### 1.1 למה Route Handlers ולא Supabase Edge Functions
 

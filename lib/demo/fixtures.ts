@@ -1289,6 +1289,7 @@ export function demoNotifications(
       messages_invites: true,
       course_recs: false,
       system_updates: true,
+      email_invites: true,
     },
   };
 }
