@@ -20,16 +20,20 @@ export function InviteStudentButton({
   inviteeName,
   sharedCourses,
   className,
+  compact = false,
 }: {
   inviteeId: string;
   inviteeName: string;
   sharedCourses: { id: string; name: string }[];
   className?: string;
+  /** Small outline button for cards; invites to the first shared course. */
+  compact?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [sent, setSent] = useState(false);
   const [courseId, setCourseId] = useState(sharedCourses[0]?.id ?? "");
 
+  if (sharedCourses.length === 0 && compact) return null;
   if (sharedCourses.length === 0) {
     return (
       <div className={className}>
@@ -45,7 +49,7 @@ export function InviteStudentButton({
 
   return (
     <div className={className}>
-      {sharedCourses.length > 1 && (
+      {sharedCourses.length > 1 && !compact && (
         <Select value={courseId} onValueChange={(v) => v && setCourseId(v)}>
           <SelectTrigger
             aria-label="קורס ללמידה משותפת"
@@ -66,8 +70,8 @@ export function InviteStudentButton({
       )}
       <Button
         type="button"
-        variant="brand"
-        size="xl"
+        variant={compact ? "outline-primary" : "brand"}
+        size={compact ? "md" : "xl"}
         className="w-full"
         disabled={pending || sent || !courseId}
         onClick={() =>

@@ -1,5 +1,3 @@
-import type { StudyTrack } from "@/lib/constants/profile-options";
-import type { StudentInputs } from "@/lib/students/queries";
 import "server-only";
 import {
   DEMO_AVATAR_PREFIX,
@@ -10,7 +8,6 @@ import {
   type DemoScenario,
 } from "@/lib/demo/constants";
 import { computeMatchPercent } from "@/lib/matching/score";
-import { computeCourseMatch } from "@/lib/stats/course-match";
 import { isRoomLive } from "@/lib/stats/live";
 import { israelDayKey } from "@/lib/stats/streak";
 import { summarizeTopics } from "@/lib/courses/topic-state";
@@ -30,7 +27,12 @@ import type {
 } from "@/lib/repositories/notifications";
 import type { EnrollmentWithCourse } from "@/lib/repositories/enrollments";
 import type { ShellData } from "@/lib/app/queries";
-import type { ActivityItem, DashboardCourse, DashboardData } from "@/lib/dashboard/queries";
+import type {
+  ActivityItem,
+  DashboardCourse,
+  DashboardData,
+  DashboardPartner,
+} from "@/lib/dashboard/queries";
 import type { CourseDetailData, MemberStatus } from "@/lib/courses/detail-queries";
 import type { RoomPageData } from "@/lib/rooms/queries";
 import type {
@@ -41,6 +43,9 @@ import type {
 import type { AnalyticsData, AnalyticsRange } from "@/lib/analytics/queries";
 import type { ProfileFormData } from "@/lib/profile/queries";
 import type { StackPerson } from "@/components/ui/avatar-stack";
+import type { StudyTrack } from "@/lib/constants/profile-options";
+import type { StudentInputs } from "@/lib/students/queries";
+import { yearLabel } from "@/lib/ui/labels";
 
 // Fixtures behind demo mode (see lib/demo/constants.ts). Three scenarios for
 // the designer, per the brief:
@@ -962,16 +967,31 @@ export function demoDashboard(scenario: DemoScenario): DashboardData {
     enrolled.reduce((s, e) => s + e.progress_percent, 0) / enrolled.length,
   );
 
-  const me = myProfile(t);
-  const recommendations = COURSES.filter((c) => !MY_COURSE_IDS.includes(c.id))
-    .map((c) => ({
-      id: c.id,
-      name: c.name,
-      departmentId: c.department_id,
-      students: studentCount(scenario, c.id),
-      match: computeCourseMatch(me, c, DEPARTMENTS_BY_ID, roomCount(scenario, c.id)),
-    }))
-    .sort((a, b) => b.match - a.match || b.students - a.students);
+  const me = myPublicProfile(t);
+  const partners: DashboardPartner[] = partnerIds
+    .map((id) => {
+      const p = byId.get(id)!;
+      const shared = sharedCourseIds(scenario, id);
+      const match = computeMatchPercent(me, p, DEPARTMENTS_BY_ID, shared.length);
+      return {
+        id,
+        name: p.full_name,
+        avatarPath: p.avatar_url,
+        departmentName: p.department_id
+          ? (DEPARTMENTS_BY_ID.get(p.department_id)?.name ?? null)
+          : null,
+        year: yearLabel(p.study_year),
+        online: isOnline(p.last_seen_at, t.now),
+        percent: match.percent,
+        reasons: match.breakdown
+          .filter((b) => b.matched)
+          .slice(0, 3)
+          .map((b) => b.label),
+        sharedCourses: shared.map((c) => ({ id: c, name: COURSE_BY_ID.get(c)?.name ?? "" })),
+      };
+    })
+    .sort((a, b) => b.percent - a.percent || Number(b.online) - Number(a.online))
+    .slice(0, 5);
 
   const joinable = new Set(open.map((r) => r.room_id));
   const activity: ActivityItem[] = notes.slice(0, 4).map((n) => ({
@@ -1007,9 +1027,9 @@ export function demoDashboard(scenario: DemoScenario): DashboardData {
       avgProgress,
     },
     myCourses,
-    departments: DEPARTMENTS.map((d) => ({ id: d.id, name: d.name })),
-    recommendations,
+    partners,
     activity,
+    pendingInvitationCount: pendingInvitations(scenario, t).length,
     unreadCount: notes.filter((n) => n.read_at === null).length,
     nextEvent: next
       ? {

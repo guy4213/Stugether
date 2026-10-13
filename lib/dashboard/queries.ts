@@ -8,16 +8,17 @@ import { createClient } from "@/lib/supabase/server";
 import { listPublicProfiles } from "@/lib/repositories/profiles";
 import { listCourseRosters, listMyEnrollments } from "@/lib/repositories/enrollments";
 import { listOpenRooms } from "@/lib/repositories/rooms";
-import { getCatalogCounts, listActiveCourses, listDepartments } from "@/lib/repositories/catalog";
+import { listDepartments } from "@/lib/repositories/catalog";
 import { listCourseTopics, listMyTopicProgress } from "@/lib/repositories/topics";
-import { listAvailability } from "@/lib/repositories/availability";
 import { listEventRegistrations, listUpcomingTestsForCourses } from "@/lib/repositories/tests";
 import { listNotifications, type NotificationType } from "@/lib/repositories/notifications";
 import { getUnreadSummary, listMyMessageTimestamps } from "@/lib/repositories/messages";
 import { listPendingInvitations } from "@/lib/repositories/invitations";
 import { summarizeTopics, type TopicWithState } from "@/lib/courses/topic-state";
 import { computeStreak } from "@/lib/stats/streak";
-import { computeCourseMatch } from "@/lib/stats/course-match";
+import { computeMatchPercent } from "@/lib/matching/score";
+import { isOnline } from "@/lib/ui/people";
+import { yearLabel } from "@/lib/ui/labels";
 import { isRoomLive } from "@/lib/stats/live";
 import { timed } from "@/lib/perf/timing";
 import { getDemoScenario } from "@/lib/demo/state";
@@ -39,6 +40,21 @@ export interface DashboardCourse {
   people: StackPerson[];
   continueHref: string;
 }
+
+// "שותפים ללמידה": classmates with the best match.
+export interface DashboardPartner {
+  id: string;
+  name: string;
+  avatarPath: string | null;
+  departmentName: string | null;
+  year: string | null;
+  online: boolean;
+  percent: number;
+  reasons: string[];
+  sharedCourses: { id: string; name: string }[];
+}
+
+const PARTNERS_SHOWN = 5;
 
 export interface ActivityItem {
   id: string;
@@ -74,29 +90,17 @@ async function loadDashboardData(userId: string) {
   );
   const pEvents = pCourseIds.then((ids) => listUpcomingTestsForCourses(supabase, ids));
   const pInstitutionId = pProfile.then((p) => p?.institution_id ?? null);
-  const pInstitutionCourses = pInstitutionId.then((id) =>
-    id ? listActiveCourses(supabase, { institutionId: id }) : [],
-  );
   const pRosters = pCourseIds.then((ids) => listCourseRosters(supabase, ids));
-  const pAvailability = pCourseIds.then((ids) => listAvailability(supabase, ids));
   const now = Date.now();
   const pNextEvent = pEvents.then(
     (events) => events.find((e) => e.due_at && new Date(e.due_at).getTime() > now) ?? null,
   );
   const pRegistrations = pNextEvent.then((e) => listEventRegistrations(supabase, e ? [e.id] : []));
-  // Catalog recommendation counts: keyed by institution, so they run beside
-  // the course list instead of after it (filtered to candidates below).
-  const pCatalogCounts = pInstitutionId.then((id) =>
-    id
-      ? getCatalogCounts(supabase, id)
-      : { studentCounts: {} as Record<string, number>, roomCounts: {} as Record<string, number> },
-  );
   // One batched lookup for every person shown on the page.
-  const pPeople = Promise.all([pRosters, pAvailability, pRegistrations, pNotifications]).then(
-    ([rosterRows, availabilityRows, registrationRows, notificationRows]) => {
+  const pPeople = Promise.all([pRosters, pRegistrations, pNotifications]).then(
+    ([rosterRows, registrationRows, notificationRows]) => {
       const personIds = new Set<string>();
       rosterRows.forEach((r) => personIds.add(r.user_id));
-      availabilityRows.forEach((a) => personIds.add(a.user_id));
       registrationRows.forEach((r) => personIds.add(r.user_id));
       notificationRows.forEach((n) => n.actor_id && personIds.add(n.actor_id));
       personIds.delete(userId);
@@ -115,17 +119,12 @@ async function loadDashboardData(userId: string) {
     unreadCount,
     invitations,
     unreadSummary,
-    courseIds,
     topics,
     rosters,
-    availability,
     openRooms,
-    institutionCourses,
     departments,
     nextEventRaw,
     registrations,
-    studentCounts,
-    roomCounts,
     people,
   ] = await Promise.all([
     pProfile,
@@ -138,23 +137,18 @@ async function loadDashboardData(userId: string) {
     getCachedUnreadNotificationCount(userId),
     listPendingInvitations(supabase),
     getUnreadSummary(supabase),
-    pCourseIds,
     pCourseIds.then((ids) => listCourseTopics(supabase, ids)),
     pRosters,
-    pAvailability,
     pCourseIds.then((ids) => listOpenRooms(supabase, ids)),
-    pInstitutionCourses,
     pInstitutionId.then((id) => (id ? listDepartments(supabase, id) : [])),
     pNextEvent,
     pRegistrations,
-    pCatalogCounts.then((c) => c.studentCounts),
-    pCatalogCounts.then((c) => c.roomCounts),
     pPeople,
   ]);
 
   const active = enrollments.filter((e) => e.status === "active");
   const upcomingEvents = events.filter((e) => e.due_at && new Date(e.due_at).getTime() > now);
-  const candidateCourses = institutionCourses.filter((c) => !courseIds.includes(c.id));
+  const profileById = new Map(people.map((p) => [p.id, p]));
   const personById = new Map(people.map((p) => [p.id, { id: p.id, name: p.full_name }]));
   const person = (id: string): StackPerson | null => personById.get(id) ?? null;
   const toPeople = (ids: string[]) => ids.map(person).filter((p): p is StackPerson => p !== null);
@@ -172,10 +166,13 @@ async function loadDashboardData(userId: string) {
       r.user_id,
     ]);
   }
+  // "Available now" = classmates connected to the platform right now.
   const availableByCourse = new Map<string, string[]>();
-  for (const a of availability) {
-    if (a.user_id === userId) continue;
-    availableByCourse.set(a.course_id, [...(availableByCourse.get(a.course_id) ?? []), a.user_id]);
+  for (const [courseId, ids] of classmatesByCourse) {
+    availableByCourse.set(
+      courseId,
+      ids.filter((id) => isOnline(profileById.get(id)?.last_seen_at, now)),
+    );
   }
   const myActiveRooms = myRooms.filter((r) => r.status === "active");
   const myRoomByCourse = new Map<string, (typeof myActiveRooms)[number]>();
@@ -278,18 +275,44 @@ async function loadDashboardData(userId: string) {
     avgProgress,
   };
 
-  // --- recommendations --------------------------------------------------------------
+  // --- study partners: classmates, best match first ---------------------------------
   const departmentsById = new Map(departments.map((d) => [d.id, d]));
-  const recommendations = profile
-    ? candidateCourses
-        .map((c) => ({
-          id: c.id,
-          name: c.name,
-          departmentId: c.department_id,
-          students: studentCounts[c.id] ?? 0,
-          match: computeCourseMatch(profile, c, departmentsById, roomCounts[c.id] ?? 0),
-        }))
-        .sort((a, b) => b.match - a.match || b.students - a.students)
+  const courseNames = new Map(active.map((e) => [e.course_id, e.course.name]));
+  const sharedByUser = new Map<string, string[]>();
+  for (const [courseId, ids] of classmatesByCourse) {
+    for (const id of ids) sharedByUser.set(id, [...(sharedByUser.get(id) ?? []), courseId]);
+  }
+  const partners: DashboardPartner[] = profile
+    ? [...sharedByUser]
+        .map(([id, courseIdsShared]) => {
+          const p = profileById.get(id);
+          if (!p) return null;
+          const match = computeMatchPercent(profile, p, departmentsById, courseIdsShared.length);
+          return {
+            id,
+            name: p.full_name,
+            avatarPath: p.avatar_url,
+            departmentName: p.department_id
+              ? (departmentsById.get(p.department_id)?.name ?? null)
+              : null,
+            year: yearLabel(p.study_year),
+            online: isOnline(p.last_seen_at, now),
+            percent: match.percent,
+            reasons: match.breakdown
+              .filter((b) => b.matched)
+              .slice(0, 3)
+              .map((b) => b.label),
+            sharedCourses: courseIdsShared.map((c) => ({ id: c, name: courseNames.get(c) ?? "" })),
+          };
+        })
+        .filter((p): p is DashboardPartner => p !== null)
+        .sort(
+          (a, b) =>
+            b.percent - a.percent ||
+            Number(b.online) - Number(a.online) ||
+            a.name.localeCompare(b.name, "he"),
+        )
+        .slice(0, PARTNERS_SHOWN)
     : [];
 
   // --- activity feed ------------------------------------------------------------------
@@ -360,9 +383,10 @@ async function loadDashboardData(userId: string) {
     hero,
     stats,
     myCourses,
-    departments: departments.map((d) => ({ id: d.id, name: d.name })),
-    recommendations,
+    partners,
     activity,
+    pendingInvitationCount: invitations.filter((i) => new Date(i.expires_at).getTime() > now)
+      .length,
     unreadCount,
     nextEvent,
     rooms,

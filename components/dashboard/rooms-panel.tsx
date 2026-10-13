@@ -34,7 +34,7 @@ export function RoomsPanel({
     <section aria-labelledby="my-rooms" className="flex flex-col gap-3.5">
       <div className="flex items-center justify-between gap-3">
         <h2 id="my-rooms" className="text-2xl font-extrabold">
-          החדרים שלי
+          חדרי לימוד
         </h2>
         {courses.length > 0 && <CreateRoomForm courses={courses} />}
       </div>

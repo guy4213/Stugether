@@ -53,7 +53,7 @@ export function ActivityRail({
   nextEvent: DashboardData["nextEvent"];
 }) {
   return (
-    <aside className="flex w-full shrink-0 flex-col gap-1.5 rounded-[20px] border border-border bg-card p-[22px] xl:w-[340px]">
+    <div className="flex w-full flex-col gap-1.5 rounded-[24px] border border-border bg-card p-[22px]">
       <div className="flex items-center justify-between pb-2.5">
         <h2 className="text-xl font-extrabold">פעילות אחרונה</h2>
         {unreadCount > 0 && (
@@ -128,6 +128,6 @@ export function ActivityRail({
           </div>
         </Link>
       )}
-    </aside>
+    </div>
   );
 }

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeftIcon, MessageSquareIcon } from "lucide-react";
-import { cn } from "cn";
-import { HeroCard } from "@/components/dashboard/hero-card";
-import { MyCourseCard, RecommendationCard } from "@/components/dashboard/course-cards";
+import { ArrowLeftIcon, CalendarDaysIcon, MessageSquareIcon } from "lucide-react";
+import { MyCourseCard } from "@/components/dashboard/course-cards";
 import { ActivityRail } from "@/components/dashboard/activity-rail";
 import { RoomsPanel } from "@/components/dashboard/rooms-panel";
+import { PartnersSection } from "@/components/dashboard/partners-section";
+import { InfoTiles, ProgressCard } from "@/components/dashboard/side-cards";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { greetingHe } from "@/lib/ui/format";
@@ -18,7 +18,16 @@ function FlameIcon() {
   );
 }
 
-// Dashboard per Hybrid.dc.html ("דשבורד — היברידי בהיר").
+const todayHe = () =>
+  new Intl.DateTimeFormat("he-IL", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "Asia/Jerusalem",
+  }).format(new Date());
+
+// Dashboard (redesign 13.10.2026): partners, rooms and my courses in the
+// main column; my progress, recent activity and general numbers on the side.
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) return null; // guarded by app/(app)/layout.tsx
@@ -26,7 +35,6 @@ export default async function DashboardPage() {
   const data = await getDashboardData(user.id);
   if (data.needsOnboarding) redirect("/profile?welcome=1");
   const myCourses = data.myCourses.slice(0, 3);
-  const recommendations = data.recommendations.slice(0, 3);
 
   return (
     <main
@@ -35,19 +43,26 @@ export default async function DashboardPage() {
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1">
-          <span className="text-[15px] text-muted-foreground">
-            {greetingHe()}
-            {data.firstName ? `, ${data.firstName}` : ""}
-          </span>
-          <h1 className="text-[30px] leading-[1.1] font-extrabold tracking-[-0.5px] sm:text-[38px]">
+          <h1 className="text-[30px] leading-[1.15] font-extrabold tracking-[-0.5px] sm:text-[38px]">
+            {data.firstName ? `היי ${data.firstName},` : `${greetingHe()},`}
+            <br />
             עם מי לומדים היום?
           </h1>
+          <p className="text-[15px] text-muted-foreground">
+            מצאו שותפים, הצטרפו לחדרים והתקדמו בלמידה יחד.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="flex h-9 items-center gap-1.5 rounded-full bg-warning-soft px-3.5 text-sm font-semibold text-warning-ink">
-            <FlameIcon />
-            {data.streak === 1 ? "יום אחד ברצף" : `${data.streak} ימים ברצף`}
+          <span className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-white px-3.5 text-sm font-medium">
+            <CalendarDaysIcon className="size-4 text-primary" aria-hidden />
+            {todayHe()}
           </span>
+          {data.streak > 0 && (
+            <span className="flex h-9 items-center gap-1.5 rounded-full bg-warning-soft px-3.5 text-sm font-semibold text-warning-ink">
+              <FlameIcon />
+              {data.streak === 1 ? "יום אחד ברצף" : `${data.streak} ימים ברצף`}
+            </span>
+          )}
           <span className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-white px-3.5 text-sm font-semibold">
             <MessageSquareIcon className="size-4 text-primary" strokeWidth={2.2} aria-hidden />
             {data.messagesThisWeek} הודעות השבוע
@@ -55,10 +70,10 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <HeroCard hero={data.hero} stats={data.stats} />
-
       <div className="flex flex-col gap-5 xl:flex-row xl:items-start">
-        <div className="flex min-w-0 grow flex-col gap-7">
+        <div className="flex min-w-0 grow flex-col gap-6">
+          <PartnersSection partners={data.partners} />
+
           <RoomsPanel
             rooms={data.rooms}
             invitations={data.pendingInvitations}
@@ -93,63 +108,18 @@ export default async function DashboardPage() {
               </div>
             )}
           </section>
-
-          {recommendations.length > 0 && (
-            <section aria-labelledby="discover" className="flex flex-col gap-3.5">
-              <div className="flex flex-wrap items-center gap-4">
-                <h2 id="discover" className="text-2xl font-extrabold">
-                  לגלות קורסים חדשים
-                </h2>
-                <nav aria-label="סינון לפי מחלקה" className="flex flex-wrap gap-1.5">
-                  <Chip href="/courses" active>
-                    הכל
-                  </Chip>
-                  {data.departments.slice(0, 3).map((d) => (
-                    <Chip key={d.id} href={`/courses?departmentId=${d.id}`}>
-                      {d.name}
-                    </Chip>
-                  ))}
-                </nav>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {recommendations.map((c) => (
-                  <RecommendationCard key={c.id} course={c} />
-                ))}
-              </div>
-            </section>
-          )}
         </div>
 
-        <ActivityRail
-          activity={data.activity}
-          unreadCount={data.unreadCount}
-          nextEvent={data.nextEvent}
-        />
+        <aside className="flex w-full shrink-0 flex-col gap-5 xl:w-[360px]">
+          <ProgressCard hero={data.hero} stats={data.stats} />
+          <ActivityRail
+            activity={data.activity}
+            unreadCount={data.unreadCount}
+            nextEvent={data.nextEvent}
+          />
+          <InfoTiles stats={data.stats} pendingInvitations={data.pendingInvitationCount} />
+        </aside>
       </div>
     </main>
-  );
-}
-
-function Chip({
-  href,
-  active = false,
-  children,
-}: {
-  href: string;
-  active?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "flex h-9 items-center rounded-full px-4 text-[13px]",
-        active
-          ? "bg-primary font-semibold text-white"
-          : "border border-border bg-white font-medium text-ink-2 hover:border-primary-line",
-      )}
-    >
-      {children}
-    </Link>
   );
 }
