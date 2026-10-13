@@ -30,8 +30,11 @@ function clean(item) {
     .trim();
 }
 
+// Administrative notes that handbooks put inside the course summary.
+const ADMIN = /^(מקצועות|מקצוע|דרישות|דרישת) קדם|^הקדם |^בגרות במתמטיקה/;
+
 function keep(title) {
-  return title.length >= 2 && title.length <= MAX_TITLE && !PROSE.test(title);
+  return title.length >= 2 && title.length <= MAX_TITLE && !PROSE.test(title) && !ADMIN.test(title);
 }
 
 // Commas inside parentheses belong to one topic: "התפלגויות (בינומית, פואסונית)".

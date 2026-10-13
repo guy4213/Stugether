@@ -278,3 +278,35 @@ test("degree templates: other institutions get the same degree's courses and top
   );
   assert.ok(starters.n > 0);
 });
+
+// ---------------------------------------------------------------------------
+// 20261013000001_catalog_fixes.sql
+// ---------------------------------------------------------------------------
+test("catalog fixes: no M.Sc. courses in the CS B.Sc.; non-topics hidden", async () => {
+  const active = await base.one(
+    `select count(*) filter (where i.name = 'H.IT' and c.code in ('66003', '66004', '66501', '66504', '66505'))::int hit,
+            count(*) filter (where d.name = 'מדעי המחשב' and i.name = 'מכללת אפקה' and c.name in ('תזה', 'סמינריון', 'אלגוריתמים מתקדמים'))::int afeka
+       from public.courses c join public.institutions i on i.id = c.institution_id
+       left join public.departments d on d.id = c.department_id
+      where c.is_active`,
+  );
+  assert.deepEqual([active.hit, active.afeka], [0, 0]);
+
+  // Calculus 1 still has its topics, minus the prerequisites note.
+  const calc = await base.one(
+    `select count(*) filter (where ct.is_active)::int n,
+            count(*) filter (where ct.is_active and (ct.title like '%קדם%' or ct.title = 'ולמחקר מתקדם בתחום'))::int junk
+       from public.course_topics ct join public.courses c on c.id = ct.course_id
+       join public.institutions i on i.id = c.institution_id
+      where i.name = 'H.IT' and c.code in ('21151', '21410')`,
+  );
+  assert.ok(calc.n >= 10);
+  assert.equal(calc.junk, 0);
+
+  // Bachelor's courses are untouched.
+  const ds = await base.one(
+    `select bool_and(c.is_active) ok from public.courses c join public.institutions i on i.id = c.institution_id
+      where i.name = 'H.IT' and c.code in ('61104', '60172', '62208')`,
+  );
+  assert.equal(ds.ok, true);
+});

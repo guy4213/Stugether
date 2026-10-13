@@ -39,3 +39,10 @@ export function yearLabel(year: number | null | undefined): string | null {
   if (!year || year < 1 || year > HEBREW_ORDINALS.length) return null;
   return `שנה ${HEBREW_ORDINALS[year - 1]}׳`;
 }
+
+// Catalog rows say "סמסטר א׳"; hand-entered ones may say just "א".
+export function semesterLabel(semester: string | null | undefined): string | null {
+  if (!semester) return null;
+  if (semester.startsWith("סמסטר")) return semester;
+  return semester.length === 1 ? `סמסטר ${semester}׳` : `סמסטר ${semester}`;
+}

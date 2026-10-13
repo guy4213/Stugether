@@ -17,16 +17,6 @@
           "description": null,
           "topics": [
             {
-              "title": "מקצועות קדם",
-              "subtopics": [
-                "בגרות במתמטיקה 5 יח\"ל עם ציון 70 ומעלה או ציון עובר בבחינת סיווג במתמטיקה"
-              ]
-            },
-            {
-              "title": "הקדם לא יופעל עבור סטודנטים הלומדים במסגרת אפיק המעבר המקוצר בלימודי חוץ בשנת הלימודים הנוכחית",
-              "subtopics": []
-            },
-            {
               "title": "שדה המספרים הממשיים",
               "subtopics": []
             },
@@ -2800,23 +2790,7 @@
               "subtopics": []
             },
             {
-              "title": "ואת התיאוריה שלהן",
-              "subtopics": []
-            },
-            {
-              "title": "ויבינו את מגבלותיהן",
-              "subtopics": []
-            },
-            {
-              "title": "מדע-נתונים",
-              "subtopics": []
-            },
-            {
               "title": "למידת מכונה וכו'",
-              "subtopics": []
-            },
-            {
-              "title": "ולמחקר מתקדם בתחום",
               "subtopics": []
             }
           ],
@@ -6636,166 +6610,6 @@
           "elective": true,
           "prerequisites": [
             "61307"
-          ],
-          "description": null,
-          "topics": [],
-          "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
-          "academic_year": "תשפ\"ו",
-          "topics_source": null
-        },
-        {
-          "code": "66003",
-          "name": "אלגוריתמים מתקדמים",
-          "credits": 4,
-          "year_level": null,
-          "semester": null,
-          "elective": false,
-          "prerequisites": [],
-          "description": null,
-          "topics": [
-            {
-              "title": "מבני נתונים",
-              "subtopics": [
-                "ניתוח לשיעורין",
-                "ניתוח תחרותי (ערימת פיבונאצ'י, רשימה דינאמית, עץ ליכסון)"
-              ]
-            },
-            {
-              "title": "תכנון לינארי",
-              "subtopics": [
-                "גיאומטריה",
-                "אלגוריתמים (סימפלקס, אליפסואידים)",
-                "תורת הדואליות",
-                "אוב הפרדה"
-              ]
-            },
-            {
-              "title": "גרפים מרחיבים",
-              "subtopics": [
-                "הגדרות",
-                "תכונות",
-                "תורה ספקטרלית",
-                "יישומים אלגוריתמיים"
-              ]
-            }
-          ],
-          "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
-          "academic_year": "תשפ\"ו",
-          "topics_source": {
-            "kind": "openu",
-            "url": "https://www.openu.ac.il/courses/22910.htm",
-            "ref": "22910 נושאים מתקדמים באלגוריתמים"
-          }
-        },
-        {
-          "code": "66004",
-          "name": "מתמטיקה מתקדמת",
-          "credits": 4,
-          "year_level": null,
-          "semester": null,
-          "elective": false,
-          "prerequisites": [],
-          "description": null,
-          "topics": [
-            {
-              "title": "מרחבים מטריים",
-              "subtopics": [
-                "הגדרה מושגים בסיסיים",
-                "קבוצות פתוחות וסגורות במרחב מטרי",
-                "התכנסות ורציפות במרחב מטרי"
-              ]
-            },
-            {
-              "title": "פונקציות של משתנה מרוכב",
-              "subtopics": [
-                "נקודות סינגולאריות",
-                "חתכי-הסתעפות",
-                "אינטגרלים במישור המרוכב"
-              ]
-            },
-            {
-              "title": "מיפוי קונפורמי",
-              "subtopics": []
-            },
-            {
-              "title": "ניתוח פונקציות המוגדרות ע\"י אינטגרלים (דוגמאות: פונקציות גמה וזתה, פונקציות אליפטיות(",
-              "subtopics": []
-            },
-            {
-              "title": "פונקציות המוגדרות ע\"י משוואות דיפרנציאליות במישור המרוכב )דוגמאות: פונקציות בסל ולג'נדר)",
-              "subtopics": []
-            },
-            {
-              "title": "טורי פורייה מוכללים",
-              "subtopics": []
-            },
-            {
-              "title": "ייצוגים אינטגראליים",
-              "subtopics": []
-            },
-            {
-              "title": "התמרות אינטגראליות",
-              "subtopics": []
-            },
-            {
-              "title": "התמרות הפוכות",
-              "subtopics": []
-            },
-            {
-              "title": "שימושים בפתרון משוואות דיפרנציאליות רגילות וחלקיות",
-              "subtopics": []
-            }
-          ],
-          "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
-          "academic_year": "תשפ\"ו",
-          "topics_source": {
-            "kind": "hit_archive_name",
-            "url": "https://web.archive.org/web/20180516201257id_/https://www.hit.ac.il/.upload/Academics/Yedion/2017-2018/engineering.pdf",
-            "ref": "55003 מתמטיקה מתקדמת (תשע\"ח)"
-          }
-        },
-        {
-          "code": "66501",
-          "name": "פרוייקט",
-          "credits": 2,
-          "year_level": null,
-          "semester": null,
-          "elective": false,
-          "prerequisites": [
-            "66501"
-          ],
-          "description": null,
-          "topics": [],
-          "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
-          "academic_year": "תשפ\"ו",
-          "topics_source": null
-        },
-        {
-          "code": "66504",
-          "name": "סמינריון",
-          "credits": 3,
-          "year_level": null,
-          "semester": null,
-          "elective": false,
-          "prerequisites": [
-            "66506",
-            "66508"
-          ],
-          "description": null,
-          "topics": [],
-          "source_url": "https://www.hit.ac.il/students/regulations-newsletters/yedion-sciences/",
-          "academic_year": "תשפ\"ו",
-          "topics_source": null
-        },
-        {
-          "code": "66505",
-          "name": "תזה",
-          "credits": 8,
-          "year_level": null,
-          "semester": null,
-          "elective": false,
-          "prerequisites": [
-            "66505"
           ],
           "description": null,
           "topics": [],

@@ -39,6 +39,7 @@ import {
   MODE_LABEL,
   NEXT_EVENT_LABEL,
   durationLabel,
+  semesterLabel,
   yearLabel,
 } from "@/lib/ui/labels";
 import { shortDateHe, timeHe, weekdayHe, weekdayLetterHe } from "@/lib/ui/format";
@@ -89,7 +90,12 @@ export default async function CourseDetailPage({
   const myRoom = data.myRoomsForCourse[0] ?? null;
   const openRoom = data.joinableOpenRooms[0] ?? null;
   const continueHref = myRoom ? `/rooms/${myRoom.id}` : "#available";
-  const meta = [course.code, data.departmentName, yearLabel(course.year_level)]
+  const meta = [
+    course.code,
+    data.departmentName,
+    yearLabel(course.year_level),
+    course.year_level ? semesterLabel(course.semester) : null,
+  ]
     .filter(Boolean)
     .join(" · ");
 

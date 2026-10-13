@@ -27,10 +27,23 @@ export default async function CoursesPage({
     q,
     departmentId,
     favorites: favorites === "1",
-    sort: parseCourseSort(sort),
+    sort: parseCourseSort(sort, departmentId),
   });
   const departmentNameById = new Map(data.departments.map((d) => [d.id, d.name]));
   const filtered = Boolean(q || departmentId || favorites);
+  const renderCard = (course: (typeof data.courses)[number]) => (
+    <CourseCard
+      key={course.id}
+      course={course}
+      departmentName={
+        course.department_id ? (departmentNameById.get(course.department_id) ?? null) : null
+      }
+      activeRoomCount={data.roomCounts[course.id] ?? 0}
+      studentCount={data.studentCounts[course.id] ?? 0}
+      isFavorite={data.favoriteIds.has(course.id)}
+      popular={data.popularIds.has(course.id)}
+    />
+  );
 
   return (
     <main
@@ -81,22 +94,22 @@ export default async function CoursesPage({
         <>
           <CoursesFilterBar departments={data.departments} />
 
+          {data.semesterGroups?.map((group) => (
+            <section key={group.key} className="flex flex-col gap-3">
+              <h2 className="text-lg font-bold text-foreground">
+                {group.label}
+                <span className="ms-2 text-sm font-medium text-muted-foreground">
+                  {group.courses.length === 1 ? "קורס אחד" : `${group.courses.length} קורסים`}
+                </span>
+              </h2>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {group.courses.map(renderCard)}
+              </div>
+            </section>
+          ))}
+
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {data.courses.map((course) => (
-              <CourseCard
-                key={course.id}
-                course={course}
-                departmentName={
-                  course.department_id
-                    ? (departmentNameById.get(course.department_id) ?? null)
-                    : null
-                }
-                activeRoomCount={data.roomCounts[course.id] ?? 0}
-                studentCount={data.studentCounts[course.id] ?? 0}
-                isFavorite={data.favoriteIds.has(course.id)}
-                popular={data.popularIds.has(course.id)}
-              />
-            ))}
+            {!data.semesterGroups && data.courses.map(renderCard)}
 
             {/* Only a super_admin can add catalog courses, so this card resets
                 the search instead of offering "הוספת קורס חדש". */}

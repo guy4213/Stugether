@@ -120,7 +120,14 @@ export function CoursesFilterBar({ departments }: { departments: Department[] })
   const { searchParams, navigate } = useUrlParams();
   const departmentId = searchParams.get("departmentId");
   const favoritesOnly = searchParams.get("favorites") === "1";
-  const sort = searchParams.get("sort") ?? "popular";
+  // Matches parseCourseSort: a department defaults to its study plan.
+  const defaultSort = departmentId ? "semester" : "popular";
+  const sort = searchParams.get("sort") ?? defaultSort;
+  // "semester" is only offered inside a department, so leaving one drops it.
+  const dropSemesterSort = (p: URLSearchParams) => {
+    if (p.get("sort") === "semester" || (!p.has("departmentId") && p.get("sort") === "popular"))
+      p.delete("sort");
+  };
 
   return (
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -131,6 +138,7 @@ export function CoursesFilterBar({ departments }: { departments: Department[] })
             navigate((p) => {
               p.delete("departmentId");
               p.delete("favorites");
+              dropSemesterSort(p);
             })
           }
         >
@@ -150,11 +158,11 @@ export function CoursesFilterBar({ departments }: { departments: Department[] })
             key={dept.id}
             active={departmentId === dept.id}
             onClick={() =>
-              navigate((p) =>
-                departmentId === dept.id
-                  ? p.delete("departmentId")
-                  : p.set("departmentId", dept.id),
-              )
+              navigate((p) => {
+                if (departmentId === dept.id) p.delete("departmentId");
+                else p.set("departmentId", dept.id);
+                dropSemesterSort(p);
+              })
             }
           >
             {dept.name}
@@ -167,11 +175,12 @@ export function CoursesFilterBar({ departments }: { departments: Department[] })
           value={sort}
           onChange={(e) =>
             navigate((p) =>
-              e.target.value === "popular" ? p.delete("sort") : p.set("sort", e.target.value),
+              e.target.value === defaultSort ? p.delete("sort") : p.set("sort", e.target.value),
             )
           }
           className="h-[42px] rounded-xl border border-border bg-white px-3.5 text-sm text-foreground"
         >
+          {departmentId && <option value="semester">לפי שנה וסמסטר</option>}
           <option value="popular">הכי פופולרי</option>
           <option value="rooms">הכי הרבה חדרים</option>
           <option value="az">א׳–ת׳</option>
