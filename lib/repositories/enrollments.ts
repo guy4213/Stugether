@@ -33,7 +33,11 @@ export async function listMyEnrollments(
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data as unknown as EnrollmentWithCourse[];
+  // RLS hides deactivated courses, so their enrollments come back with a
+  // null course; they are not shown anywhere.
+  return (
+    data as unknown as (Omit<EnrollmentWithCourse, "course"> & { course: Course | null })[]
+  ).filter((e): e is EnrollmentWithCourse => e.course !== null);
 }
 
 export async function enroll(
