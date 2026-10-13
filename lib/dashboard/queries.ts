@@ -14,6 +14,7 @@ import { listEventRegistrations, listUpcomingTestsForCourses } from "@/lib/repos
 import { listNotifications, type NotificationType } from "@/lib/repositories/notifications";
 import { getUnreadSummary, listMyMessageTimestamps } from "@/lib/repositories/messages";
 import { listPendingInvitations } from "@/lib/repositories/invitations";
+import { listUpcomingSessions } from "@/lib/repositories/sessions";
 import { summarizeTopics, type TopicWithState } from "@/lib/courses/topic-state";
 import { computeStreak } from "@/lib/stats/streak";
 import { computeMatchPercent } from "@/lib/matching/score";
@@ -126,6 +127,7 @@ async function loadDashboardData(userId: string) {
     nextEventRaw,
     registrations,
     people,
+    upcomingSessions,
   ] = await Promise.all([
     pProfile,
     pEnrollments,
@@ -144,6 +146,12 @@ async function loadDashboardData(userId: string) {
     pNextEvent,
     pRegistrations,
     pPeople,
+    getCachedMyActiveRooms(userId).then((rooms) =>
+      listUpcomingSessions(
+        supabase,
+        rooms.map((r) => r.id),
+      ),
+    ),
   ]);
 
   const active = enrollments.filter((e) => e.status === "active");
@@ -346,6 +354,10 @@ async function loadDashboardData(userId: string) {
 
   // --- my rooms (SPEC §4.2: by last message, with unread) + pending invitations ---
   const unreadByRoom = new Map(unreadSummary.map((u) => [u.room_id, u]));
+  // Ordered by start time: the first row per room is its next session.
+  const nextSessionByRoom = new Map<string, string>();
+  for (const s of upcomingSessions)
+    if (!nextSessionByRoom.has(s.room_id)) nextSessionByRoom.set(s.room_id, s.starts_at);
   const courseNameById = new Map(enrollments.map((e) => [e.course_id, e.course.name]));
   const rooms = myRooms
     .map((r) => ({
@@ -356,6 +368,7 @@ async function loadDashboardData(userId: string) {
       unread: Number(unreadByRoom.get(r.id)?.unread_count ?? 0),
       lastMessageAt: unreadByRoom.get(r.id)?.last_message_at ?? r.last_message_at,
       live: r.status === "active" && isRoomLive(r),
+      nextSessionAt: nextSessionByRoom.get(r.id) ?? null,
     }))
     .sort((a, b) => (b.lastMessageAt ?? "").localeCompare(a.lastMessageAt ?? ""));
   // get_pending_invitations already hides expired ones; re-check against the

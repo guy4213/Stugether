@@ -45,6 +45,8 @@ import type { ProfileFormData } from "@/lib/profile/queries";
 import type { StackPerson } from "@/components/ui/avatar-stack";
 import type { StudyTrack } from "@/lib/constants/profile-options";
 import type { StudentInputs } from "@/lib/students/queries";
+import type { RoomSessionRow } from "@/lib/repositories/sessions";
+import { shapeRoomSessions } from "@/lib/rooms/sessions";
 import { yearLabel } from "@/lib/ui/labels";
 
 // Fixtures behind demo mode (see lib/demo/constants.ts). Three scenarios for
@@ -1059,6 +1061,8 @@ export function demoDashboard(scenario: DemoScenario): DashboardData {
         unread: unreadByRoom[r.id] ?? 0,
         lastMessageAt: r.last_message_at,
         live: isRoomLive(r, t.now),
+        nextSessionAt:
+          demoSessions(scenario, r.id, t).find((s) => s.status === "scheduled")?.starts_at ?? null,
       }))
       .sort((a, b) => (b.lastMessageAt ?? "").localeCompare(a.lastMessageAt ?? "")),
     pendingInvitations: pendingInvitations(scenario, t).map((i) => ({
@@ -1217,6 +1221,13 @@ export function demoRoom(scenario: DemoScenario, roomId: string): RoomPageData |
     invitations: [],
     inviteCandidates: candidates,
     openSeats: Math.max(0, 4 - memberIds.length),
+    sessions: shapeRoomSessions(demoSessions(scenario, r.id, t), {
+      userId: ME.id,
+      creatorId: owner,
+      roomStatus: r.status,
+      nameById: new Map(roomMembers.map((m) => [m.user_id, m.profile?.full_name ?? ""] as const)),
+      now: t.now,
+    }),
     // The live room I created has one classmate waiting to come in.
     joinRequests:
       scenario === "active" && owner === ME.id
@@ -1224,6 +1235,57 @@ export function demoRoom(scenario: DemoScenario, roomId: string): RoomPageData |
         : [],
     demoPresence: ROOM_PRESENCE[r.id] ?? [ME.id],
   };
+}
+
+// Live room: next session already set for tomorrow. Recursion room: a
+// classmate proposed two times and the group is voting.
+function demoSessions(scenario: DemoScenario, roomId: string, t: Clock): RoomSessionRow[] {
+  if (scenario !== "active") return [];
+  const tomorrow = (h: number) => new Date(t.now + DAY - (t.now % HOUR) + h * HOUR).toISOString();
+  if (roomId === R.live) {
+    return [
+      {
+        id: demoId(11, 1),
+        room_id: roomId,
+        proposed_by: ME.id,
+        status: "scheduled",
+        starts_at: tomorrow(2),
+        duration_min: 90,
+        note: "חזרה על גבולות לפני הבוחן",
+        created_at: t.ago(2 * HOUR),
+        options: [{ id: demoId(12, 1), starts_at: tomorrow(2), votes: [{ user_id: ME.id }] }],
+        rsvps: [
+          { user_id: ME.id, response: "accepted" },
+          { user_id: PERSON_ID.p1, response: "accepted" },
+          { user_id: PERSON_ID.p4, response: "declined" },
+        ],
+      },
+    ];
+  }
+  if (roomId === R.recursion) {
+    return [
+      {
+        id: demoId(11, 2),
+        room_id: roomId,
+        proposed_by: PERSON_ID.p9,
+        status: "proposed",
+        starts_at: null,
+        duration_min: 60,
+        note: null,
+        created_at: t.ago(5 * HOUR),
+        options: [
+          { id: demoId(12, 2), starts_at: tomorrow(4), votes: [{ user_id: PERSON_ID.p9 }] },
+          {
+            id: demoId(12, 3),
+            starts_at: tomorrow(26),
+            votes: [{ user_id: PERSON_ID.p9 }, { user_id: PERSON_ID.p13 }],
+          },
+        ],
+        rsvps: [{ user_id: PERSON_ID.p9, response: "accepted" }],
+      },
+    ];
+  }
+  return [];
 }
 
 export function demoNotifications(

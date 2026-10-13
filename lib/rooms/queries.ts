@@ -10,6 +10,8 @@ import {
 } from "@/lib/repositories/invitations";
 import { listPublicProfiles } from "@/lib/repositories/profiles";
 import { listPendingJoinRequests } from "@/lib/repositories/join-requests";
+import { listRoomSessions } from "@/lib/repositories/sessions";
+import { shapeRoomSessions } from "@/lib/rooms/sessions";
 import { getDemoScenario } from "@/lib/demo/state";
 import { demoRoom } from "@/lib/demo/fixtures";
 
@@ -35,7 +37,7 @@ async function loadRoomPageData(roomId: string, userId: string) {
   if (!room) return null;
 
   const isCreator = room.created_by === userId;
-  const [members, messages, course, settings, invitations, classmates, joinRequests] =
+  const [members, messages, course, settings, invitations, classmates, joinRequests, sessionRows] =
     await Promise.all([
       listRoomMembers(supabase, roomId),
       listRoomMessages(supabase, roomId, { limit: PAGE_SIZE }),
@@ -45,6 +47,7 @@ async function loadRoomPageData(roomId: string, userId: string) {
       listEnrolledCourseStudents(supabase, room.course_id),
       // Requests to join while the room is in session — the creator answers.
       isCreator ? listPendingJoinRequests(supabase, { roomId }) : Promise.resolve([]),
+      listRoomSessions(supabase, roomId),
     ]);
 
   const activeMembers = members.filter((m) => !m.left_at);
@@ -90,6 +93,15 @@ async function loadRoomPageData(roomId: string, userId: string) {
       .map((c) => ({ id: c.id, name: c.full_name, avatarPath: c.avatar_url }))
       .sort((a, b) => a.name.localeCompare(b.name, "he")),
     openSeats: Math.max(0, openSeats),
+    sessions: shapeRoomSessions(sessionRows, {
+      userId,
+      creatorId: room.created_by,
+      roomStatus: room.status,
+      nameById: new Map([
+        ...nameById,
+        ...members.map((m) => [m.user_id, m.profile?.full_name ?? "חבר/ת חדר"] as const),
+      ]),
+    }),
     joinRequests: joinRequests.map((q) => ({
       id: q.id,
       userId: q.user_id,

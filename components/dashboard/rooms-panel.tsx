@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MailIcon, MessageSquareIcon } from "lucide-react";
+import { CalendarClockIcon, MailIcon, MessageSquareIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Pill } from "@/components/ui/pill";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { CreateRoomForm } from "@/components/courses/create-room-form";
 import { acceptRoomInvitation, declineRoomInvitation } from "@/lib/notifications/actions";
-import { relativeTimeHe, shortDateHe } from "@/lib/ui/format";
+import { relativeTimeHe, shortDateHe, timeHe } from "@/lib/ui/format";
 import type { DashboardData } from "@/lib/dashboard/queries";
 
 // Dashboard areas from SPEC §4.2 that the mockup has no card for: pending
@@ -78,6 +78,12 @@ export function RoomsPanel({
                     {room.courseName ?? ""}
                     {room.lastMessageAt ? ` · ${relativeTimeHe(room.lastMessageAt)}` : ""}
                   </span>
+                  {room.nextSessionAt && (
+                    <span className="flex items-center gap-1 text-xs font-semibold text-primary-strong">
+                      <CalendarClockIcon className="size-3.5" aria-hidden />
+                      מפגש הבא: {shortDateHe(room.nextSessionAt)} · {timeHe(room.nextSessionAt)}
+                    </span>
+                  )}
                 </span>
                 {room.status === "archived" && <Pill tone="warning">מאורכב</Pill>}
                 {room.status === "closed" && <Pill tone="neutral">סגור</Pill>}

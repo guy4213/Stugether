@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { ChatWindow } from "@/components/rooms/chat-window";
 import { JoinRequestsBanner } from "@/components/rooms/join-requests-banner";
+import { SessionPanel } from "@/components/rooms/session-panel";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getRoomPageData } from "@/lib/rooms/queries";
 
@@ -18,6 +19,15 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
       className="mx-auto flex h-[calc(100dvh-73px)] w-full max-w-4xl flex-col px-0 sm:px-6 sm:py-6"
     >
       <JoinRequestsBanner requests={data.joinRequests} />
+      {data.isMember && (
+        <SessionPanel
+          roomId={data.room.id}
+          roomName={data.room.name}
+          roomStatus={data.room.status}
+          isOwner={data.isOwner}
+          sessions={data.sessions}
+        />
+      )}
       {/* key: a different room remounts the thread and its realtime channel. */}
       <ChatWindow key={data.room.id} data={data} currentUserId={user.id} />
     </main>
