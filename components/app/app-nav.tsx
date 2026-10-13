@@ -12,6 +12,7 @@ import {
   SearchIcon,
   ShieldCheckIcon,
   UserIcon,
+  UsersIcon,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "cn";
@@ -35,8 +36,8 @@ const ADMIN_LINK: NavLink = { href: "/admin", label: "ניהול", icon: ShieldC
 const NAV_LINKS: NavLink[] = [
   { href: "/dashboard", label: "בית", icon: HouseIcon },
   { href: "/courses", label: "קורסים", icon: BookOpenIcon },
+  { href: "/students", label: "סטודנטים", icon: UsersIcon },
   { href: "/analytics", label: "ההתקדמות שלי", icon: ChartColumnIcon },
-  { href: "/notifications", label: "התראות", icon: BellIcon },
   { href: "/profile", label: "הגדרות פרופיל", icon: UserIcon },
 ];
 
@@ -53,12 +54,25 @@ type ShellProps = {
   isSuperAdmin: boolean;
 };
 
-function NavBadge({ count }: { count: number }) {
-  if (count === 0) return null;
+// Notifications live next to the avatar as an icon, not as a nav tab.
+function NotificationsBell({ count, active }: { count: number; active: boolean }) {
   return (
-    <span className="h-5 min-w-5 rounded-[10px] bg-primary px-1.5 text-center text-[11px] leading-5 font-bold text-white">
-      {count > 99 ? "99+" : count}
-    </span>
+    <Link
+      href="/notifications"
+      aria-label={count > 0 ? `התראות (${count} חדשות)` : "התראות"}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "relative flex size-11 items-center justify-center rounded-full border border-border bg-white text-ink-2 transition-colors hover:border-primary-line hover:text-foreground",
+        active && "border-primary-line bg-primary-soft text-primary-strong",
+      )}
+    >
+      <BellIcon className="size-5" strokeWidth={1.9} aria-hidden />
+      {count > 0 && (
+        <span className="absolute -end-1 -top-1 h-5 min-w-5 rounded-[10px] bg-primary px-1.5 text-center text-[11px] leading-5 font-bold text-white ring-2 ring-white">
+          {count > 99 ? "99+" : count}
+        </span>
+      )}
+    </Link>
   );
 }
 
@@ -158,7 +172,6 @@ export function AppNav(props: ShellProps) {
                 >
                   <link.icon className="size-[18px]" strokeWidth={active ? 2 : 1.9} aria-hidden />
                   {link.label}
-                  {link.href === "/notifications" && <NavBadge count={props.unreadNotifications} />}
                 </Link>
               );
             })}
@@ -176,6 +189,10 @@ export function AppNav(props: ShellProps) {
               חדר פעיל
             </Link>
           )}
+          <NotificationsBell
+            count={props.unreadNotifications}
+            active={isLinkActive(pathname, "/notifications")}
+          />
           {avatarMenu}
 
           <DropdownMenu>
@@ -184,9 +201,6 @@ export function AppNav(props: ShellProps) {
               className="relative flex size-11 items-center justify-center rounded-xl text-foreground hover:bg-muted lg:hidden"
             >
               <MenuIcon className="size-5" />
-              {props.unreadNotifications > 0 && (
-                <span className="absolute top-2 right-2 size-2 rounded-full bg-primary" />
-              )}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60">
               {links.map((link) => {
@@ -200,9 +214,6 @@ export function AppNav(props: ShellProps) {
                     >
                       <link.icon />
                       <span className="grow">{link.label}</span>
-                      {link.href === "/notifications" && (
-                        <NavBadge count={props.unreadNotifications} />
-                      )}
                     </Link>
                   </DropdownMenuItem>
                 );

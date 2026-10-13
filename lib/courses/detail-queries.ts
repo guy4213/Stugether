@@ -7,7 +7,6 @@ import { listEnrolledCourseStudents } from "@/lib/repositories/invitations";
 import { countActiveRoomsByCourseIds, listOpenRooms } from "@/lib/repositories/rooms";
 import { listEventRegistrations, listTestsForCourse } from "@/lib/repositories/tests";
 import { listCourseTopics, listMyTopicProgress } from "@/lib/repositories/topics";
-import { listAvailability } from "@/lib/repositories/availability";
 import { listFavoriteCourseIds } from "@/lib/repositories/favorites";
 import { computeMatchPercent } from "@/lib/matching/score";
 import { summarizeTopics } from "@/lib/courses/topic-state";
@@ -16,7 +15,8 @@ import { isOnline } from "@/lib/ui/people";
 import { getDemoScenario } from "@/lib/demo/state";
 import { demoCourseDetail } from "@/lib/demo/fixtures";
 
-export type MemberStatus = "available" | "online" | "offline";
+// "Available" = connected to the platform right now (no manual toggle).
+export type MemberStatus = "available" | "offline";
 
 export async function getCourseDetailData(
   userId: string,
@@ -54,7 +54,6 @@ async function loadCourseDetailData(userId: string, courseId: string) {
     progress,
     favoriteIds,
     departments,
-    availabilityRows,
     openRoomRows,
     registrationRows,
   ] = await Promise.all([
@@ -70,7 +69,6 @@ async function loadCourseDetailData(userId: string, courseId: string) {
     listMyTopicProgress(supabase, userId),
     listFavoriteCourseIds(supabase, userId),
     pCourse.then((c) => (c ? listDepartments(supabase, c.institution_id) : [])),
-    listAvailability(supabase, [courseId]),
     listOpenRooms(supabase, [courseId]),
     pNextEvent.then((e) => (e ? listEventRegistrations(supabase, [e.id]) : [])),
   ]);
@@ -81,47 +79,25 @@ async function loadCourseDetailData(userId: string, courseId: string) {
   const upcomingEvents = events.filter((e) => e.due_at && new Date(e.due_at).getTime() > now);
   const nextEvent = upcomingEvents[0] ?? null;
 
-  // Rosters, availability, open rooms and registrations are for enrolled
-  // students only.
-  const availability = isEnrolled ? availabilityRows : [];
+  // Rosters, open rooms and registrations are for enrolled students only.
   const openRooms = isEnrolled ? openRoomRows : [];
   const registrations = isEnrolled ? registrationRows : [];
   const departmentsById = new Map(departments.map((d) => [d.id, d]));
 
   const topicSummary = summarizeTopics(topics, progress);
-  const topicTitleById = new Map(topics.map((t) => [t.id, t.title]));
-  const availabilityByUser = new Map(availability.map((a) => [a.user_id, a]));
-  const myAvailability = availabilityByUser.get(userId) ?? null;
 
   const others = roster.filter((p) => p.id !== userId);
   const members = others
     .map((p) => {
-      const status: MemberStatus = availabilityByUser.has(p.id)
-        ? "available"
-        : isOnline(p.last_seen_at, now)
-          ? "online"
-          : "offline";
+      const status: MemberStatus = isOnline(p.last_seen_at, now) ? "available" : "offline";
       return { profile: p, status };
     })
     .sort((a, b) => {
-      const rank = { available: 0, online: 1, offline: 2 } as const;
+      const rank = { available: 0, offline: 1 } as const;
       return (
         rank[a.status] - rank[b.status] ||
         a.profile.full_name.localeCompare(b.profile.full_name, "he")
       );
-    });
-
-  const availableNow = others
-    .filter((p) => availabilityByUser.has(p.id))
-    .map((p) => {
-      const a = availabilityByUser.get(p.id)!;
-      return {
-        profile: p,
-        mode: a.mode,
-        durationMinutes: a.duration_minutes,
-        activity: a.activity,
-        topicTitle: a.topic_id ? (topicTitleById.get(a.topic_id) ?? null) : null,
-      };
     });
 
   const classmates = myProfile
@@ -129,6 +105,13 @@ async function loadCourseDetailData(userId: string, courseId: string) {
         .map((p) => ({ profile: p, match: computeMatchPercent(myProfile, p, departmentsById) }))
         .sort((a, b) => b.match.percent - a.match.percent)
     : [];
+  const matchById = new Map(classmates.map((c) => [c.profile.id, c.match.percent]));
+
+  // Classmates connected right now, best match first.
+  const availableNow = others
+    .filter((p) => isOnline(p.last_seen_at, now))
+    .map((p) => ({ profile: p, matchPercent: matchById.get(p.id) ?? null }))
+    .sort((a, b) => (b.matchPercent ?? 0) - (a.matchPercent ?? 0));
 
   const myRoomsForCourse = myActiveRooms.filter(
     (r) => r.course_id === courseId && r.status === "active",
@@ -150,7 +133,6 @@ async function loadCourseDetailData(userId: string, courseId: string) {
     joinableOpenRooms,
     topics: topicSummary,
     availableNow,
-    myAvailability,
     members,
     classmates,
     upcomingEvents,

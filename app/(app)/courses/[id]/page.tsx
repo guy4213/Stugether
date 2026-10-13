@@ -1,20 +1,7 @@
 import { createElement } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import {
-  ArrowRightIcon,
-  BookOpenIcon,
-  Building2Icon,
-  CalendarDaysIcon,
-  ClockIcon,
-  MapPinIcon,
-  MonitorIcon,
-  PenLineIcon,
-  PlayIcon,
-  RotateCcwIcon,
-  TargetIcon,
-  UsersIcon,
-} from "lucide-react";
+import { ArrowRightIcon, Building2Icon, CalendarDaysIcon, PlayIcon, UsersIcon } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { ProgressRing } from "@/components/ui/progress-ring";
@@ -26,24 +13,14 @@ import { RosterList } from "@/components/courses/roster-list";
 import { FavoriteButton } from "@/components/courses/favorite-button";
 import { TopicStepper } from "@/components/courses/topic-stepper";
 import { SyllabusList } from "@/components/courses/syllabus-list";
-import { AvailabilityCard } from "@/components/courses/availability-card";
 import { InviteToStudyButton } from "@/components/courses/invite-to-study-button";
 import { EventRegisterButton } from "@/components/courses/event-register-button";
 import { JoinRoomButton } from "@/components/rooms/join-room-button";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCourseDetailData, type CourseDetailData } from "@/lib/courses/detail-queries";
 import { courseTheme } from "@/lib/ui/course-theme";
-import {
-  ACTIVITY_LABEL,
-  EVENT_KIND_LABEL,
-  MODE_LABEL,
-  NEXT_EVENT_LABEL,
-  durationLabel,
-  semesterLabel,
-  yearLabel,
-} from "@/lib/ui/labels";
+import { EVENT_KIND_LABEL, NEXT_EVENT_LABEL, semesterLabel, yearLabel } from "@/lib/ui/labels";
 import { shortDateHe, timeHe, weekdayHe, weekdayLetterHe } from "@/lib/ui/format";
-import type { StudyActivity } from "@/lib/repositories/availability";
 
 const TABS = [
   { id: "overview", label: "סקירה" },
@@ -61,13 +38,6 @@ function roomTopicProps(data: CourseDetailData) {
     defaultTopicIds: data.topics.current ? [data.topics.current.id] : [],
   };
 }
-
-const ACTIVITY_ICON: Record<StudyActivity, typeof BookOpenIcon> = {
-  summaries: BookOpenIcon,
-  exercises: PenLineIcon,
-  review: RotateCcwIcon,
-  exam_prep: TargetIcon,
-};
 
 // Course page per Course.dc.html ("עמוד קורס").
 export default async function CourseDetailPage({
@@ -267,15 +237,6 @@ export default async function CourseDetailPage({
 
         <aside className="flex w-full shrink-0 flex-col gap-4 xl:w-[360px]">
           <NextEventCard data={data} />
-          {data.isEnrolled && (
-            <AvailabilityCard
-              courseId={course.id}
-              isAvailable={data.myAvailability !== null}
-              expiresAt={data.myAvailability?.expires_at ?? null}
-              topics={data.topics.topics.map((t) => ({ id: t.id, title: t.title }))}
-              defaultTopicId={data.topics.current?.id ?? null}
-            />
-          )}
           <MembersCard data={data} />
         </aside>
       </div>
@@ -347,7 +308,7 @@ function Overview({
               <h2 className="text-xl font-bold">אין חדר פעיל כרגע</h2>
               <span className="text-sm text-muted-foreground">
                 {available > 0
-                  ? `${available} סטודנטים פנויים עכשיו — פתחו חדר והם יקבלו התראה`
+                  ? `${available} סטודנטים מחוברים עכשיו — פתחו חדר והם יקבלו התראה`
                   : "פתחו חדר וחברי הקורס יקבלו התראה"}
               </span>
             </>
@@ -386,83 +347,54 @@ function Overview({
         </div>
         {available === 0 ? (
           <p className="rounded-[22px] border border-dashed border-switch-off bg-surface-2 p-6 text-sm text-muted-foreground">
-            אף אחד לא סימן שהוא פנוי כרגע. סמנו שאתם פנויים כדי שחברי הקורס יוכלו להזמין אתכם.
+            אף אחד מחברי הקורס לא מחובר כרגע. פתחו חדר וחברי הקורס יקבלו התראה.
           </p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {data.availableNow.map((a) => {
-              const ActivityIcon = ACTIVITY_ICON[a.activity];
-              return (
-                <article
-                  key={a.profile.id}
-                  className="flex flex-col gap-4 rounded-[22px] border border-border bg-card p-[22px]"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <PersonAvatar
-                      id={a.profile.id}
-                      name={a.profile.full_name}
-                      avatarPath={a.profile.avatar_url}
-                      ring
-                      online
-                      className="size-14 text-[17px]"
-                    />
-                    <div className="flex grow flex-col">
-                      <span className="text-[17px] font-bold">{a.profile.full_name}</span>
-                      <span className="text-[13px] text-muted-foreground">
-                        רוצה ללמוד:{" "}
-                        <strong className="text-foreground">{a.topicTitle ?? "כללי"}</strong>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <MiniChip
-                      className={
-                        a.mode === "online"
-                          ? "bg-primary-soft text-primary-strong"
-                          : "bg-success-soft text-success-ink"
-                      }
-                      icon={a.mode === "online" ? <MonitorIcon /> : <MapPinIcon />}
-                    >
-                      {MODE_LABEL[a.mode]}
-                    </MiniChip>
-                    <MiniChip icon={<ClockIcon />}>{durationLabel(a.durationMinutes)}</MiniChip>
-                    <MiniChip icon={<ActivityIcon />}>{ACTIVITY_LABEL[a.activity]}</MiniChip>
-                  </div>
-                  <InviteToStudyButton
-                    courseId={course.id}
-                    inviteeId={a.profile.id}
-                    inviteeName={a.profile.full_name}
-                    topicTitle={a.topicTitle}
+            {data.availableNow.map((a) => (
+              <article
+                key={a.profile.id}
+                className="flex flex-col gap-4 rounded-[22px] border border-border bg-card p-[22px]"
+              >
+                <div className="flex items-center gap-3.5">
+                  <PersonAvatar
+                    id={a.profile.id}
+                    name={a.profile.full_name}
+                    avatarPath={a.profile.avatar_url}
+                    ring
+                    online
+                    className="size-14 text-[17px]"
                   />
-                </article>
-              );
-            })}
+                  <div className="flex grow flex-col">
+                    <Link
+                      href={`/students/${a.profile.id}`}
+                      className="text-[17px] font-bold hover:text-primary"
+                    >
+                      {a.profile.full_name}
+                    </Link>
+                    <span className="flex items-center gap-1.5 text-[13px] font-semibold text-success-ink">
+                      <span className="size-[7px] rounded-full bg-success" aria-hidden />
+                      מחובר/ת עכשיו
+                    </span>
+                  </div>
+                  {a.matchPercent !== null && (
+                    <span className="rounded-full bg-primary-soft px-2.5 py-1 text-xs font-bold text-primary-strong">
+                      {a.matchPercent}% התאמה
+                    </span>
+                  )}
+                </div>
+                <InviteToStudyButton
+                  courseId={course.id}
+                  inviteeId={a.profile.id}
+                  inviteeName={a.profile.full_name}
+                  topicTitle={data.topics.current?.title ?? null}
+                />
+              </article>
+            ))}
           </div>
         )}
       </section>
     </>
-  );
-}
-
-function MiniChip({
-  icon,
-  children,
-  className = "bg-muted text-ink-2",
-}: {
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "flex h-[30px] items-center gap-1.5 rounded-[10px] px-[11px] text-[13px] font-semibold [&_svg]:size-3.5",
-        className,
-      )}
-    >
-      {icon}
-      {children}
-    </span>
   );
 }
 
@@ -597,10 +529,8 @@ function MembersCard({ data }: { data: CourseDetailData }) {
             {status === "available" ? (
               <span className="flex items-center gap-[5px] text-xs font-semibold text-success-ink">
                 <span className="size-[7px] rounded-full bg-success" aria-hidden />
-                פנוי/ה
+                מחובר/ת
               </span>
-            ) : status === "online" ? (
-              <span className="text-xs font-semibold text-primary-strong">מחובר/ת</span>
             ) : (
               <span className="text-xs text-muted-foreground">לא מחובר/ת</span>
             )}

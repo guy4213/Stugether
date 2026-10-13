@@ -319,10 +319,6 @@ const TOPICS: CourseTopic[] = Object.entries(TOPIC_TITLES).flatMap(([courseId, t
   })),
 );
 
-function topicId(courseId: string, title: string): string | null {
-  return TOPICS.find((t) => t.course_id === courseId && t.title === title)?.id ?? null;
-}
-
 // [course, mastered count, in-progress position, progress %]
 const MY_PROGRESS: [string, number, number, number][] = [
   [C.infi, 3, 4, 52],
@@ -1042,15 +1038,13 @@ export function demoCourseDetail(scenario: DemoScenario, courseId: string): Cour
   const available = isEnrolled ? availability(scenario, courseId) : [];
   const availableIds = new Set(available.map((a) => PERSON_ID[a.person]));
 
-  const rank = { available: 0, online: 1, offline: 2 } as const;
+  // Demo people with an availability row count as connected right now.
+  const connected = (p: PublicProfile) => availableIds.has(p.id) || isOnline(p.last_seen_at, t.now);
+  const rank = { available: 0, offline: 1 } as const;
   const members = isEnrolled
     ? others
         .map((p) => {
-          const status: MemberStatus = availableIds.has(p.id)
-            ? "available"
-            : isOnline(p.last_seen_at, t.now)
-              ? "online"
-              : "offline";
+          const status: MemberStatus = connected(p) ? "available" : "offline";
           return { profile: p, status };
         })
         .sort(
@@ -1085,14 +1079,15 @@ export function demoCourseDetail(scenario: DemoScenario, courseId: string): Cour
       TOPICS.filter((x) => x.course_id === courseId),
       topicProgress(scenario, t),
     ),
-    availableNow: available.map((a) => ({
-      profile: byId.get(PERSON_ID[a.person])!,
-      mode: a.mode,
-      durationMinutes: a.duration,
-      activity: a.activity,
-      topicTitle: topicId(courseId, a.topic) ? a.topic : null,
-    })),
-    myAvailability: null,
+    availableNow: isEnrolled
+      ? others
+          .filter(connected)
+          .map((p) => ({
+            profile: p,
+            matchPercent: computeMatchPercent(me, p, DEPARTMENTS_BY_ID).percent as number | null,
+          }))
+          .sort((a, b) => (b.matchPercent ?? 0) - (a.matchPercent ?? 0))
+      : [],
     members,
     classmates: others
       .map((p) => ({ profile: p, match: computeMatchPercent(me, p, DEPARTMENTS_BY_ID) }))
