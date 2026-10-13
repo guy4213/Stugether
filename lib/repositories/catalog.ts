@@ -82,6 +82,24 @@ export async function listDepartments(
   return data as Department[];
 }
 
+// Every institution's faculties / departments (the student directory shows
+// students of all institutions). Small tables; read once per page.
+export async function listAllFaculties(client: SupabaseClient): Promise<Faculty[]> {
+  const { data, error } = await client.from("faculties").select("*").eq("is_active", true);
+  if (error) throw error;
+  return data as Faculty[];
+}
+
+export async function listAllDepartments(client: SupabaseClient): Promise<Department[]> {
+  const { data, error } = await client
+    .from("departments")
+    .select("*")
+    .eq("is_active", true)
+    .order("name");
+  if (error) throw error;
+  return data as Department[];
+}
+
 export async function getCourse(client: SupabaseClient, courseId: string): Promise<Course | null> {
   const { data, error } = await client.from("courses").select("*").eq("id", courseId).maybeSingle();
   if (error) throw error;

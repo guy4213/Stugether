@@ -7,6 +7,7 @@ import { updateOwnProfile } from "@/lib/repositories/profiles";
 import { getCurrentUser } from "@/lib/auth/session";
 import { DEMO_READ_ONLY } from "@/lib/demo/constants";
 import { ISRAELI_CITIES } from "@/lib/constants/cities";
+import { HOBBIES, MAX_HOBBIES, STUDY_TRACKS } from "@/lib/constants/profile-options";
 
 const CITY_VALUES = [...ISRAELI_CITIES] as [string, ...string[]];
 
@@ -14,6 +15,8 @@ const CITY_VALUES = [...ISRAELI_CITIES] as [string, ...string[]];
 // which the fixed seed IDs (00000000-0000-0000-0001-...) don't have — every
 // profile save against demo data failed validation silently.
 const optionalId = z.guid().optional().or(z.literal(""));
+
+const emptyToUndefined = (v: unknown) => (v === "" || v == null ? undefined : v);
 
 const ProfileSchema = z.object({
   fullName: z.string().trim().min(1, "יש להזין שם מלא").max(120),
@@ -25,6 +28,13 @@ const ProfileSchema = z.object({
   studyYear: z.preprocess(
     (v) => (v === "" || v == null ? undefined : v),
     z.coerce.number().int().min(1).max(10).optional(),
+  ),
+  track: z.preprocess(emptyToUndefined, z.enum(STUDY_TRACKS).optional()),
+  semester: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(3).optional()),
+  // Posted as one comma-separated hidden field.
+  hobbies: z.preprocess(
+    (v) => (typeof v === "string" && v ? v.split(",") : []),
+    z.array(z.enum(HOBBIES)).max(MAX_HOBBIES),
   ),
 });
 
@@ -60,6 +70,9 @@ export async function updateProfile(
       departmentId: parsed.data.departmentId || null,
       city: parsed.data.city || null,
       studyYear: parsed.data.studyYear ?? null,
+      track: parsed.data.track ?? null,
+      semester: parsed.data.semester ?? null,
+      hobbies: parsed.data.hobbies,
     });
   } catch {
     return { ok: false, error: "שמירת הפרופיל נכשלה. נסו שוב" };

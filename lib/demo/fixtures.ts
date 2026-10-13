@@ -1,3 +1,5 @@
+import type { StudyTrack } from "@/lib/constants/profile-options";
+import type { StudentInputs } from "@/lib/students/queries";
 import "server-only";
 import {
   DEMO_AVATAR_PREFIX,
@@ -176,6 +178,27 @@ const ME = {
   department_id: DEP.cs,
   study_year: 2,
   city: "תל אביב",
+  track: "day" as const,
+  semester: 1,
+  hobbies: ["צילום", "בישול", "ריצה"],
+};
+
+// [track, semester, hobbies] per person, aligned with PEOPLE_SEED.
+const PEOPLE_EXTRA: Record<string, [StudyTrack, number, string[]]> = {
+  p1: ["evening", 1, ["צילום", "כדורסל"]],
+  p2: ["day", 1, ["קריאה", "בישול", "יוגה"]],
+  p3: ["day", 1, ["משחקי מחשב", "ריצה"]],
+  p4: ["day", 2, ["ציור", "מוזיקה"]],
+  p5: ["mixed", 1, ["כדורגל"]],
+  p6: ["day", 1, ["בישול", "אפייה", "טיולים"]],
+  p7: ["evening", 2, ["תכנות", "שחמט"]],
+  p8: ["day", 1, ["צילום", "ריצה", "טיולים"]],
+  p9: ["day", 1, ["משחקי קופסה"]],
+  p10: ["online", 2, ["קריאה", "כתיבה"]],
+  p11: ["day", 1, ["כדורסל", "סרטים וסדרות"]],
+  p12: ["evening", 1, ["מוזיקה", "נגינה"]],
+  p13: ["day", 2, ["ריצה", "בישול"]],
+  p14: ["mixed", 1, ["יזמות", "התנדבות"]],
 };
 
 // [key, name, department, year, city]
@@ -221,6 +244,9 @@ function people(scenario: DemoScenario, t: Clock): Map<string, PublicProfile> {
         study_year: year,
         city,
         last_seen_at: lastSeen,
+        track: PEOPLE_EXTRA[key][0],
+        semester: PEOPLE_EXTRA[key][1],
+        hobbies: PEOPLE_EXTRA[key][2],
       };
       return [profile.id, profile];
     }),
@@ -237,6 +263,9 @@ function myPublicProfile(t: Clock): PublicProfile {
     study_year: ME.study_year,
     city: ME.city,
     last_seen_at: t.ago(0),
+    track: ME.track,
+    semester: ME.semester,
+    hobbies: ME.hobbies,
   };
 }
 
@@ -267,6 +296,11 @@ const ROSTER: Record<string, PersonKey[]> = {
 function roster(scenario: DemoScenario, courseId: string): string[] {
   if (scenario === "empty") return [];
   return (ROSTER[courseId] ?? []).map((k) => PERSON_ID[k]);
+}
+
+// Ids of my courses that a demo person is also enrolled in.
+function sharedCourseIds(scenario: DemoScenario, personId: string): string[] {
+  return MY_COURSE_IDS.filter((c) => roster(scenario, c).includes(personId));
 }
 
 function studentCount(scenario: DemoScenario, courseId: string): number {
@@ -1084,13 +1118,26 @@ export function demoCourseDetail(scenario: DemoScenario, courseId: string): Cour
           .filter(connected)
           .map((p) => ({
             profile: p,
-            matchPercent: computeMatchPercent(me, p, DEPARTMENTS_BY_ID).percent as number | null,
+            matchPercent: computeMatchPercent(
+              me,
+              p,
+              DEPARTMENTS_BY_ID,
+              sharedCourseIds(scenario, p.id).length,
+            ).percent as number | null,
           }))
           .sort((a, b) => (b.matchPercent ?? 0) - (a.matchPercent ?? 0))
       : [],
     members,
     classmates: others
-      .map((p) => ({ profile: p, match: computeMatchPercent(me, p, DEPARTMENTS_BY_ID) }))
+      .map((p) => ({
+        profile: p,
+        match: computeMatchPercent(
+          me,
+          p,
+          DEPARTMENTS_BY_ID,
+          sharedCourseIds(scenario, p.id).length,
+        ),
+      }))
       .sort((a, b) => b.match.percent - a.match.percent),
     upcomingEvents: courseEvents,
     nextEvent: next
@@ -1283,5 +1330,21 @@ export function demoProfileForm(scenario: DemoScenario): ProfileFormData {
       completed: false,
     })),
     stats: { courses: enrolled.length, partners, streak: scenario === "active" ? 6 : 0 },
+  };
+}
+
+// --- students directory / profile -------------------------------------------------
+
+export function demoStudentInputs(scenario: DemoScenario): StudentInputs {
+  const t = clock();
+  const others = [...people(scenario, t).values()];
+  return {
+    me: myPublicProfile(t),
+    others,
+    institutions: [INSTITUTION],
+    faculties: FACULTIES,
+    departments: DEPARTMENTS,
+    sharedCourses: new Map(others.map((p) => [p.id, sharedCourseIds(scenario, p.id)])),
+    myCourses: MY_COURSE_IDS.map((id) => ({ id, name: COURSE_BY_ID.get(id)?.name ?? "" })),
   };
 }

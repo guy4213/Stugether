@@ -2,13 +2,15 @@ import Link from "next/link";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { cn } from "cn";
 
-// Page links for /courses. Server-rendered; every link keeps the current
-// search, filter and sort (params) and only changes ?page=.
-export function CoursesPagination({
+// Page links for list pages (/courses, /students). Server-rendered; every
+// link keeps the current search / filters (params) and only changes ?page=.
+export function Pagination({
+  basePath,
   page,
   pageCount,
   params,
 }: {
+  basePath: string;
   page: number;
   pageCount: number;
   params: Record<string, string | undefined>;
@@ -20,7 +22,7 @@ export function CoursesPagination({
     for (const [key, value] of Object.entries(params)) if (value) qs.set(key, value);
     if (p > 1) qs.set("page", String(p));
     const s = qs.toString();
-    return s ? `/courses?${s}` : "/courses";
+    return s ? `${basePath}?${s}` : basePath;
   };
 
   // 1 … page-1 page page+1 … last

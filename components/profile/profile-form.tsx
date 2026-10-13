@@ -18,6 +18,15 @@ import {
 import { updateProfile, type ProfileFormState } from "@/lib/profile/actions";
 import { getCatalogForInstitution } from "@/lib/catalog/queries";
 import { ISRAELI_CITIES } from "@/lib/constants/cities";
+import {
+  HOBBIES,
+  MAX_HOBBIES,
+  SEMESTERS,
+  SEMESTER_LABEL,
+  STUDY_TRACKS,
+  TRACK_LABEL,
+} from "@/lib/constants/profile-options";
+import { cn } from "cn";
 import type { Institution, Faculty, Department } from "@/lib/repositories/catalog";
 import type { Profile } from "@/lib/repositories/profiles";
 
@@ -59,6 +68,9 @@ export function ProfileForm({
   const [city, setCity] = useState(profile.city ?? "");
   const [studyYear, setStudyYear] = useState(profile.study_year ? String(profile.study_year) : "");
   const [bio, setBio] = useState(profile.bio ?? "");
+  const [track, setTrack] = useState<string>(profile.track ?? "");
+  const [semester, setSemester] = useState(profile.semester ? String(profile.semester) : "");
+  const [hobbies, setHobbies] = useState<string[]>(profile.hobbies ?? []);
   const [faculties, setFaculties] = useState(initialFaculties);
   const [departments, setDepartments] = useState(initialDepartments);
   // Read by the save effect: only a new action result navigates, so the
@@ -122,10 +134,14 @@ export function ProfileForm({
     setCity(profile.city ?? "");
     setStudyYear(profile.study_year ? String(profile.study_year) : "");
     setBio(profile.bio ?? "");
+    setTrack(profile.track ?? "");
+    setSemester(profile.semester ? String(profile.semester) : "");
+    setHobbies(profile.hobbies ?? []);
     setFaculties(initialFaculties);
     setDepartments(initialDepartments);
   }
 
+  // SelectValue gets explicit text: Radix fills it only after hydration.
   const departmentsForFaculty = departments.filter((d) => d.faculty_id === facultyId);
 
   return (
@@ -134,6 +150,9 @@ export function ProfileForm({
       <input type="hidden" name="departmentId" value={departmentId} />
       <input type="hidden" name="city" value={city} />
       <input type="hidden" name="studyYear" value={studyYear} />
+      <input type="hidden" name="track" value={track} />
+      <input type="hidden" name="semester" value={semester} />
+      <input type="hidden" name="hobbies" value={hobbies.join(",")} />
 
       <div className="grid grid-cols-1 gap-x-5 gap-y-[18px] sm:grid-cols-2">
         <div className="flex flex-col gap-2">
@@ -175,7 +194,9 @@ export function ProfileForm({
           <Label className="text-sm font-semibold">מוסד לימודים</Label>
           <Select value={institutionId} onValueChange={handleInstitutionChange}>
             <SelectTrigger className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none data-[size=default]:h-[50px]">
-              <SelectValue placeholder="בחר/י מוסד לימודים" />
+              <SelectValue placeholder="בחר/י מוסד לימודים">
+                {institutions.find((i) => i.id === institutionId)?.name}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {institutions.map((inst) => (
@@ -195,7 +216,9 @@ export function ProfileForm({
             disabled={!institutionId || isCatalogLoading}
           >
             <SelectTrigger className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none data-[size=default]:h-[50px]">
-              <SelectValue placeholder="בחר/י פקולטה" />
+              <SelectValue placeholder="בחר/י פקולטה">
+                {faculties.find((f) => f.id === facultyId)?.name}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {faculties.map((fac) => (
@@ -215,7 +238,9 @@ export function ProfileForm({
             disabled={!facultyId}
           >
             <SelectTrigger className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none data-[size=default]:h-[50px]">
-              <SelectValue placeholder="בחר/י מחלקה" />
+              <SelectValue placeholder="בחר/י מחלקה">
+                {departments.find((d) => d.id === departmentId)?.name}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {departmentsForFaculty.map((dept) => (
@@ -231,7 +256,7 @@ export function ProfileForm({
           <Label className="text-sm font-semibold">עיר</Label>
           <Select value={city} onValueChange={(v) => v && setCity(v)}>
             <SelectTrigger className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none data-[size=default]:h-[50px]">
-              <SelectValue placeholder="בחר/י עיר" />
+              <SelectValue placeholder="בחר/י עיר">{city || undefined}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {ISRAELI_CITIES.map((c) => (
@@ -247,7 +272,9 @@ export function ProfileForm({
           <Label className="text-sm font-semibold">שנת לימודים</Label>
           <Select value={studyYear} onValueChange={(v) => v && setStudyYear(v)}>
             <SelectTrigger className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none data-[size=default]:h-[50px]">
-              <SelectValue placeholder="בחר/י שנה" />
+              <SelectValue placeholder="בחר/י שנה">
+                {studyYear ? `שנה ${studyYear}` : undefined}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {STUDY_YEARS.map((year) => (
@@ -258,7 +285,78 @@ export function ProfileForm({
             </SelectContent>
           </Select>
         </div>
+
+        <div className="flex flex-col gap-2">
+          <Label className="text-sm font-semibold">מסלול לימודים</Label>
+          <Select value={track} onValueChange={(v) => v && setTrack(v)}>
+            <SelectTrigger className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none data-[size=default]:h-[50px]">
+              <SelectValue placeholder="בחר/י מסלול">
+                {track ? TRACK_LABEL[track as keyof typeof TRACK_LABEL] : undefined}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {STUDY_TRACKS.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {TRACK_LABEL[t]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label className="text-sm font-semibold">סמסטר נוכחי</Label>
+          <Select value={semester} onValueChange={(v) => v && setSemester(v)}>
+            <SelectTrigger className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none data-[size=default]:h-[50px]">
+              <SelectValue placeholder="בחר/י סמסטר">
+                {semester ? SEMESTER_LABEL[Number(semester)] : undefined}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {SEMESTERS.map((s) => (
+                <SelectItem key={s} value={String(s)}>
+                  {SEMESTER_LABEL[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      <fieldset className="flex flex-col gap-2.5">
+        <div className="flex items-center justify-between">
+          <legend className="text-sm font-semibold">תחביבים</legend>
+          <span className="text-xs text-muted-foreground">
+            {hobbies.length}/{MAX_HOBBIES} · משפיע על אחוז ההתאמה עם סטודנטים אחרים
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {HOBBIES.map((h) => {
+            const selected = hobbies.includes(h);
+            const full = !selected && hobbies.length >= MAX_HOBBIES;
+            return (
+              <button
+                key={h}
+                type="button"
+                aria-pressed={selected}
+                disabled={full}
+                onClick={() =>
+                  setHobbies((cur) => (selected ? cur.filter((x) => x !== h) : [...cur, h]))
+                }
+                className={cn(
+                  "flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm transition-colors disabled:opacity-40",
+                  selected
+                    ? "bg-success-soft font-semibold text-success-ink"
+                    : "border border-border bg-white text-ink-2 hover:border-primary-line",
+                )}
+              >
+                {selected && <CheckIcon className="size-3.5" strokeWidth={2.6} aria-hidden />}
+                {h}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">

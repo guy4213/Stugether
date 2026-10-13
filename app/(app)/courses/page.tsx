@@ -5,7 +5,7 @@ import { CourseSearchBox, CoursesFilterBar } from "@/components/courses/filter-b
 import { CourseCard } from "@/components/courses/course-card";
 import { OnboardingBanner } from "@/components/auth/onboarding-banner";
 import { getCurrentUser } from "@/lib/auth/session";
-import { CoursesPagination } from "@/components/courses/pagination";
+import { Pagination } from "@/components/ui/pagination";
 import { getCoursesPageData, parseCoursePage, parseCourseSort } from "@/lib/courses/queries";
 
 // Course discovery per Discover.dc.html ("גילוי קורסים").
@@ -140,7 +140,8 @@ export default async function CoursesPage({
             )}
           </div>
 
-          <CoursesPagination
+          <Pagination
+            basePath="/courses"
             page={pagination.page}
             pageCount={pagination.pageCount}
             params={{ q, departmentId, favorites, sort }}

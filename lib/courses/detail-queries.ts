@@ -9,6 +9,7 @@ import { listEventRegistrations, listTestsForCourse } from "@/lib/repositories/t
 import { listCourseTopics, listMyTopicProgress } from "@/lib/repositories/topics";
 import { listFavoriteCourseIds } from "@/lib/repositories/favorites";
 import { computeMatchPercent } from "@/lib/matching/score";
+import { sharedCoursesByUser } from "@/lib/matching/shared-courses";
 import { summarizeTopics } from "@/lib/courses/topic-state";
 import { timed } from "@/lib/perf/timing";
 import { isOnline } from "@/lib/ui/people";
@@ -37,6 +38,14 @@ async function loadCourseDetailData(userId: string, courseId: string) {
   // for anyone who isn't.
   const pCourse = getCourse(supabase, courseId);
   const pEvents = listTestsForCourse(supabase, courseId);
+  const pMyEnrollments = listMyEnrollments(supabase, userId);
+  const pShared = pMyEnrollments.then((rows) =>
+    sharedCoursesByUser(
+      supabase,
+      rows.filter((e) => e.status === "active").map((e) => e.course_id),
+      userId,
+    ),
+  );
   const pNextEvent = pEvents.then(
     (rows) => rows.find((e) => e.due_at && new Date(e.due_at).getTime() > now) ?? null,
   );
@@ -56,10 +65,11 @@ async function loadCourseDetailData(userId: string, courseId: string) {
     departments,
     openRoomRows,
     registrationRows,
+    sharedCourses,
   ] = await Promise.all([
     pCourse,
     getCachedOwnProfile(userId),
-    listMyEnrollments(supabase, userId),
+    pMyEnrollments,
     listEnrolledCourseStudents(supabase, courseId),
     getCachedMyActiveRooms(userId),
     pEvents,
@@ -71,6 +81,7 @@ async function loadCourseDetailData(userId: string, courseId: string) {
     pCourse.then((c) => (c ? listDepartments(supabase, c.institution_id) : [])),
     listOpenRooms(supabase, [courseId]),
     pNextEvent.then((e) => (e ? listEventRegistrations(supabase, [e.id]) : [])),
+    pShared,
   ]);
 
   const myEnrollment = myEnrollments.find((e) => e.course_id === courseId) ?? null;
@@ -102,7 +113,15 @@ async function loadCourseDetailData(userId: string, courseId: string) {
 
   const classmates = myProfile
     ? others
-        .map((p) => ({ profile: p, match: computeMatchPercent(myProfile, p, departmentsById) }))
+        .map((p) => ({
+          profile: p,
+          match: computeMatchPercent(
+            myProfile,
+            p,
+            departmentsById,
+            sharedCourses.get(p.id)?.length ?? 0,
+          ),
+        }))
         .sort((a, b) => b.match.percent - a.match.percent)
     : [];
   const matchById = new Map(classmates.map((c) => [c.profile.id, c.match.percent]));

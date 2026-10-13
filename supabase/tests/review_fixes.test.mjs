@@ -25,6 +25,9 @@ const MINI_COLUMNS = [
   "study_year",
   "city", // 20260923000002 — match-percentage scoring
   "last_seen_at", // 20260925000001 — online status in course member lists
+  "track", // 20261013000003 — student directory + match score
+  "semester",
+  "hobbies",
 ];
 
 test("fix: classmates get only the public mini profile, not the full profiles row", async () => {
@@ -88,10 +91,10 @@ test("fix: roommates keep seeing each other's mini profile after the shared enro
     await become(tx, U.a2);
     const r = await tx.query("select full_name from public.public_profiles where id = $1", [U.a5]);
     assert.equal(r.rows.length, 1, "roommate name must stay visible in room history");
-    // a1 no longer shares a course or a room with a5.
+    // Since 20261013000003 every active student is listed (student directory).
     await become(tx, U.a1);
-    const none = await tx.query("select 1 from public.public_profiles where id = $1", [U.a5]);
-    assert.equal(none.rows.length, 0);
+    const still = await tx.query("select 1 from public.public_profiles where id = $1", [U.a5]);
+    assert.equal(still.rows.length, 1);
   });
 });
 
@@ -450,5 +453,47 @@ test("fix: deactivating a profile frees its room seats, hands off ownership and 
       [ROOM.r1],
     );
     assert.equal(owner.user_id, U.a3, "inactive a2 is skipped, a3 becomes owner");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 20261013000003_profile_match_fields.sql — student directory
+// ---------------------------------------------------------------------------
+test("directory: every active student is visible; inactive students and admins are not", async () => {
+  await db.asOwner(async (tx) => {
+    // a1 and a3 share nothing after this; a3 is still listed.
+    await tx.query("update public.enrollments set status = 'archived' where user_id = $1", [U.a3]);
+    await tx.query("update public.profiles set is_active = false where id = $1", [U.a5]);
+    await become(tx, U.a1);
+    const ids = (await tx.query("select id::text from public.public_profiles")).rows.map(
+      (r) => r.id,
+    );
+    assert.ok(ids.includes(U.a3), "a student with no shared course is listed");
+    assert.ok(!ids.includes(U.a5), "deactivated students are hidden");
+    assert.ok(!ids.includes(U.admin), "super admins are not listed");
+    assert.ok(ids.includes(U.a1), "self is always visible");
+  });
+});
+
+test("directory: track / semester / hobbies are validated", async () => {
+  await db.asUser(U.a1, async (tx) => {
+    await tx.query(
+      "update public.profiles set track = 'evening', semester = 2, hobbies = array['צילום','בישול'] where id = $1",
+      [U.a1],
+    );
+    const r = await tx.one(
+      "select track, semester, hobbies from public.public_profiles where id = $1",
+      [U.a1],
+    );
+    assert.deepEqual([r.track, r.semester, r.hobbies], ["evening", 2, ["צילום", "בישול"]]);
+    await tx.expectError(
+      `update public.profiles set track = 'night' where id = '${U.a1}'`,
+      "check",
+    );
+    await tx.expectError(`update public.profiles set semester = 4 where id = '${U.a1}'`, "check");
+    await tx.expectError(
+      `update public.profiles set hobbies = array['1','2','3','4','5','6','7','8','9'] where id = '${U.a1}'`,
+      "check",
+    );
   });
 });

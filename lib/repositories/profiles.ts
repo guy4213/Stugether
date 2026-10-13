@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { StudyTrack } from "@/lib/constants/profile-options";
 
 // Own full profile (profiles table, RLS: profiles_select_own_or_admin — only
 // self or an active super_admin can read a full row) vs. the public mini
@@ -14,6 +15,9 @@ export interface Profile {
   department_id: string | null;
   study_year: number | null;
   city: string | null;
+  track: StudyTrack | null;
+  semester: number | null;
+  hobbies: string[];
   role: "student" | "super_admin";
   is_active: boolean;
   last_seen_at: string | null;
@@ -30,6 +34,9 @@ export interface PublicProfile {
   study_year: number | null;
   city: string | null;
   last_seen_at: string | null;
+  track: StudyTrack | null;
+  semester: number | null;
+  hobbies: string[];
 }
 
 export async function getOwnProfile(
@@ -56,6 +63,9 @@ export async function updateOwnProfile(
     departmentId?: string | null;
     studyYear?: number | null;
     city?: string | null;
+    track?: StudyTrack | null;
+    semester?: number | null;
+    hobbies?: string[];
   },
 ): Promise<Profile> {
   const patch: Record<string, unknown> = {};
@@ -66,6 +76,9 @@ export async function updateOwnProfile(
   if (input.departmentId !== undefined) patch.department_id = input.departmentId;
   if (input.studyYear !== undefined) patch.study_year = input.studyYear;
   if (input.city !== undefined) patch.city = input.city;
+  if (input.track !== undefined) patch.track = input.track;
+  if (input.semester !== undefined) patch.semester = input.semester;
+  if (input.hobbies !== undefined) patch.hobbies = input.hobbies;
 
   const { data, error } = await client
     .from("profiles")
@@ -109,6 +122,24 @@ export async function listPublicProfiles(
 ): Promise<PublicProfile[]> {
   if (userIds.length === 0) return [];
   const { data, error } = await client.from("public_profiles").select("*").in("id", userIds);
+  if (error) throw error;
+  return data as PublicProfile[];
+}
+
+// Student directory: every visible profile but mine (public_profiles lists
+// all active students, 20261013000003). Capped; the page sorts by match.
+const DIRECTORY_LIMIT = 2000;
+
+export async function listDirectoryProfiles(
+  client: SupabaseClient,
+  excludeUserId: string,
+): Promise<PublicProfile[]> {
+  const { data, error } = await client
+    .from("public_profiles")
+    .select("*")
+    .neq("id", excludeUserId)
+    .order("full_name")
+    .limit(DIRECTORY_LIMIT);
   if (error) throw error;
   return data as PublicProfile[];
 }
