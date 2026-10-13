@@ -37,6 +37,9 @@ const HANDBOOKS = [
       if (h2.includes("מדעי המחשב")) return "מדעי המחשב";
       return null;
     },
+    // The M.Sc. study plans sit under the same "פריסה לפי סמסטרים" accordion
+    // as the B.Sc.; only the text above the table (46 credits, thesis) differs.
+    skipTable: (before) => /46(\.0)? נקודות זכות|תזה מחקרית|פרויקט גמר שנתי/.test(before),
   },
   {
     path: "/yedion-engineering/",
@@ -217,10 +220,11 @@ function parseHandbook(html, handbook) {
       when = parseYearSemester(sub) ?? (sub ? when : when);
     } else if (m[0].startsWith("<table")) {
       // The year/semester label sits in whatever element precedes the table.
-      when = parseYearSemester(text(html.slice(lastTableEnd, m.index))) ?? when;
+      const before = text(html.slice(lastTableEnd, m.index));
+      when = parseYearSemester(before) ?? when;
       lastTableEnd = m.index + m[0].length;
       const department = handbook.section(h2, acc);
-      if (!department) continue;
+      if (!department || handbook.skipTable?.(before)) continue;
       const elective = /בחירה/.test(acc + " " + sub);
       courses.push(
         ...parseCourseTable(m[0], {

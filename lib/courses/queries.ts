@@ -6,12 +6,55 @@ import { listFavoriteCourseIds } from "@/lib/repositories/favorites";
 import { timed } from "@/lib/perf/timing";
 import { getDemoScenario } from "@/lib/demo/state";
 import { demoCatalog } from "@/lib/demo/fixtures";
+import { semesterLabel, yearLabel } from "@/lib/ui/labels";
 import type { Course, Department } from "@/lib/repositories/catalog";
 
-export type CourseSort = "popular" | "rooms" | "az";
+export type CourseSort = "popular" | "rooms" | "az" | "semester";
 
-export function parseCourseSort(value: string | undefined): CourseSort {
-  return value === "rooms" || value === "az" ? value : "popular";
+// Within one department the default is the degree's study plan (by year and
+// semester); across departments it is popularity.
+export function parseCourseSort(value: string | undefined, departmentId?: string): CourseSort {
+  if (value === "popular" || value === "rooms" || value === "az") return value;
+  if (value === "semester") return "semester";
+  return departmentId ? "semester" : "popular";
+}
+
+const SEMESTER_ORDER = ["סמסטר א׳", "סמסטר ב׳", "סמסטר קיץ"];
+const semesterRank = (s: string | null) => {
+  const i = SEMESTER_ORDER.indexOf(semesterLabel(s) ?? "");
+  return i < 0 ? SEMESTER_ORDER.length : i;
+};
+
+export interface SemesterGroup {
+  key: string;
+  label: string;
+  courses: Course[];
+}
+
+// Courses with a year come first in study-plan order; the rest (electives,
+// specialization courses) close the list under one heading.
+export function groupBySemester(courses: Course[]): SemesterGroup[] {
+  const sorted = [...courses].sort(
+    (a, b) =>
+      (a.year_level ?? 99) - (b.year_level ?? 99) ||
+      semesterRank(a.semester) - semesterRank(b.semester) ||
+      a.name.localeCompare(b.name, "he"),
+  );
+  const groups: SemesterGroup[] = [];
+  for (const course of sorted) {
+    const year = yearLabel(course.year_level);
+    const semester = semesterLabel(course.semester);
+    const key = year ? `${course.year_level}|${semester ?? ""}` : "other";
+    const label = !year
+      ? "בחירה, התמחויות וקורסים ללא שיבוץ"
+      : semester
+        ? `${year} · ${semester}`
+        : year;
+    const last = groups.at(-1);
+    if (last?.key === key) last.courses.push(course);
+    else groups.push({ key, label, courses: [course] });
+  }
+  return groups;
 }
 
 type CourseFilters = { q?: string; departmentId?: string; favorites?: boolean; sort?: CourseSort };
@@ -39,6 +82,7 @@ async function loadCoursesPageData(userId: string, filters: CourseFilters) {
   const favoriteIds = await pFavoriteIds;
   const empty = {
     courses: [],
+    semesterGroups: null,
     departments: [],
     favoriteIds: new Set(favoriteIds),
     roomCounts: {} as Record<string, number>,
@@ -94,7 +138,8 @@ function shapeCoursesPage({
       return c.name.toLowerCase().includes(q) || !!c.code?.toLowerCase().includes(q);
     })
     .sort((a, b) => {
-      if (filters.sort === "az") return a.name.localeCompare(b.name, "he");
+      if (filters.sort === "az" || filters.sort === "semester")
+        return a.name.localeCompare(b.name, "he");
       if (filters.sort === "rooms")
         return (roomCounts[b.id] ?? 0) - (roomCounts[a.id] ?? 0) || activity(b.id) - activity(a.id);
       return activity(b.id) - activity(a.id) || a.name.localeCompare(b.name, "he");
@@ -112,8 +157,15 @@ function shapeCoursesPage({
   const sum = (counts: Record<string, number>) =>
     Object.values(counts).reduce((s, n) => s + Number(n), 0);
 
+  // Grouping only helps when the catalog has a study plan to group by.
+  const semesterGroups =
+    filters.sort === "semester" && courses.some((c) => c.year_level !== null)
+      ? groupBySemester(courses)
+      : null;
+
   return {
     courses,
+    semesterGroups,
     departments,
     favoriteIds: favoriteSet,
     roomCounts,
