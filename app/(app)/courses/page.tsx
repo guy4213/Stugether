@@ -104,7 +104,7 @@ export default async function CoursesPage({
               <h2 className="text-lg font-bold text-foreground">
                 {group.label}
                 <span className="ms-2 text-sm font-medium text-muted-foreground">
-                  {group.courses.length === 1 ? "קורס אחד" : `${group.courses.length} קורסים`}
+                  {group.total === 1 ? "קורס אחד" : `${group.total} קורסים`}
                 </span>
               </h2>
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">

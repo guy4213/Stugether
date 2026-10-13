@@ -174,12 +174,17 @@ function shapeCoursesPage({
   // Grouping only helps when the catalog has a study plan to group by. It is
   // applied before paging so pages follow the study plan.
   const grouped = filters.sort === "semester" && matching.some((c) => c.year_level !== null);
-  const ordered = grouped ? groupBySemester(matching).flatMap((g) => g.courses) : matching;
+  const allGroups = grouped ? groupBySemester(matching) : [];
+  const ordered = grouped ? allGroups.flatMap((g) => g.courses) : matching;
 
   const pageCount = Math.max(1, Math.ceil(ordered.length / COURSES_PAGE_SIZE));
   const page = Math.min(filters.page ?? 1, pageCount);
   const courses = ordered.slice((page - 1) * COURSES_PAGE_SIZE, page * COURSES_PAGE_SIZE);
-  const semesterGroups = grouped ? groupBySemester(courses) : null;
+  // A semester can span two pages; its heading counts the whole semester.
+  const groupSize = new Map(allGroups.map((g) => [g.key, g.courses.length]));
+  const semesterGroups = grouped
+    ? groupBySemester(courses).map((g) => ({ ...g, total: groupSize.get(g.key) ?? 0 }))
+    : null;
 
   return {
     courses,
