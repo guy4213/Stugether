@@ -1,0 +1,397 @@
+<title>צ'קליסט QA StuGether</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a sticky progress strip, then one card per area with check rows; RTL. */
+:root {
+  --bg: #f3f6fb;
+  --surface: #ffffff;
+  --ink: #0f1b33;
+  --muted: #5b6b86;
+  --line: #e1e8f3;
+  --brand: #2563eb;
+  --brand-soft: #e9effe;
+  --pass: #0d9488;
+  --pass-soft: #e3f6f2;
+  --fail: #d6336c;
+  --fail-soft: #fde7ef;
+  --font-display: "Rubik", "Segoe UI", Arial, sans-serif;
+  --font-body: "Rubik", "Segoe UI", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1424; --surface: #131d31; --ink: #e8eefb; --muted: #93a3c0; --line: #24324d;
+    --brand: #6b9bff; --brand-soft: #1b2b4d; --pass: #34c7b4; --pass-soft: #12302e;
+    --fail: #ff7aa6; --fail-soft: #3a1828; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1424; --surface: #131d31; --ink: #e8eefb; --muted: #93a3c0; --line: #24324d;
+  --brand: #6b9bff; --brand-soft: #1b2b4d; --pass: #34c7b4; --pass-soft: #12302e;
+  --fail: #ff7aa6; --fail-soft: #3a1828; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body);
+  font-size: 15px; line-height: 1.55; padding-inline: 16px; padding-block: 0 48px;
+}
+.wrap { max-width: 980px; margin-inline: auto; display: flex; flex-direction: column; gap: 18px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+header.top { padding-block: 28px 4px; display: flex; flex-direction: column; gap: 6px; }
+header.top h1 { font-size: clamp(26px, 5vw, 36px); font-weight: 800; letter-spacing: -0.4px; }
+header.top p { margin: 0; color: var(--muted); max-width: 65ch; }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--brand); }
+
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px);
+  padding-block: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.meter { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.meter-row { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.meter-row b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.track { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; display: flex; }
+.track i { display: block; height: 100%; transition: width .3s; }
+.track .p { background: var(--pass); }
+.track .f { background: var(--fail); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+button {
+  font: inherit; font-size: 13px; font-weight: 600; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 8px 12px;
+}
+button:hover { border-color: var(--brand); }
+button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid color-mix(in srgb, var(--brand) 45%, transparent); outline-offset: 2px; }
+
+.filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.filters button[aria-pressed="true"] { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); }
+
+.prep { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+.prep h2 { font-size: 18px; }
+.prep ol, .prep ul { margin: 0; padding-inline-start: 20px; display: flex; flex-direction: column; gap: 4px; }
+code { font-family: var(--font-mono); font-size: 12.5px; background: var(--brand-soft); color: var(--brand); padding: 1px 6px; border-radius: 6px; direction: ltr; unicode-bidi: isolate; }
+.accounts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+.acct { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; }
+.acct b { font-family: var(--font-display); font-size: 16px; margin-inline-end: 6px; color: var(--brand); }
+
+section.area { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.area-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.area-head h2 { font-size: 18px; font-weight: 700; flex: 1 1 200px; min-width: 0; }
+.num { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+.chip { font-size: 12px; font-weight: 700; border-radius: 99px; padding: 3px 10px; background: var(--line); color: var(--muted); font-variant-numeric: tabular-nums; }
+.chip.done { background: var(--pass-soft); color: var(--pass); }
+.chip.bad { background: var(--fail-soft); color: var(--fail); }
+.area-note { margin: 0; padding: 10px 18px; font-size: 13.5px; color: var(--muted); border-bottom: 1px solid var(--line); }
+
+.row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.row:last-child { border-bottom: 0; }
+.row.pass { background: color-mix(in srgb, var(--pass-soft) 55%, var(--surface)); }
+.row.fail { background: color-mix(in srgb, var(--fail-soft) 60%, var(--surface)); }
+.check { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 2px; }
+.check input { width: 22px; height: 22px; accent-color: var(--pass); cursor: pointer; margin: 0; }
+.check .id { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+.body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.steps { font-weight: 500; }
+.expect { color: var(--muted); font-size: 14px; }
+.expect::before { content: "צפוי: "; font-weight: 600; color: var(--ink); }
+.tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+.bug { font-size: 12.5px; padding: 5px 10px; }
+.bug[aria-pressed="true"] { background: var(--fail); border-color: var(--fail); color: #fff; }
+.note { flex: 1 1 220px; min-width: 0; font: inherit; font-size: 13px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+
+.limits { background: var(--surface); border: 1px dashed var(--line); border-radius: 16px; padding: 16px 20px; }
+.limits h2 { font-size: 17px; margin-bottom: 8px; }
+.limits ul { margin: 0; padding-inline-start: 20px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+table.score { border-collapse: collapse; font-size: 13px; margin: 6px 18px 12px; }
+table.score td { padding: 3px 10px; border-bottom: 1px solid var(--line); }
+table.score td:last-child { font-family: var(--font-mono); color: var(--brand); }
+.score-wrap { overflow-x: auto; border-bottom: 1px solid var(--line); }
+.toast { position: fixed; inset-inline: 0; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); margin-inline: auto; width: max-content; max-width: calc(100% - 32px); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-size: 14px; font-weight: 600; }
+.confirm { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .track i { transition: none; } }
+</style>
+
+<div class="wrap" dir="rtl" lang="he">
+  <header class="top">
+    <span class="eyebrow">QA · שינויי 13.10.2026</span>
+    <h1>צ'קליסט בדיקות StuGether</h1>
+    <p>סמנו ✓ ליד כל בדיקה שעברה. אם משהו לא תקין, לחצו "באג" וכתבו הערה. ההתקדמות נשמרת בדפדפן שלכם, ובסוף אפשר להעתיק דוח.</p>
+  </header>
+
+  <div class="bar" role="region" aria-label="התקדמות">
+    <div class="meter">
+      <div class="meter-row">
+        <span>תקין: <b id="m-pass">0</b></span>
+        <span>באגים: <b id="m-fail">0</b></span>
+        <span>נשארו: <b id="m-left">0</b></span>
+        <span>מתוך <b id="m-total">0</b></span>
+      </div>
+      <div class="track" aria-hidden="true"><i class="p" id="t-pass"></i><i class="f" id="t-fail"></i></div>
+    </div>
+    <div class="filters" role="group" aria-label="סינון">
+      <button type="button" id="f-all" aria-pressed="true">הכל</button>
+      <button type="button" id="f-open" aria-pressed="false">לא נבדק</button>
+      <button type="button" id="f-bugs" aria-pressed="false">באגים</button>
+    </div>
+    <div class="actions">
+      <button type="button" class="primary" id="copy">העתקת דוח</button>
+      <span id="reset-slot"><button type="button" id="reset">איפוס</button></span>
+    </div>
+  </div>
+
+  <section class="prep" aria-labelledby="prep-h">
+    <h2 id="prep-h">לפני שמתחילים</h2>
+    <ol>
+      <li>להריץ <code>npx supabase db push</code>: 4 migrations חדשות (<code>20261013000003</code> עד <code>20261013000006</code>).</li>
+      <li>להריץ <code>git push origin main</code>: Vercel פורס אוטומטית.</li>
+      <li>ב-Vercel, Environment Variables: <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>, <code>MAIL_FROM</code>, ואז Redeploy. בלי זה לא נשלחים מיילים, ושאר המערכת עובדת.</li>
+      <li>מצב דמו <b>כבוי</b> בכל החשבונות. כדאי לבדוק עם שני דפדפנים במקביל.</li>
+    </ol>
+    <div class="accounts">
+      <div class="acct"><b>A</b>H.IT, מדעי המחשב, שנה 1. רשום/ה ל"מבני נתונים" ו"מבוא למדמ"ח". יוצר/ת החדרים</div>
+      <div class="acct"><b>B</b>H.IT, מדעי המחשב, שנה 1. רשום/ה ל"מבני נתונים"</div>
+      <div class="acct"><b>C</b>H.IT, מדעי המחשב, שנה 2. רשום/ה ל"מבני נתונים"</div>
+      <div class="acct"><b>D</b>מוסד אחר (למשל אפקה). בלי קורס משותף עם A</div>
+    </div>
+  </section>
+
+  <div id="areas"></div>
+
+  <section class="limits" aria-labelledby="lim-h">
+    <h2 id="lim-h">מגבלות ידועות (לא באגים)</h2>
+    <ul>
+      <li>"מחובר/ת עכשיו" מתעדכן בטעינת עמוד, עד פעם בכמה דקות. טאב פתוח בלי ניווט נראה "לא מחובר/ת" אחרי כ-5 דקות.</li>
+      <li>"חדר חי" (מתי צריך אישור) = הודעה ב-30 הדקות האחרונות, לא מי שנמצא בחדר ברגע זה.</li>
+      <li>מסך הסטודנטים טוען עד 2,000 סטודנטים. מעבר לזה צריך עימוד בצד ה-DB.</li>
+      <li>"שותפים ללמידה" בדשבורד מציג רק חברי קורס, כי הזמנה דורשת קורס משותף.</li>
+      <li>תזכורת למפגש מגיעה רק דרך היומן (ics. / Google Calendar). אין תזכורת במייל, כי אין cron.</li>
+      <li>מסך הסטודנטים חושף שם, מוסד, מחלקה, שנה, עיר ותחביבים לכל סטודנט רשום. זו החלטה מכוונת.</li>
+    </ul>
+  </section>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const AREAS = [
+  { n: 1, t: "תפריט ונוכחות", items: [
+    ["1.1", "להיכנס כ-A ולהסתכל על התפריט העליון", "אין לשונית \"התראות\". יש לשונית \"סטודנטים\". ליד תמונת הפרופיל (משמאל) יש אייקון פעמון"],
+    ["1.2", "B שולח/ת ל-A הזמנה, A מרענן/ת", "על הפעמון מופיע מספר ההתראות שלא נקראו"],
+    ["1.3", "ללחוץ על הפעמון", "עמוד ההתראות נפתח, והפעמון מסומן כפעיל"],
+    ["1.4", "במובייל, לפתוח את תפריט ההמבורגר", "אין בו \"התראות\". הפעמון נשאר ליד התמונה"],
+    ["1.5", "עמוד הקורס \"מבני נתונים\" כ-A", "אין מתג \"פנוי/ה ללמוד עכשיו\" בצד"],
+    ["1.6", "B פתוח/ה בטאב אחר, A מרענן/ת את עמוד הקורס", "\"זמינים ללמוד עכשיו\" מציג את B עם \"מחובר/ת עכשיו\" ואחוז התאמה. ב\"חברי הקורס\" B מסומן/ת \"מחובר/ת\""],
+    ["1.7", "B סוגר/ת את הדפדפן ל-5 דקות ומעלה, A מרענן/ת", "B כבר לא ב\"זמינים עכשיו\" ומסומן/ת \"לא מחובר/ת\""],
+  ]},
+  { n: 2, t: "פרופיל: מסלול, סמסטר, תחביבים", items: [
+    ["2.1", "הגדרות פרופיל כ-A", "יש שדות \"מסלול לימודים\" ו\"סמסטר נוכחי\", ובחירת \"תחביבים\" ב-chips (עד 8)"],
+    ["2.2", "לבחור מסלול, סמסטר ו-3 תחביבים, לשמור ולרענן", "הערכים נשמרו ומוצגים, גם ב-selects לפני שהעמוד נטען עד הסוף"],
+    ["2.3", "לנסות לבחור תחביב תשיעי", "שאר ה-chips מושבתים כשנבחרו 8"],
+    ["2.4", "ללחוץ \"ביטול\" אחרי שינוי", "חוזר לערכים השמורים"],
+  ]},
+  { n: 3, t: "מסך סטודנטים", items: [
+    ["3.1", "\"סטודנטים\" בתפריט כ-A", "כל הסטודנטים הפעילים במערכת, כולל D ממוסד אחר, ממוינים לפי אחוז התאמה מהגבוה לנמוך"],
+    ["3.2", "לחפש את חשבון ה-Super Admin", "לא מופיע ברשימה"],
+    ["3.3", "חיפוש לפי חלק משם", "הרשימה מסתננת, וה-URL מתעדכן (?q=)"],
+    ["3.4", "ללחוץ \"מחוברים עכשיו\"", "רק מחוברים, והמונה למעלה נכון"],
+    ["3.5", "סינון לפי קורס משותף, מוסד, מחלקה ושנה", "כל סינון עובד. שינוי מוסד מאפס את המחלקה"],
+    ["3.6", "יותר מ-32 סטודנטים", "עימוד בתחתית. החיפוש והסינון נשמרים במעבר עמוד, וסינון חדש חוזר לעמוד 1"],
+    ["3.7", "\"ניקוי הסינון\" כשאין תוצאות", "חוזר לרשימה המלאה"],
+  ]},
+  { n: 4, t: "פרופיל סטודנט ואחוז התאמה", score: true, items: [
+    ["4.1", "A פותח/ת את הפרופיל של B", "שם, \"סטודנט/ית · מחלקה\", \"פנוי/ה ללמוד עכשיו\" אם B מחובר/ת, וטבעת אחוז התאמה"],
+    ["4.2", "\"פרטים אקדמיים\"", "6 אריחים: מוסד, פקולטה, מחלקה, מסלול, שנה, סמסטר. שדה ריק מוצג כ-\"—\""],
+    ["4.3", "תחביבים", "תחביבים משותפים ל-A ול-B מסומנים ב-✓ ירוק"],
+    ["4.4", "קורסים משותפים", "\"מבני נתונים\" מופיע, ולחיצה פותחת את הקורס"],
+    ["4.5", "\"אחוז התאמה ביניכם\"", "רק קריטריונים שהתקיימו, עם +N%. הסכום שווה לאחוז בטבעת (טבלה למעלה)"],
+    ["4.6", "ללחוץ \"הזמן ללמידה\"", "נשלחת הזמנה ומופיעה ההודעה \"נשלחה הזמנה ל...\". B מקבל/ת התראה (ומייל, ראו 7)"],
+    ["4.7", "פרופיל של D (אין קורס משותף)", "הכפתור מושבת עם ההסבר \"אפשר להזמין רק סטודנטים שרשומים איתך לאותו קורס\""],
+    ["4.8", "סטודנט עם שני קורסים משותפים עם A", "מעל הכפתור יש בחירת קורס"],
+    ["4.9", "לפתוח את /students/<ה-id של A> כ-A", "מפנה ל\"הגדרות פרופיל\""],
+    ["4.10", "פרטיות", "הטקסט \"אודות\" של B לא מוצג בשום מקום אצל A"],
+  ]},
+  { n: 5, t: "דשבורד", items: [
+    ["5.1", "דשבורד כ-A", "\"היי {שם}, עם מי לומדים היום?\" ותאריך היום. אין תמונת ינשוף"],
+    ["5.2", "\"שותפים ללמידה\"", "עד 5 חברי קורס עם ההתאמה הגבוהה: אחוז, 3 סיבות, נקודה ירוקה למחוברים, \"הזמן ללמידה\". \"הצג הכל\" פותח את מסך הסטודנטים"],
+    ["5.3", "\"הזמן ללמידה\" מכרטיס שותף", "נשלחת הזמנה לקורס המשותף הראשון"],
+    ["5.4", "\"חדרי לימוד\"", "החדרים שלי, הזמנות ממתינות עם אישור/דחייה, \"חדר לימוד חדש\". בחדר עם מפגש מתוכנן מופיע \"מפגש הבא: ...\""],
+    ["5.5", "\"הקורסים שלי\"", "3 קורסים עם אחוז ופס התקדמות"],
+    ["5.6", "עמודת הצד", "\"ההתקדמות שלי\" (טבעת, נושא נוכחי, \"המשך ללמוד\"), \"פעילות אחרונה\", \"מידע כללי\" (4 אריחים לחיצים)"],
+    ["5.7", "משתמש/ת חדש/ה בלי קורסים", "הודעות ריקות ברורות, בלי שגיאה"],
+    ["5.8", "מובייל", "השותפים בגלילה אופקית. העמוד עצמו לא נגלל הצידה"],
+  ]},
+  { n: 6, t: "אישור כניסה לחדר שמתקיים", note: "הכנה: A פותח/ת חדר פתוח ב\"מבני נתונים\" (\"חדר פתוח\" מסומן ביצירה).", items: [
+    ["6.1", "החדר שקט: אין הודעה ב-30 הדקות האחרונות, והוא לא נוצר עכשיו. B לוחץ/ת \"הצטרפות\"", "B נכנס/ת מיד, בלי אישור"],
+    ["6.2", "A שולח/ת הודעה בחדר (עכשיו הוא חי). C פותח/ת את עמוד הקורס", "הכפתור אומר \"בקשת הצטרפות\", וליד החדר כתוב \"מפגש פעיל עכשיו\""],
+    ["6.3", "C לוחץ/ת \"בקשת הצטרפות\"", "הודעה שהבקשה נשלחה. הכפתור הופך ל\"ממתין לאישור · ביטול\". C לא בחדר"],
+    ["6.4", "A בחדר מרענן/ת", "פס צהוב עם שם C ו\"אישור\" / \"דחייה\". בפעמון: \"בקשת הצטרפות לחדר\" עם \"אישור כניסה\""],
+    ["6.5", "A לוחץ/ת \"אישור\"", "C נכנס/ת לחדר ומקבל/ת התראה \"הבקשה שלך אושרה\""],
+    ["6.6", "לחזור על 6.3, ו-A לוחץ/ת \"דחייה\"", "C לא בחדר ומקבל/ת \"הבקשה שלך נדחתה\""],
+    ["6.7", "C שולח/ת בקשה ואז לוחץ/ת \"ממתין לאישור · ביטול\"", "הבקשה בוטלה, וההתראה אצל A נעלמת"],
+    ["6.8", "חבר/ה שאינו/ה יוצר/ת החדר", "אין לו/ה פס בקשות ואין אפשרות לאשר"],
+    ["6.9", "החדר מתמלא ל-4 בזמן שבקשה ממתינה, ואז A מאשר/ת", "שגיאה \"החדר מלא (4 משתתפים)\""],
+  ]},
+  { n: 7, t: "מייל על הזמנה", note: "דורש SMTP מוגדר ב-Vercel.", items: [
+    ["7.1", "A מזמין/ה את B (מהפרופיל, הדשבורד, עמוד הקורס או החדר)", "תוך כדקה B מקבל/ת מייל בעברית מימין לשמאל, עם שם החדר והקורס וכפתור \"לצפייה בהזמנה\""],
+    ["7.2", "ללחוץ על הכפתור במייל", "נפתח עמוד ההתראות על לשונית \"הזמנות\" (אחרי התחברות)"],
+    ["7.3", "הזמנה מתוך החדר ל-2 סטודנטים בבת אחת", "שני המוזמנים מקבלים מייל"],
+    ["7.4", "B מכבה \"מייל על הזמנה\" בעמוד ההתראות, ו-A מזמין/ה שוב", "B לא מקבל/ת מייל, אבל ההתראה באתר כן מגיעה"],
+    ["7.5", "לבדוק את תיקיית הספאם", "המייל בתיבה הראשית. אם הוא בספאם, צריך SPF/DKIM לדומיין של MAIL_FROM"],
+    ["7.6", "SMTP שגוי, למשל סיסמה לא נכונה", "ההזמנה עדיין נוצרת באתר. השגיאה מופיעה ב-Sentry או בלוגים של Vercel"],
+  ]},
+  { n: 8, t: "קביעת מפגש ו\"ללמוד שוב ביחד\"", note: "הכנה: חדר פעיל של A, עם B ו-C כחברים.", items: [
+    ["8.1", "בחדר: \"קביעת מפגש עתידי\", מועד אחד מחר, שעה וחצי, עם הערה", "פס כחול \"המפגש הבא: יום, תאריך · 18:00–19:30 · הערה\". B ו-C מקבלים התראה. A מסומן/ת \"מגיע/ה\""],
+    ["8.2", "B לוחץ/ת \"מגיע/ה\" ו-C לוחץ/ת \"לא מגיע/ה\"", "הרשימות \"מגיעים\" ו\"לא מגיעים\" מתעדכנות"],
+    ["8.3", "ללחוץ \"הוספה ליומן\"", "יורד study-session.ics. ביומן מופיע אירוע בשעה הנכונה (שעון ישראל) עם תזכורת 30 דקות לפני"],
+    ["8.4", "ללחוץ \"Google Calendar\"", "נפתח Google Calendar עם האירוע ממולא"],
+    ["8.5", "A לוחץ/ת \"ביטול המפגש\"", "הפס נעלם, וההתראות שלא נקראו על המפגש נמחקות"],
+    ["8.6", "B מציע/ה 3 מועדים", "פס \"B הציע/ה מפגש נוסף\". A ו-C מקבלים התראה \"הצעה למפגש לימוד נוסף\""],
+    ["8.7", "C מסמן/ת מועד", "המונה \"מתאים ל-N\" עולה. סימון חוזר מבטל"],
+    ["8.8", "C (לא מציע/ה ולא יוצר/ת)", "אין ל-C כפתור \"לקבוע\""],
+    ["8.9", "B או A לוחץ/ת \"לקבוע\" על מועד", "המפגש נקבע, מי שסימן נחשב \"מגיע/ה\", וכולם מקבלים התראה"],
+    ["8.10", "להציע מועד שכבר עבר", "שגיאה \"אחד המועדים כבר עבר\""],
+    ["8.11", "מפגש שנקבע הסתיים (לבדיקה מהירה: מפגש של 30 דק׳ שמתחיל בעוד כמה דקות)", "פס ירוק \"רוצים ללמוד שוב ביחד?\" עם \"קביעת מפגש\""],
+    ["8.12", "חדר מאורכב, כיוצר/ת החדר", "\"להפעיל מחדש ולקבוע מפגש\": מפעיל את החדר ופותח את הדיאלוג"],
+    ["8.13", "חדר מאורכב, כחבר/ה רגיל/ה", "הטקסט \"בקשו מיוצר/ת החדר להפעיל אותו מחדש\", בלי כפתור"],
+    ["8.14", "הדשבורד אחרי 8.1", "בכרטיס החדר: \"מפגש הבא: תאריך · שעה\""],
+  ]},
+  { n: 9, t: "רגרסיה: מה שהיה ועדיין צריך לעבוד", items: [
+    ["9.1", "עמוד קורסים", "עימוד (32 בעמוד), חלוקה לפי שנה וסמסטר בבחירת תואר, חיפוש"],
+    ["9.2", "סילבוס", "טאב הסילבוס בעמוד קורס, ובחירת נושאים ביצירת חדר"],
+    ["9.3", "הזמנה רגילה מתוך חדר", "אישור ודחייה מהדשבורד ומההתראות"],
+    ["9.4", "צ'אט בחדר", "שליחה, @AI, מחיקה תוך 5 דקות, נוכחות"],
+    ["9.5", "ארכוב וסגירה של חדר", "החדר הופך לקריאה בלבד"],
+    ["9.6", "לשוניות ההתראות", "בקשות הצטרפות תחת \"הזמנות\", מפגשים תחת \"חדרים\""],
+    ["9.7", "מצב דמו", "כל המסכים החדשים נטענים, ופעולות מוצגות כקריאה בלבד"],
+    ["9.8", "פאנל אדמין", "נטען כרגיל"],
+  ]},
+];
+const SCORE = [["קורסים משותפים", "12 לקורס, עד 36"], ["אותה מחלקה", "14"], ["אותה שנה", "10"], ["אותו מוסד", "8"], ["תחביבים משותפים", "4 לתחביב, עד 8"], ["אותה פקולטה", "6"], ["אותו סמסטר", "6"], ["אותו מסלול", "6"], ["אותה עיר", "6"]];
+
+const KEY = "stugether-qa-2026-10-13";
+let state = {};
+try { state = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch { state = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
+let filter = "all";
+
+const el = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v);
+  }
+  kids.forEach((k) => k && e.append(k));
+  return e;
+};
+
+const root = document.getElementById("areas");
+const rows = [];
+const areaChips = [];
+
+AREAS.forEach((area) => {
+  const sec = el("section", { class: "area", "aria-labelledby": "a" + area.n });
+  const chip = el("span", { class: "chip" });
+  areaChips.push({ area, chip });
+  sec.append(el("div", { class: "area-head" }, el("span", { class: "num", text: String(area.n).padStart(2, "0") }), el("h2", { id: "a" + area.n, text: area.t }), chip));
+  if (area.note) sec.append(el("p", { class: "area-note", text: area.note }));
+  if (area.score) {
+    const tb = el("table", { class: "score" });
+    SCORE.forEach(([k, v]) => tb.append(el("tr", {}, el("td", { text: k }), el("td", { text: v }))));
+    sec.append(el("p", { class: "area-note", text: "חישוב אחוז ההתאמה (עד 100). דוגמה: קורס משותף אחד, אותה מחלקה, שנה, מוסד ופקולטה = 12+14+10+8+6 = 50%." }), el("div", { class: "score-wrap" }, tb));
+  }
+  area.items.forEach(([id, steps, expect]) => {
+    const s = state[id] || (state[id] = { pass: false, fail: false, note: "" });
+    const cb = el("input", { type: "checkbox", id: "c-" + id, "aria-label": "תקין: " + id });
+    cb.checked = s.pass;
+    const bug = el("button", { type: "button", class: "bug", "aria-pressed": String(s.fail) }, "באג");
+    const note = el("input", { type: "text", class: "note", id: "n-" + id, placeholder: "הערה (לא חובה)", "aria-label": "הערה ל-" + id });
+    note.value = s.note;
+    const row = el("div", { class: "row" },
+      el("label", { class: "check", for: "c-" + id }, cb, el("span", { class: "id", text: id })),
+      el("div", { class: "body" }, el("div", { class: "steps", text: steps }), el("div", { class: "expect", text: expect }), el("div", { class: "tools" }, bug, note)));
+    cb.addEventListener("change", () => { s.pass = cb.checked; if (s.pass) s.fail = false; update(); });
+    bug.addEventListener("click", () => { s.fail = !s.fail; if (s.fail) s.pass = false; update(); });
+    note.addEventListener("input", () => { s.note = note.value; save(); });
+    rows.push({ id, area, s, row, cb, bug });
+    sec.append(row);
+  });
+  root.append(sec);
+});
+
+function update() {
+  let pass = 0, fail = 0;
+  rows.forEach(({ s, row, cb, bug }) => {
+    cb.checked = s.pass;
+    bug.setAttribute("aria-pressed", String(s.fail));
+    row.classList.toggle("pass", s.pass);
+    row.classList.toggle("fail", s.fail);
+    row.hidden = (filter === "open" && (s.pass || s.fail)) || (filter === "bugs" && !s.fail);
+    pass += s.pass; fail += s.fail;
+  });
+  const total = rows.length;
+  document.getElementById("m-pass").textContent = pass;
+  document.getElementById("m-fail").textContent = fail;
+  document.getElementById("m-left").textContent = total - pass - fail;
+  document.getElementById("m-total").textContent = total;
+  document.getElementById("t-pass").style.width = (pass / total) * 100 + "%";
+  document.getElementById("t-fail").style.width = (fail / total) * 100 + "%";
+  areaChips.forEach(({ area, chip }) => {
+    const mine = rows.filter((r) => r.area === area);
+    const p = mine.filter((r) => r.s.pass).length, f = mine.filter((r) => r.s.fail).length;
+    chip.textContent = f ? `${f} באגים · ${p}/${mine.length}` : `${p}/${mine.length}`;
+    chip.className = "chip" + (f ? " bad" : p === mine.length ? " done" : "");
+    chip.closest("section").hidden = mine.every((r) => r.row.hidden);
+  });
+  save();
+}
+
+["all", "open", "bugs"].forEach((f) => {
+  document.getElementById("f-" + f).addEventListener("click", () => {
+    filter = f;
+    ["all", "open", "bugs"].forEach((g) => document.getElementById("f-" + g).setAttribute("aria-pressed", String(g === f)));
+    update();
+  });
+});
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => (t.hidden = true), 2200);
+}
+
+document.getElementById("copy").addEventListener("click", () => {
+  const pass = rows.filter((r) => r.s.pass).length, fail = rows.filter((r) => r.s.fail);
+  const open = rows.filter((r) => !r.s.pass && !r.s.fail);
+  const lines = [`QA StuGether 13.10.2026: ${pass}/${rows.length} תקין, ${fail.length} באגים, ${open.length} לא נבדקו`];
+  if (fail.length) { lines.push("", "באגים:"); fail.forEach((r) => lines.push(`- ${r.id} ${r.area.t}${r.s.note ? `: ${r.s.note}` : ""}`)); }
+  if (open.length) lines.push("", "לא נבדקו: " + open.map((r) => r.id).join(", "));
+  const notes = rows.filter((r) => r.s.pass && r.s.note);
+  if (notes.length) { lines.push("", "הערות:"); notes.forEach((r) => lines.push(`- ${r.id}: ${r.s.note}`)); }
+  const text = lines.join("\n");
+  const fallback = () => {
+    const ta = el("textarea", { "aria-label": "דוח", id: "report" });
+    ta.value = text; ta.style.cssText = "width:100%;min-height:160px;margin-top:8px";
+    document.querySelector(".bar").after(ta); ta.select();
+    toast("סמנו והעתיקו את הדוח מהתיבה");
+  };
+  try { navigator.clipboard.writeText(text).then(() => toast("הדוח הועתק"), fallback); } catch { fallback(); }
+});
+
+const slot = document.getElementById("reset-slot");
+function showReset() {
+  slot.replaceChildren(el("button", { type: "button", id: "reset" }, "איפוס"));
+  slot.firstChild.addEventListener("click", () => {
+    const yes = el("button", { type: "button", class: "primary" }, "כן, לאפס");
+    const no = el("button", { type: "button" }, "ביטול");
+    slot.replaceChildren(el("span", { class: "confirm" }, "למחוק את כל הסימונים?", yes, no));
+    yes.addEventListener("click", () => {
+      rows.forEach((r) => { r.s.pass = false; r.s.fail = false; r.s.note = ""; document.getElementById("n-" + r.id).value = ""; });
+      update(); showReset(); toast("הסימונים אופסו");
+    });
+    no.addEventListener("click", showReset);
+  });
+}
+showReset();
+update();
+</script>
