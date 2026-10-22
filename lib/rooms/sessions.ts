@@ -10,7 +10,7 @@ export interface SessionView {
   durationMin: number;
   note: string | null;
   proposedByName: string;
-  /** Proposer or room creator: may pick the time / cancel. */
+  /** Proposer or room owner: may pick the time / cancel. */
   canManage: boolean;
   options: { id: string; startsAt: string; votes: number; votedByMe: boolean; voters: string[] }[];
   coming: string[];
@@ -28,7 +28,8 @@ export function shapeRoomSessions(
   rows: RoomSessionRow[],
   ctx: {
     userId: string;
-    creatorId: string;
+    /** The viewer is the room's current owner (not necessarily its creator). */
+    isOwner: boolean;
     roomStatus: string;
     nameById: Map<string, string>;
     now?: number;
@@ -39,9 +40,11 @@ export function shapeRoomSessions(
   const endOf = (r: RoomSessionRow) =>
     r.starts_at ? new Date(r.starts_at).getTime() + r.duration_min * 60_000 : 0;
 
-  const open = rows.find(
-    (r) => r.status === "proposed" || (r.status === "scheduled" && endOf(r) > now),
-  );
+  // One open session per room (20261021000001); an upcoming scheduled one
+  // wins over a proposal should older data hold both.
+  const open =
+    rows.find((r) => r.status === "scheduled" && endOf(r) > now) ??
+    rows.find((r) => r.status === "proposed");
   const ended = rows.some((r) => r.status === "scheduled" && endOf(r) <= now);
 
   const current: SessionView | null = open
@@ -52,7 +55,7 @@ export function shapeRoomSessions(
         durationMin: open.duration_min,
         note: open.note,
         proposedByName: open.proposed_by === ctx.userId ? "את/ה" : name(open.proposed_by),
-        canManage: open.proposed_by === ctx.userId || ctx.creatorId === ctx.userId,
+        canManage: open.proposed_by === ctx.userId || ctx.isOwner,
         options: [...open.options]
           .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
           .map((o) => ({

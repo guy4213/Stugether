@@ -72,7 +72,7 @@ export function ActivityRail({
         <ol className="relative flex flex-col">
           <span
             aria-hidden
-            className="absolute top-[22px] right-[21px] bottom-[22px] w-0.5 bg-divider"
+            className="absolute start-[21px] top-[22px] bottom-[22px] w-0.5 bg-divider"
           />
           {activity.map((item) => (
             <li key={item.id} className="relative flex gap-3 py-2.5">

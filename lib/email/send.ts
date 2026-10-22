@@ -7,13 +7,19 @@ import nodemailer, { type Transporter } from "nodemailer";
 
 let transporter: Transporter | null = null;
 
+// MAIL_FROM, or the SMTP login itself (most providers only send as it).
+function fromAddress(): string | undefined {
+  const user = process.env.SMTP_USER;
+  return process.env.MAIL_FROM || (user?.includes("@") ? `StuGether <${user}>` : undefined);
+}
+
 export function isEmailConfigured(): boolean {
-  return !!(process.env.SMTP_HOST && process.env.MAIL_FROM);
+  return !!(process.env.SMTP_HOST && fromAddress());
 }
 
 function getTransporter(): Transporter {
   if (transporter) return transporter;
-  const port = Number(process.env.SMTP_PORT ?? 587);
+  const port = Number(process.env.SMTP_PORT || 587);
   transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port,
@@ -22,6 +28,10 @@ function getTransporter(): Transporter {
     auth: process.env.SMTP_USER
       ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS ?? "" }
       : undefined,
+    // Fail well inside the serverless time limit (nodemailer waits minutes).
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
   });
   return transporter;
 }
@@ -35,9 +45,11 @@ export interface Email {
 
 export async function sendEmail(email: Email): Promise<boolean> {
   if (!isEmailConfigured()) {
-    console.info(`[email] SMTP not configured; skipped "${email.subject}"`);
+    // SMTP_HOST without a sender is a broken setup, not "email off": say so.
+    const log = process.env.SMTP_HOST ? console.warn : console.info;
+    log(`[email] SMTP not configured (SMTP_HOST / MAIL_FROM); skipped "${email.subject}"`);
     return false;
   }
-  await getTransporter().sendMail({ from: process.env.MAIL_FROM, ...email });
+  await getTransporter().sendMail({ from: fromAddress(), ...email });
   return true;
 }

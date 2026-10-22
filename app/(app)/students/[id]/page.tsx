@@ -69,7 +69,7 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
               {student.full_name}
             </h1>
             <p className="truncate text-sm text-muted-foreground">
-              {["סטודנט/ית", details.department].filter(Boolean).join(" · ")}
+              {["סטודנט/ית", details.department, student.city].filter(Boolean).join(" · ")}
             </p>
             {data.online ? (
               <span className="flex items-center gap-1.5 text-[13px] font-semibold text-success-ink">

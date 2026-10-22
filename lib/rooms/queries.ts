@@ -36,8 +36,7 @@ async function loadRoomPageData(roomId: string, userId: string) {
   const room = await getRoom(supabase, roomId);
   if (!room) return null;
 
-  const isCreator = room.created_by === userId;
-  const [members, messages, course, settings, invitations, classmates, joinRequests, sessionRows] =
+  const [members, messages, course, settings, invitations, classmates, requests, sessionRows] =
     await Promise.all([
       listRoomMembers(supabase, roomId),
       listRoomMessages(supabase, roomId, { limit: PAGE_SIZE }),
@@ -45,8 +44,11 @@ async function loadRoomPageData(roomId: string, userId: string) {
       getAppSettings(supabase),
       listRoomPendingInvitations(supabase, roomId),
       listEnrolledCourseStudents(supabase, room.course_id),
-      // Requests to join while the room is in session — the creator answers.
-      isCreator ? listPendingJoinRequests(supabase, { roomId }) : Promise.resolve([]),
+      // Requests to join while the room is in session — the owner answers
+      // (RLS returns the owner every request, anyone else only their own).
+      room.status === "active"
+        ? listPendingJoinRequests(supabase, { roomId })
+        : Promise.resolve([]),
       listRoomSessions(supabase, roomId),
     ]);
 
@@ -54,6 +56,8 @@ async function loadRoomPageData(roomId: string, userId: string) {
   // A super_admin can SELECT the room row but is not a member: they get the
   // metadata only (messages RLS already returns nothing to them).
   const me = activeMembers.find((m) => m.user_id === userId) ?? null;
+  const isOwner = me?.role === "owner";
+  const joinRequests = isOwner ? requests.filter((q) => q.user_id !== userId) : [];
 
   // Invitee names: classmates cover the usual case; anyone else is looked up.
   const knownIds = new Set(classmates.map((c) => c.id));
@@ -78,7 +82,7 @@ async function loadRoomPageData(roomId: string, userId: string) {
     messages: [...messages].reverse(),
     hasMoreMessages: messages.length === PAGE_SIZE,
     isMember: me !== null,
-    isOwner: me?.role === "owner",
+    isOwner,
     aiAvailable: room.ai_enabled && (settings?.ai_enabled ?? false),
     globalAiEnabled: settings?.ai_enabled ?? false,
     invitations: invitations.map((i) => ({
@@ -95,7 +99,7 @@ async function loadRoomPageData(roomId: string, userId: string) {
     openSeats: Math.max(0, openSeats),
     sessions: shapeRoomSessions(sessionRows, {
       userId,
-      creatorId: room.created_by,
+      isOwner,
       roomStatus: room.status,
       nameById: new Map([
         ...nameById,

@@ -1,0 +1,16 @@
+HTTP/1.1 401 Unauthorized
+Date: Tue, 20 Oct 2026 15:41:45 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+x-should-retry: false
+request-id: req_011CgDk4oF5A1L2AwHtfQtEP
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+Server: cloudflare
+vary: Accept-Encoding
+Content-Security-Policy: default-src 'none'; frame-ancestors 'none'
+cf-cache-status: DYNAMIC
+X-Robots-Tag: none
+CF-RAY: a4d920e80c2178f2-LHR
+
+{"type":"error","error":{"type":"authentication_error","message":"Missing Authorization header. Please provide an OAuth token as a Bearer token.","details":{"error_visibility":"user_facing"}},"request_id":"req_011CgDk4oF5A1L2AwHtfQtEP"}

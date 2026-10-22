@@ -1,7 +1,7 @@
 import "server-only";
 import * as Sentry from "@sentry/nextjs";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendEmail } from "@/lib/email/send";
+import { isEmailConfigured, sendEmail } from "@/lib/email/send";
 import { roomInvitationEmail } from "@/lib/email/templates";
 
 // Email the invitees of a room invitation (Change Request 13.10.2026). Runs
@@ -15,17 +15,25 @@ export async function sendRoomInvitationEmails(input: {
   origin: string;
 }): Promise<void> {
   if (input.inviteeIds.length === 0) return;
+  if (!isEmailConfigured()) {
+    console.info("[email] SMTP not configured; invitation emails skipped");
+    return;
+  }
   const admin = createAdminClient();
 
-  const [{ data: room }, { data: inviter }, { data: prefs }] = await Promise.all([
-    admin.from("rooms").select("name, course_id").eq("id", input.roomId).maybeSingle(),
-    admin.from("profiles").select("full_name").eq("id", input.inviterId).maybeSingle(),
-    admin
-      .from("notification_preferences")
-      .select("user_id, email_invites")
-      .in("user_id", input.inviteeIds),
-  ]);
-  if (!room) return;
+  const [{ data: room, error: roomError }, { data: inviter }, { data: prefs, error: prefsError }] =
+    await Promise.all([
+      admin.from("rooms").select("name, course_id").eq("id", input.roomId).maybeSingle(),
+      admin.from("profiles").select("full_name").eq("id", input.inviterId).maybeSingle(),
+      admin
+        .from("notification_preferences")
+        .select("user_id, email_invites")
+        .in("user_id", input.inviteeIds),
+    ]);
+  // Unknown preferences must not email someone who opted out.
+  if (roomError || prefsError || !room) {
+    throw roomError ?? prefsError ?? new Error(`room ${input.roomId} not found`);
+  }
   const { data: course } = await admin
     .from("courses")
     .select("name")
@@ -40,7 +48,8 @@ export async function sendRoomInvitationEmails(input: {
     inviterName: inviter?.full_name ?? "חבר/ת קורס",
     roomName: room.name,
     courseName: course?.name ?? null,
-    url: `${input.origin}/notifications?category=invitations`,
+    // app/invitations/route.ts: the invitations tab, via login when needed.
+    url: `${input.origin}/invitations`,
   });
 
   await Promise.all(
@@ -53,6 +62,7 @@ export async function sendRoomInvitationEmails(input: {
           const to = data.user?.email;
           if (to) await sendEmail({ to, ...email });
         } catch (err) {
+          console.error("[email] invitation email failed", { invitee_id: id }, err);
           Sentry.captureException(err, { extra: { room_id: input.roomId, invitee_id: id } });
         }
       }),

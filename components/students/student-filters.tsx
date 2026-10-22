@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2Icon, SearchIcon } from "lucide-react";
 import { cn } from "cn";
@@ -32,10 +32,21 @@ export function StudentFilters({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const urlQuery = searchParams.get("q") ?? "";
+  const [query, setQuery] = useState(urlQuery);
+  // The q this box last sent. Any other change of the URL (ניקוי הסינון,
+  // Back) is taken into the box.
+  const sentQuery = useRef(urlQuery);
+  useEffect(() => {
+    if (urlQuery === sentQuery.current) return;
+    sentQuery.current = urlQuery;
+    setQuery(urlQuery);
+  }, [urlQuery]);
 
   function navigate(mutate: (p: URLSearchParams) => void) {
-    const params = new URLSearchParams(searchParams.toString());
+    // The live URL, not the render's searchParams: the debounced search may
+    // fire after a select already changed it.
+    const params = new URLSearchParams(window.location.search);
     mutate(params);
     params.delete("page");
     const qs = params.toString();
@@ -46,8 +57,11 @@ export function StudentFilters({
 
   // Debounced name search, like the course search box.
   useEffect(() => {
-    if (query.trim() === (searchParams.get("q") ?? "")) return;
-    const timer = setTimeout(() => setParam("q", query.trim() || null), 300);
+    if (query.trim() === urlQuery) return;
+    const timer = setTimeout(() => {
+      sentQuery.current = query.trim();
+      setParam("q", query.trim() || null);
+    }, 300);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);

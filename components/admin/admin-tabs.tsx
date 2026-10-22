@@ -17,7 +17,7 @@ export function AdminTabs() {
   return (
     <nav
       aria-label="ניווט ניהול"
-      className="flex gap-1.5 self-start overflow-x-auto rounded-2xl border border-border bg-white p-[5px]"
+      className="flex max-w-full gap-1.5 self-start overflow-x-auto rounded-2xl border border-border bg-white p-[5px]"
     >
       {TABS.map((tab) => {
         const active =

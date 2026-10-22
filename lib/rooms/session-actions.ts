@@ -22,7 +22,10 @@ export type SessionActionResult = { ok: boolean; error?: string };
 const MESSAGES: [string, string][] = [
   ["OPTION_IN_PAST", "אחד המועדים כבר עבר"],
   ["BAD_OPTIONS", "בחרו בין מועד אחד לחמישה מועדים"],
-  ["SESSION_NOT_OPEN", "המפגש כבר נקבע או בוטל"],
+  ["SESSION_NOT_OPEN", "המפגש כבר נקבע, התחיל או בוטל"],
+  ["SESSION_EXISTS", "כבר נקבע מפגש בחדר. בטלו אותו כדי לקבוע אחר"],
+  ["PROPOSAL_EXISTS", "יש כבר הצעה פתוחה בחדר. סמנו בה מועדים שמתאימים לכם"],
+  ["ROOM_ARCHIVED_BY_ADMIN", "החדר אורכב ע״י מנהל המערכת ואי אפשר להפעיל אותו מחדש"],
   ["NOT_ALLOWED", "אין הרשאה לפעולה הזו"],
 ];
 

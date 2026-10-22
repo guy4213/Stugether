@@ -61,7 +61,7 @@ export default async function NotificationsPage({
 
         <nav
           aria-label="סינון התראות"
-          className="flex gap-1.5 self-start overflow-x-auto rounded-2xl border border-border bg-white p-[5px]"
+          className="flex max-w-full gap-1.5 self-start overflow-x-auto rounded-2xl border border-border bg-white p-[5px]"
         >
           <CategoryTab href="/notifications" active={category === null} count={data.counts.all}>
             הכל

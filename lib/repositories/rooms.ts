@@ -196,11 +196,3 @@ export async function listOpenRooms(
   if (error) throw error;
   return (data as OpenRoom[]).map((r) => ({ ...r, member_count: Number(r.member_count) }));
 }
-
-// Wraps join_open_room(p_room_id): enrolled classmate, active open room,
-// fewer than 4 active members. Returns the room id.
-export async function joinOpenRoom(client: SupabaseClient, roomId: string): Promise<string> {
-  const { data, error } = await client.rpc("join_open_room", { p_room_id: roomId });
-  if (error) throw error;
-  return data as string;
-}

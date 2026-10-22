@@ -1223,7 +1223,7 @@ export function demoRoom(scenario: DemoScenario, roomId: string): RoomPageData |
     openSeats: Math.max(0, 4 - memberIds.length),
     sessions: shapeRoomSessions(demoSessions(scenario, r.id, t), {
       userId: ME.id,
-      creatorId: owner,
+      isOwner: owner === ME.id,
       roomStatus: r.status,
       nameById: new Map(roomMembers.map((m) => [m.user_id, m.profile?.full_name ?? ""] as const)),
       now: t.now,
@@ -1307,7 +1307,7 @@ export function demoNotifications(
       } else if (n.room_id && mine.has(n.room_id)) {
         action = { kind: "room", roomId: n.room_id };
       } else if (n.type === "room_opened" && n.room_id && joinable.has(n.room_id)) {
-        action = { kind: "join", roomId: n.room_id };
+        action = { kind: "join", roomId: n.room_id, live: false, requested: false };
       } else if (n.type === "event_scheduled" && n.course_id) {
         action = { kind: "course", courseId: n.course_id, label: "צפייה" };
       } else if (n.type === "course_recommendation" && n.course_id) {

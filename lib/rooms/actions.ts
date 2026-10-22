@@ -34,9 +34,11 @@ import { sendRoomInvitationEmails } from "@/lib/email/invitations";
 export type ActionResult = { ok: boolean; error?: string };
 export type JoinResult = ActionResult & { requested?: boolean };
 
-// Origin for links in emails, from the request (no SITE_URL env var; same as
-// lib/auth/actions.ts).
+// Origin for links in emails: SITE_URL when set (production — a forged Host
+// header must not end up in a real email), else the request's own origin.
 async function requestOrigin(): Promise<string> {
+  const site = process.env.SITE_URL?.replace(/\/+$/, "");
+  if (site) return site;
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const proto = h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
@@ -76,6 +78,9 @@ export async function joinOpenRoomAction(roomId: string): Promise<JoinResult> {
     const code = errorCode(err);
     if (code.includes("ROOM_FULL")) return { ok: false, error: "החדר מלא (4 משתתפים)" };
     if (code.includes("ROOM_NOT_ACTIVE")) return { ok: false, error: "החדר כבר לא פעיל" };
+    if (code.includes("REQUEST_DECLINED_RECENTLY")) {
+      return { ok: false, error: "הבקשה נדחתה. אפשר לבקש שוב בעוד כמה דקות" };
+    }
     return { ok: false, error: "לא ניתן להצטרף לחדר" };
   }
   revalidatePath("/", "layout");
@@ -96,7 +101,7 @@ export async function cancelJoinRequestAction(roomId: string): Promise<ActionRes
   return { ok: true };
 }
 
-// Room creator: approve / decline a request to join a room in session.
+// Room owner: approve / decline a request to join a room in session.
 export async function decideJoinRequestAction(
   requestId: string,
   approve: boolean,
@@ -105,16 +110,21 @@ export async function decideJoinRequestAction(
   if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
+  let outcome: Awaited<ReturnType<typeof decideRoomJoinRequest>>;
   try {
-    await decideRoomJoinRequest(supabase, requestId, approve);
+    outcome = await decideRoomJoinRequest(supabase, requestId, approve);
   } catch (err) {
     const code = errorCode(err);
     if (code.includes("ROOM_FULL")) return { ok: false, error: "החדר מלא (4 משתתפים)" };
     if (code.includes("REQUEST_NOT_PENDING")) return { ok: false, error: "הבקשה כבר טופלה" };
-    if (code.includes("NOT_ROOM_OWNER")) return { ok: false, error: "רק יוצר/ת החדר יכול/ה לאשר" };
+    if (code.includes("ROOM_NOT_ACTIVE")) return { ok: false, error: "החדר כבר לא פעיל" };
+    if (code.includes("NOT_ROOM_OWNER")) return { ok: false, error: "רק מנהל/ת החדר יכול/ה לאשר" };
     return { ok: false, error: "הפעולה נכשלה. נסו שוב" };
   }
   revalidatePath("/", "layout");
+  if (outcome === "unavailable") {
+    return { ok: false, error: "הסטודנט/ית כבר לא רשום/ה לקורס. הבקשה בוטלה" };
+  }
   return { ok: true };
 }
 
@@ -132,24 +142,41 @@ export async function inviteToStudy(
 
   try {
     const myRooms = await listMyActiveRooms(supabase, user.id);
-    let room = myRooms.find(
+    const candidates = myRooms.filter(
       (r) => r.course_id === courseId && r.status === "active" && r.created_by === user.id,
     );
-    if (!room) {
+    // My rooms for the course first; one that is full (RLS refuses the
+    // invite) is skipped, and a fresh room is opened when none has a seat.
+    let roomId: string | null = null;
+    for (const room of candidates) {
+      try {
+        await createInvitation(supabase, {
+          roomId: room.id,
+          inviterId: user.id,
+          inviteeUserId: inviteeId,
+        });
+        roomId = room.id;
+        break;
+      } catch (err) {
+        if (!errorCode(err).includes("row-level security")) throw err;
+      }
+    }
+    if (!roomId) {
       const course = await getCourse(supabase, courseId);
-      room = await createRoom(supabase, {
+      const room = await createRoom(supabase, {
         courseId,
         name: `לימוד ${topicTitle || course?.name || "משותף"}`.slice(0, 100),
         topic: topicTitle ?? null,
         createdBy: user.id,
       });
+      await createInvitation(supabase, {
+        roomId: room.id,
+        inviterId: user.id,
+        inviteeUserId: inviteeId,
+      });
+      roomId = room.id;
     }
-    await createInvitation(supabase, {
-      roomId: room.id,
-      inviterId: user.id,
-      inviteeUserId: inviteeId,
-    });
-    await emailInvitees(room.id, user.id, [inviteeId]);
+    await emailInvitees(roomId, user.id, [inviteeId]);
   } catch (err) {
     const code = errorCode(err);
     if (code.includes("23505")) return { ok: false, error: "כבר נשלחה הזמנה" };

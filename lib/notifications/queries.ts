@@ -12,6 +12,7 @@ import {
 import { listOpenRooms } from "@/lib/repositories/rooms";
 import { listMyEnrollments } from "@/lib/repositories/enrollments";
 import { listPendingJoinRequests } from "@/lib/repositories/join-requests";
+import { isRoomLive } from "@/lib/stats/live";
 import { israelDayKey } from "@/lib/stats/streak";
 import { getDemoScenario } from "@/lib/demo/state";
 import { demoNotifications } from "@/lib/demo/fixtures";
@@ -31,7 +32,7 @@ export function parseNotificationCategory(value: string | undefined): Notificati
 
 export type NotificationAction =
   | { kind: "invitation"; invitation: PendingInvitation }
-  | { kind: "join"; roomId: string }
+  | { kind: "join"; roomId: string; live: boolean; requested: boolean }
   | { kind: "join_request"; requestId: string }
   | { kind: "room"; roomId: string }
   | { kind: "course"; courseId: string; label: string }
@@ -78,12 +79,18 @@ async function loadNotificationsData(userId: string, category: NotificationCateg
 
   const courseIds = enrollments.filter((e) => e.status === "active").map((e) => e.course_id);
   const openRooms = await listOpenRooms(supabase, courseIds);
-  const joinable = new Set(
-    openRooms.filter((r) => !r.is_member && r.member_count < 4).map((r) => r.room_id),
+  const joinable = new Map(
+    openRooms
+      .filter((r) => !r.is_member && r.member_count < 4)
+      .map((r) => [r.room_id, isRoomLive({ status: "active", ...r })] as const),
+  );
+  // Rooms I already asked to join (a room in session waits for its owner).
+  const myRequestRoomIds = new Set(
+    joinRequests.filter((q) => q.user_id === userId).map((q) => q.room_id),
   );
   const myRoomIds = new Set(myRooms.map((r) => r.id));
   const invitationById = new Map(invitations.map((i) => [i.id, i]));
-  // Requests to rooms I created that still wait for my answer.
+  // Requests to rooms I own that still wait for my answer.
   const pendingRequestIds = new Set(
     joinRequests.filter((q) => q.user_id !== userId).map((q) => q.id),
   );
@@ -101,7 +108,12 @@ async function loadNotificationsData(userId: string, category: NotificationCateg
     } else if (n.room_id && myRoomIds.has(n.room_id)) {
       action = { kind: "room", roomId: n.room_id };
     } else if (n.type === "room_opened" && n.room_id && joinable.has(n.room_id)) {
-      action = { kind: "join", roomId: n.room_id };
+      action = {
+        kind: "join",
+        roomId: n.room_id,
+        live: joinable.get(n.room_id)!,
+        requested: myRequestRoomIds.has(n.room_id),
+      };
     } else if (n.type === "event_scheduled" && n.course_id) {
       action = { kind: "course", courseId: n.course_id, label: "צפייה" };
     } else if (n.type === "course_recommendation" && n.course_id) {

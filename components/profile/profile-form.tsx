@@ -56,6 +56,9 @@ export function ProfileForm({
   const [, startSaveTransition] = useTransition();
 
   const [institutionId, setInstitutionId] = useState(profile.institution_id ?? "");
+  // The institution whose catalog the selects should show. A fetch that
+  // resolves after the choice moved on (another pick, or "ביטול") is dropped.
+  const catalogFor = useRef(profile.institution_id ?? "");
   // Derived once from the profile's already-persisted department_id — only
   // institution_id/department_id are stored, faculty is a UI-only filter
   // (see lib/repositories/profiles.ts).
@@ -108,10 +111,12 @@ export function ProfileForm({
     setInstitutionId(newInstitutionId);
     setFacultyId("");
     setDepartmentId("");
+    catalogFor.current = newInstitutionId;
     startCatalogTransition(async () => {
       try {
         const { faculties: newFaculties, departments: newDepartments } =
           await getCatalogForInstitution(newInstitutionId);
+        if (catalogFor.current !== newInstitutionId) return;
         setFaculties(newFaculties);
         setDepartments(newDepartments);
       } catch {
@@ -128,6 +133,9 @@ export function ProfileForm({
 
   // "ביטול": back to the saved values (the native reset handles fullName).
   function resetFields() {
+    // Radix Select answers the form's reset event first, with the value it
+    // mounted with — possibly an institution older than the saved one.
+    catalogFor.current = profile.institution_id ?? "";
     setInstitutionId(profile.institution_id ?? "");
     setFacultyId(initialDepartments.find((d) => d.id === profile.department_id)?.faculty_id ?? "");
     setDepartmentId(profile.department_id ?? "");

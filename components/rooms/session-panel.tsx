@@ -32,6 +32,7 @@ import {
   type SessionActionResult,
 } from "@/lib/rooms/session-actions";
 import type { RoomSessions, SessionView } from "@/lib/rooms/sessions";
+import { israelLocalToIso } from "@/lib/ui/format";
 
 const MAX_OPTIONS = 5;
 const DURATIONS = [30, 60, 90, 120];
@@ -97,6 +98,7 @@ export function SessionPanel({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const s = sessions.current;
   const archived = roomStatus === "archived";
 
@@ -120,8 +122,17 @@ export function SessionPanel({
       disabled={pending}
       onClick={() => {
         if (!archived) return setDialogOpen(true);
-        act(() => reactivateRoomAction(roomId), "החדר הופעל מחדש");
-        setDialogOpen(true);
+        // Plan only once the room is active again.
+        startTransition(async () => {
+          const result = await reactivateRoomAction(roomId);
+          if (!result.ok) {
+            toast.error(result.error ?? "משהו השתבש");
+            return;
+          }
+          toast.success("החדר הופעל מחדש");
+          setDialogOpen(true);
+          router.refresh();
+        });
       }}
     >
       <CalendarPlusIcon className="size-4" aria-hidden />
@@ -149,12 +160,22 @@ export function SessionPanel({
               </bdi>
             </span>
             {s.note && <span className="text-sm text-muted-foreground">· {s.note}</span>}
+            {/* Phones: one line until opened, so the chat keeps the screen. */}
+            <Button
+              size="chip"
+              variant="quiet"
+              className="ms-auto sm:hidden"
+              aria-expanded={showDetails}
+              onClick={() => setShowDetails((v) => !v)}
+            >
+              {showDetails ? "הסתרה" : "פרטים"}
+            </Button>
           </div>
-          <p className="text-[13px] text-ink-2">
+          <p className={cn("text-[13px] text-ink-2", !showDetails && "hidden sm:block")}>
             {s.coming.length > 0 ? `מגיעים: ${s.coming.join(", ")}` : "עוד אין אישורי הגעה"}
             {s.notComing.length > 0 && ` · לא מגיעים: ${s.notComing.join(", ")}`}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className={cn("flex-wrap gap-2", showDetails ? "flex" : "hidden sm:flex")}>
             <Button
               size="chip"
               variant={s.myResponse === "accepted" ? "solid" : "outline-primary"}
@@ -315,8 +336,8 @@ function ProposeDialog({
     e.preventDefault();
     startTransition(async () => {
       const result = await proposeSessionAction(roomId, {
-        // datetime-local is the viewer's local time.
-        options: filled.map((v) => new Date(v).toISOString()),
+        // Times are entered and shown in Israel time, whatever the browser's zone.
+        options: filled.map(israelLocalToIso),
         durationMin: duration,
         note: note.trim() || null,
       });
@@ -342,7 +363,8 @@ function ProposeDialog({
         </DialogHeader>
         <form onSubmit={submit} className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">
-            מועד אחד נקבע מיד. כמה מועדים — חברי החדר מסמנים מה מתאים, ואת/ה בוחר/ת.
+            מועד אחד נקבע מיד. כמה מועדים — חברי החדר מסמנים מה מתאים, ואת/ה בוחר/ת. השעות לפי שעון
+            ישראל.
           </p>
           {options.map((value, i) => (
             <div key={i} className="flex items-center gap-2">

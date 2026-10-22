@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { decideJoinRequestAction } from "@/lib/rooms/actions";
 
-// Room creator only: classmates asking to join while the room is in session.
+// Room owner only: classmates asking to join while the room is in session.
 export function JoinRequestsBanner({
   requests,
 }: {

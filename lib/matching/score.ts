@@ -40,7 +40,9 @@ export function computeMatchPercent(
   const facultyOf = (p: PublicProfile) =>
     p.department_id ? (departmentsById.get(p.department_id)?.faculty_id ?? null) : null;
   const myFaculty = facultyOf(me);
-  const sharedHobbies = (me.hobbies ?? []).filter((h) => (other.hobbies ?? []).includes(h)).length;
+  const sharedHobbies = [...new Set(me.hobbies ?? [])].filter((h) =>
+    (other.hobbies ?? []).includes(h),
+  ).length;
 
   const item = (label: string, points: number): MatchBreakdownItem => ({
     label,

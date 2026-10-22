@@ -72,7 +72,7 @@ export default async function DashboardPage() {
 
       <div className="flex flex-col gap-5 xl:flex-row xl:items-start">
         <div className="flex min-w-0 grow flex-col gap-6">
-          <PartnersSection partners={data.partners} />
+          <PartnersSection partners={data.partners} hasCourses={data.myCourses.length > 0} />
 
           <RoomsPanel
             rooms={data.rooms}
@@ -86,7 +86,7 @@ export default async function DashboardPage() {
                 הקורסים שלי
               </h2>
               <Link
-                href="/analytics"
+                href="/courses"
                 className="flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-strong"
               >
                 הצג הכל

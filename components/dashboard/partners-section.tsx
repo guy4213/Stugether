@@ -5,7 +5,13 @@ import { InviteStudentButton } from "@/components/students/invite-student-button
 import type { DashboardPartner } from "@/lib/dashboard/queries";
 
 // "שותפים ללמידה": the classmates I match best, each with an invite button.
-export function PartnersSection({ partners }: { partners: DashboardPartner[] }) {
+export function PartnersSection({
+  partners,
+  hasCourses,
+}: {
+  partners: DashboardPartner[];
+  hasCourses: boolean;
+}) {
   return (
     <section
       aria-labelledby="partners"
@@ -32,7 +38,9 @@ export function PartnersSection({ partners }: { partners: DashboardPartner[] }) 
 
       {partners.length === 0 ? (
         <p className="rounded-[18px] border-2 border-dashed border-switch-off bg-surface-2 p-6 text-center text-sm text-muted-foreground">
-          הירשמו לקורסים כדי לראות כאן שותפים ללמידה.{" "}
+          {hasCourses
+            ? "עוד אין סטודנטים נוספים בקורסים שלך."
+            : "הירשמו לקורסים כדי לראות כאן שותפים ללמידה."}{" "}
           <Link href="/students" className="font-semibold text-primary">
             לכל הסטודנטים
           </Link>

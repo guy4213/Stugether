@@ -29,21 +29,22 @@ export async function cancelRoomJoinRequest(client: SupabaseClient, roomId: stri
   if (error) throw error;
 }
 
-// Creator only (the RPC checks rooms.created_by).
+// The room's current owner only. 'unavailable': the requester is no longer
+// an active student enrolled in the course; the request is cancelled.
 export async function decideRoomJoinRequest(
   client: SupabaseClient,
   requestId: string,
   approve: boolean,
-): Promise<"approved" | "declined"> {
+): Promise<"approved" | "declined" | "unavailable"> {
   const { data, error } = await client.rpc("decide_room_join_request", {
     p_request_id: requestId,
     p_approve: approve,
   });
   if (error) throw error;
-  return data as "approved" | "declined";
+  return data as "approved" | "declined" | "unavailable";
 }
 
-// RLS shows the caller their own requests and requests to rooms they created.
+// RLS shows the caller their own requests and requests to rooms they own.
 export async function listPendingJoinRequests(
   client: SupabaseClient,
   filter: { roomId?: string; userId?: string },

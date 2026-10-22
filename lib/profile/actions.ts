@@ -33,7 +33,7 @@ const ProfileSchema = z.object({
   semester: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(3).optional()),
   // Posted as one comma-separated hidden field.
   hobbies: z.preprocess(
-    (v) => (typeof v === "string" && v ? v.split(",") : []),
+    (v) => (typeof v === "string" && v ? [...new Set(v.split(","))] : []),
     z.array(z.enum(HOBBIES)).max(MAX_HOBBIES),
   ),
 });

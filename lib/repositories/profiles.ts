@@ -37,6 +37,8 @@ export interface PublicProfile {
   track: StudyTrack | null;
   semester: number | null;
   hobbies: string[];
+  /** Belongs in the student directory: an active student (never a super admin). */
+  listed?: boolean;
 }
 
 export async function getOwnProfile(
@@ -126,8 +128,9 @@ export async function listPublicProfiles(
   return data as PublicProfile[];
 }
 
-// Student directory: every visible profile but mine (public_profiles lists
-// all active students, 20261013000003). Capped; the page sorts by match.
+// Student directory: every listed profile but mine (active students; a super
+// admin viewer sees every row of public_profiles, so `listed` filters).
+// Capped; the page sorts by match.
 const DIRECTORY_LIMIT = 2000;
 
 export async function listDirectoryProfiles(
@@ -137,6 +140,7 @@ export async function listDirectoryProfiles(
   const { data, error } = await client
     .from("public_profiles")
     .select("*")
+    .eq("listed", true)
     .neq("id", excludeUserId)
     .order("full_name")
     .limit(DIRECTORY_LIMIT);

@@ -43,3 +43,6 @@ next-env.d.ts
 
 # catalog pipeline downloads (scripts/catalog)
 /supabase/catalog/.cache/
+profile.js
+usage.js
+check-env-file.mjs

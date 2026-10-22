@@ -189,6 +189,16 @@ test("notifications: joining a room notifies the other members (insert and re-jo
 // ---------------------------------------------------------------------------
 test("open rooms: listed only for enrolled users; join respects enrollment and capacity", async (t) => {
   const db = await fresh(t);
+  // A quiet room (no session running) is joined directly; join_open_room is
+  // internal since 20261021000001 — request_room_join is the entry point.
+  await db.asOwner(
+    (tx) =>
+      tx.query(
+        "update public.rooms set created_at = now() - interval '1 day', last_message_at = null where id = $1",
+        [OPEN_ROOM],
+      ),
+    { commit: true },
+  );
 
   await db.asUser(U.a1, async (tx) => {
     const r = await tx.query(
@@ -201,17 +211,17 @@ test("open rooms: listed only for enrolled users; join respects enrollment and c
   await db.asUser(U.a3, async (tx) => {
     const r = await tx.query("select * from public.list_open_rooms($1)", [[COURSE.math110]]);
     assert.equal(r.rows.length, 0);
-    await tx.expectError("select public.join_open_room($1)", [OPEN_ROOM], "ROOM_NOT_FOUND");
+    await tx.expectError("select public.request_room_join($1)", [OPEN_ROOM], "ROOM_NOT_FOUND");
   });
   // A regular (not open) room cannot be joined this way.
   await db.asUser(U.a4, (tx) =>
-    tx.expectError("select public.join_open_room($1)", [ROOM.r1], "ROOM_NOT_FOUND"),
+    tx.expectError("select public.request_room_join($1)", [ROOM.r1], "ROOM_NOT_FOUND"),
   );
 
-  await db.asUser(U.a1, (tx) => tx.query("select public.join_open_room($1)", [OPEN_ROOM]), {
+  await db.asUser(U.a1, (tx) => tx.query("select public.request_room_join($1)", [OPEN_ROOM]), {
     commit: true,
   });
-  await db.asUser(U.a2, (tx) => tx.query("select public.join_open_room($1)", [OPEN_ROOM]), {
+  await db.asUser(U.a2, (tx) => tx.query("select public.request_room_join($1)", [OPEN_ROOM]), {
     commit: true,
   });
   const members = await db.one(
@@ -220,7 +230,7 @@ test("open rooms: listed only for enrolled users; join respects enrollment and c
   );
   assert.equal(members.n, 3);
   // Joining twice is a no-op.
-  await db.asUser(U.a1, (tx) => tx.query("select public.join_open_room($1)", [OPEN_ROOM]));
+  await db.asUser(U.a1, (tx) => tx.query("select public.request_room_join($1)", [OPEN_ROOM]));
 
   // Fill the 4th seat with a new MATH-110 student, then a 5th is refused.
   await db.asOwner(
@@ -232,11 +242,11 @@ test("open rooms: listed only for enrolled users; join respects enrollment and c
     },
     { commit: true },
   );
-  await db.asUser(U.a3, (tx) => tx.query("select public.join_open_room($1)", [OPEN_ROOM]), {
+  await db.asUser(U.a3, (tx) => tx.query("select public.request_room_join($1)", [OPEN_ROOM]), {
     commit: true,
   });
   await db.asUser(U.a4, (tx) =>
-    tx.expectError("select public.join_open_room($1)", [OPEN_ROOM], "ROOM_FULL"),
+    tx.expectError("select public.request_room_join($1)", [OPEN_ROOM], "ROOM_FULL"),
   );
 });
 

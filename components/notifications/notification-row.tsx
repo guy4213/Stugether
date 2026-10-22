@@ -161,7 +161,13 @@ export function NotificationRow({ item, time }: { item: NotificationItem; time: 
           </>
         )}
         {item.action?.kind === "join" && (
-          <JoinRoomButton roomId={item.action.roomId} variant="outline-primary" size="chip" />
+          <JoinRoomButton
+            roomId={item.action.roomId}
+            live={item.action.live}
+            requested={item.action.requested}
+            variant="outline-primary"
+            size="chip"
+          />
         )}
         {item.action?.kind === "room" && (
           <Button asChild variant="soft" size="chip">

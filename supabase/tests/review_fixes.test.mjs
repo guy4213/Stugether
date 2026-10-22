@@ -28,6 +28,7 @@ const MINI_COLUMNS = [
   "track", // 20261013000003 — student directory + match score
   "semester",
   "hobbies",
+  "listed", // 20261021000001 — belongs in the student directory
 ];
 
 test("fix: classmates get only the public mini profile, not the full profiles row", async () => {
@@ -472,6 +473,14 @@ test("directory: every active student is visible; inactive students and admins a
     assert.ok(!ids.includes(U.a5), "deactivated students are hidden");
     assert.ok(!ids.includes(U.admin), "super admins are not listed");
     assert.ok(ids.includes(U.a1), "self is always visible");
+
+    // A super admin reads every row; `listed` keeps the directory to students.
+    await become(tx, U.admin);
+    const listed = (
+      await tx.query("select id::text from public.public_profiles where listed")
+    ).rows.map((r) => r.id);
+    assert.ok(!listed.includes(U.admin) && !listed.includes(U.a5));
+    assert.ok(listed.includes(U.a3));
   });
 });
 

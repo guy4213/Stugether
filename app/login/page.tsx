@@ -10,6 +10,15 @@ import { Label } from "@/components/ui/label";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { signIn } from "@/lib/auth/actions";
 
+// ?next=/notifications?... (app/invitations/route.ts): back to where the user
+// was headed. Same-site paths only — never an open redirect.
+function nextPath(): string | null {
+  const next = new URLSearchParams(window.location.search).get("next");
+  return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\")
+    ? next
+    : null;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -24,7 +33,7 @@ export default function LoginPage() {
         toast.error(result.error);
         return;
       }
-      router.push("/dashboard");
+      router.push(nextPath() ?? "/dashboard");
     });
   }
 

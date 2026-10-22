@@ -169,7 +169,11 @@ export type StudentCard = StudentsPageData["students"][number];
 // One student's profile
 // ---------------------------------------------------------------------------
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getStudentProfileData(userId: string, studentId: string) {
+  // A malformed id is "not found", not a database error (22P02).
+  if (!UUID_RE.test(studentId)) return null;
   const demo = await getDemoScenario();
   const inputs = demo
     ? demoStudentInputs(demo)

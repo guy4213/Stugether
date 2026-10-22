@@ -16,6 +16,29 @@ const stamp = (d: Date) =>
 const text = (s: string) =>
   s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
 
+// RFC 5545 §3.1: lines longer than 75 octets are folded (CRLF + a space).
+// Hebrew is 2 bytes per letter in UTF-8, so count bytes and never split a
+// character.
+const encoder = new TextEncoder();
+function fold(line: string): string {
+  const out: string[] = [];
+  let current = "";
+  let bytes = 0;
+  for (const ch of line) {
+    const size = encoder.encode(ch).length;
+    const limit = out.length === 0 ? 75 : 74; // continuation lines start with a space
+    if (bytes + size > limit) {
+      out.push(current);
+      current = "";
+      bytes = 0;
+    }
+    current += ch;
+    bytes += size;
+  }
+  out.push(current);
+  return out.join("\r\n ");
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; sid: string }> },
@@ -63,8 +86,10 @@ export async function GET(
     "END:VALARM",
     "END:VEVENT",
     "END:VCALENDAR",
-    "",
-  ].join("\r\n");
+  ]
+    .map(fold)
+    .join("\r\n")
+    .concat("\r\n");
 
   return new NextResponse(ics, {
     headers: {

@@ -77,3 +77,32 @@ export function greetingHe(now = new Date()): string {
   if (hour >= 17 && hour < 22) return "ערב טוב";
   return "לילה טוב";
 }
+
+// A datetime-local value ("2026-10-25T18:00") read as Israel wall-clock time
+// → ISO instant, whatever the viewer's own time zone (sessions are shown in
+// Israel time everywhere).
+export function israelLocalToIso(value: string): string {
+  const [date, time] = value.split("T");
+  const [y, m, d] = date.split("-").map(Number);
+  const [h, min] = time.split(":").map(Number);
+  const wall = Date.UTC(y, m - 1, d, h, min);
+  const offsetAt = (at: number) => {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: TIME_ZONE,
+        hourCycle: "h23",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+        .formatToParts(new Date(at))
+        .map((p) => [p.type, p.value]),
+    );
+    return Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute) - at;
+  };
+  // Twice: the first guess may sit on the other side of a DST change.
+  const guess = wall - offsetAt(wall);
+  return new Date(wall - offsetAt(guess)).toISOString();
+}
