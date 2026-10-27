@@ -201,7 +201,13 @@ profiles (
   role text NOT NULL DEFAULT 'student'
        CHECK (role IN ('student','super_admin')),
   is_active boolean DEFAULT true,
-  last_seen_at timestamptz, created_at, updated_at
+  last_seen_at timestamptz, created_at, updated_at,
+  -- 20261013000003 / 20261027000001 (CR 13.10, 27.10.2026)
+  track text, semester smallint, hobbies text[], city text,
+  study_times text[]      -- morning | noon | evening | night
+  learning_styles text[]  -- עד 3: summaries | exercises | group | explanations |
+                          --        discussions | sample_exams | pairs | memorization
+  onboarded_at timestamptz -- NULL = שאלון ההרשמה טרם הושלם (SPEC §4.1)
 )
 
 enrollments (
@@ -680,7 +686,11 @@ AI_RATE_LIMIT_USER_PER_HOUR
 AI_RATE_LIMIT_ROOM_PER_HOUR
 NEXT_PUBLIC_SENTRY_DSN
 SENTRY_AUTH_TOKEN
+SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID   # ל-Supabase CLI מקומי (supabase/.env), לא ל-Next
+SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
 ```
+
+**Google:** הספק מוגדר ב-`[auth.external.google]` ב-`supabase/config.toml` (כבוי כברירת מחדל מקומית — ה-CLI לא עולה בלי client_id). ב-production: Supabase Dashboard → Authentication → Providers → Google, ו-`<site>/auth/callback` ב-Redirect URLs. ב-Google Cloud Console ה-redirect הוא `https://<project>.supabase.co/auth/v1/callback`. ההתחברות עצמה: `signInWithGoogle` ב-`lib/auth/actions.ts` → Google → `/auth/callback` (PKCE) → `/dashboard`, וה-layout של `(app)` שולח סטודנט בלי `onboarded_at` ל-`/onboarding`.
 
 `.env.example` מכיל את השמות בלבד, ללא ערכים.
 
@@ -758,17 +768,18 @@ SENTRY_AUTH_TOKEN
 
 ### 12.4 RPCs
 
-| RPC                                                  | נגיש ל-                      | תפקיד                                    |
-| ---------------------------------------------------- | ---------------------------- | ---------------------------------------- |
-| `start_ai_run`                                       | **service_role בלבד**        | נעילה + placeholder, טרנזקציה אחת        |
-| `accept_room_invitation`                             | authenticated                | נעילת חדר, תוקף, קיבולת                  |
-| `decline_room_invitation` · `revoke_room_invitation` | authenticated                | מוזמן / מזמין                            |
-| `get_pending_invitations`                            | authenticated                | מסונן לפי `expires_at`                   |
-| `soft_delete_message`                                | authenticated                | הודעה עצמית, 5 דקות                      |
-| `mark_room_read` · `get_unread_summary`              | authenticated                | unread                                   |
-| `leave_room` · `remove_room_member`                  | authenticated                | עזיבה / הסרה ע"י owner, כולל העברת בעלות |
-| `set_room_status` · `update_room`                    | authenticated                | owner או אדמין                           |
-| `admin_room_stats` · `admin_global_stats`            | authenticated (בודקות אדמין) | מספרים בלבד, בלי תוכן הודעות             |
+| RPC                                                  | נגיש ל-                      | תפקיד                                                                               |
+| ---------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
+| `start_ai_run`                                       | **service_role בלבד**        | נעילה + placeholder, טרנזקציה אחת                                                   |
+| `accept_room_invitation`                             | authenticated                | נעילת חדר, תוקף, קיבולת                                                             |
+| `decline_room_invitation` · `revoke_room_invitation` | authenticated                | מוזמן / מזמין                                                                       |
+| `get_pending_invitations`                            | authenticated                | מסונן לפי `expires_at`                                                              |
+| `soft_delete_message`                                | authenticated                | הודעה עצמית, 5 דקות                                                                 |
+| `mark_room_read` · `get_unread_summary`              | authenticated                | unread                                                                              |
+| `leave_room` · `remove_room_member`                  | authenticated                | עזיבה / הסרה ע"י owner, כולל העברת בעלות                                            |
+| `set_room_status` · `update_room`                    | authenticated                | owner או אדמין                                                                      |
+| `admin_room_stats` · `admin_global_stats`            | authenticated (בודקות אדמין) | מספרים בלבד, בלי תוכן הודעות                                                        |
+| `complete_onboarding`                                | authenticated                | תשובות שאלון ההרשמה + רישום לקורסים + `onboarded_at`, טרנזקציה אחת (20261027000001) |
 
 **אין UPDATE ישיר** למשתמשים על `rooms`, `room_members`, `room_invitations`, `messages`. כל שינוי עובר ב-RPC.
 

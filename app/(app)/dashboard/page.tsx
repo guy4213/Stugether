@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowLeftIcon, CalendarDaysIcon, MessageSquareIcon } from "lucide-react";
 import { MyCourseCard } from "@/components/dashboard/course-cards";
 import { ActivityRail } from "@/components/dashboard/activity-rail";
@@ -33,7 +32,6 @@ export default async function DashboardPage() {
   if (!user) return null; // guarded by app/(app)/layout.tsx
 
   const data = await getDashboardData(user.id);
-  if (data.needsOnboarding) redirect("/profile?welcome=1");
   const myCourses = data.myCourses.slice(0, 3);
 
   return (

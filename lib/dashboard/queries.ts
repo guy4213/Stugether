@@ -388,8 +388,6 @@ async function loadDashboardData(userId: string) {
   const weekAgo = now - 7 * DAY_MS;
 
   return {
-    // SPEC §4.1: a student without an institution hasn't finished onboarding.
-    needsOnboarding: !!profile && profile.role === "student" && !profile.institution_id,
     firstName: profile?.full_name.split(/\s+/)[0] ?? "",
     streak: computeStreak(activityTimes),
     messagesThisWeek: messageTimes.filter((t) => new Date(t).getTime() >= weekAgo).length,

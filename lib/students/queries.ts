@@ -17,7 +17,12 @@ import {
 } from "@/lib/repositories/profiles";
 import { computeMatchPercent, type MatchResult } from "@/lib/matching/score";
 import { sharedCoursesByUser } from "@/lib/matching/shared-courses";
-import { SEMESTER_LABEL, TRACK_LABEL } from "@/lib/constants/profile-options";
+import {
+  LEARNING_STYLE_LABEL,
+  SEMESTER_LABEL,
+  STUDY_TIME_LABEL,
+  TRACK_LABEL,
+} from "@/lib/constants/profile-options";
 import { isOnline } from "@/lib/ui/people";
 import { yearLabel } from "@/lib/ui/labels";
 import { timed } from "@/lib/perf/timing";
@@ -191,6 +196,8 @@ export async function getStudentProfileData(userId: string, studentId: string) {
     : undefined;
   const sharedIds = inputs.sharedCourses.get(student.id) ?? [];
   const myHobbies = inputs.me?.hobbies ?? [];
+  const myStudyTimes: string[] = inputs.me?.study_times ?? [];
+  const myLearningStyles: string[] = inputs.me?.learning_styles ?? [];
 
   return {
     student,
@@ -205,6 +212,14 @@ export async function getStudentProfileData(userId: string, studentId: string) {
       semester: student.semester ? (SEMESTER_LABEL[student.semester] ?? null) : null,
     },
     hobbies: (student.hobbies ?? []).map((name) => ({ name, shared: myHobbies.includes(name) })),
+    studyTimes: (student.study_times ?? []).map((t) => ({
+      name: STUDY_TIME_LABEL[t],
+      shared: myStudyTimes.includes(t),
+    })),
+    learningStyles: (student.learning_styles ?? []).map((l) => ({
+      name: LEARNING_STYLE_LABEL[l],
+      shared: myLearningStyles.includes(l),
+    })),
     sharedCourses: inputs.myCourses.filter((c) => sharedIds.includes(c.id)),
   };
 }

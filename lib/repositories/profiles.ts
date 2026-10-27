@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { StudyTrack } from "@/lib/constants/profile-options";
+import type { LearningStyle, StudyTime, StudyTrack } from "@/lib/constants/profile-options";
 
 // Own full profile (profiles table, RLS: profiles_select_own_or_admin — only
 // self or an active super_admin can read a full row) vs. the public mini
@@ -18,6 +18,10 @@ export interface Profile {
   track: StudyTrack | null;
   semester: number | null;
   hobbies: string[];
+  study_times: StudyTime[];
+  learning_styles: LearningStyle[];
+  /** The onboarding wizard was completed (null = send the student there). */
+  onboarded_at: string | null;
   role: "student" | "super_admin";
   is_active: boolean;
   last_seen_at: string | null;
@@ -37,6 +41,8 @@ export interface PublicProfile {
   track: StudyTrack | null;
   semester: number | null;
   hobbies: string[];
+  study_times: StudyTime[];
+  learning_styles: LearningStyle[];
   /** Belongs in the student directory: an active student (never a super admin). */
   listed?: boolean;
 }
@@ -68,6 +74,8 @@ export async function updateOwnProfile(
     track?: StudyTrack | null;
     semester?: number | null;
     hobbies?: string[];
+    studyTimes?: StudyTime[];
+    learningStyles?: LearningStyle[];
   },
 ): Promise<Profile> {
   const patch: Record<string, unknown> = {};
@@ -81,6 +89,8 @@ export async function updateOwnProfile(
   if (input.track !== undefined) patch.track = input.track;
   if (input.semester !== undefined) patch.semester = input.semester;
   if (input.hobbies !== undefined) patch.hobbies = input.hobbies;
+  if (input.studyTimes !== undefined) patch.study_times = input.studyTimes;
+  if (input.learningStyles !== undefined) patch.learning_styles = input.learningStyles;
 
   const { data, error } = await client
     .from("profiles")

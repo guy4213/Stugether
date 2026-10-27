@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +19,12 @@ import { getCatalogForInstitution } from "@/lib/catalog/queries";
 import { ISRAELI_CITIES } from "@/lib/constants/cities";
 import {
   HOBBIES,
+  LEARNING_STYLES,
+  LEARNING_STYLE_LABEL,
   MAX_HOBBIES,
+  MAX_LEARNING_STYLES,
+  STUDY_TIMES,
+  STUDY_TIME_LABEL,
   SEMESTERS,
   SEMESTER_LABEL,
   STUDY_TRACKS,
@@ -41,16 +45,13 @@ export function ProfileForm({
   institutions,
   initialFaculties,
   initialDepartments,
-  onboarding = false,
 }: {
   profile: Profile;
   email: string;
   institutions: Institution[];
   initialFaculties: Faculty[];
   initialDepartments: Department[];
-  onboarding?: boolean;
 }) {
-  const router = useRouter();
   const [state, formAction, isSubmitting] = useActionState(updateProfile, initialState);
   const [isCatalogLoading, startCatalogTransition] = useTransition();
   const [, startSaveTransition] = useTransition();
@@ -74,27 +75,18 @@ export function ProfileForm({
   const [track, setTrack] = useState<string>(profile.track ?? "");
   const [semester, setSemester] = useState(profile.semester ? String(profile.semester) : "");
   const [hobbies, setHobbies] = useState<string[]>(profile.hobbies ?? []);
+  const [studyTimes, setStudyTimes] = useState<string[]>(profile.study_times ?? []);
+  const [learningStyles, setLearningStyles] = useState<string[]>(profile.learning_styles ?? []);
   const [faculties, setFaculties] = useState(initialFaculties);
   const [departments, setDepartments] = useState(initialDepartments);
-  // Read by the save effect: only a new action result navigates, so the
-  // latest values live in a ref instead of the effect's dependencies.
-  const continueToCourses = useRef(false);
-  useEffect(() => {
-    continueToCourses.current = onboarding && !!institutionId;
-  }, [onboarding, institutionId]);
-
   // useActionState hands back the same initialState object until an action
   // completes — a ref-based "first render" guard breaks under StrictMode's
   // double-run effects, so compare identity instead.
   useEffect(() => {
     if (state === initialState) return;
     if (state.ok === false && state.error) toast.error(state.error);
-    if (state.ok === true) {
-      toast.success("הפרופיל עודכן בהצלחה");
-      // Onboarding step 2 → step 3 (enroll in courses), SPEC §4.1.
-      if (continueToCourses.current) router.push("/courses?onboarding=1");
-    }
-  }, [state, router]);
+    if (state.ok === true) toast.success("הפרופיל עודכן בהצלחה");
+  }, [state]);
 
   // Submitting via onSubmit (not <form action>) opts out of React 19's
   // automatic form reset after an action, which made the Radix selects fire
@@ -145,6 +137,8 @@ export function ProfileForm({
     setTrack(profile.track ?? "");
     setSemester(profile.semester ? String(profile.semester) : "");
     setHobbies(profile.hobbies ?? []);
+    setStudyTimes(profile.study_times ?? []);
+    setLearningStyles(profile.learning_styles ?? []);
     setFaculties(initialFaculties);
     setDepartments(initialDepartments);
   }
@@ -161,6 +155,8 @@ export function ProfileForm({
       <input type="hidden" name="track" value={track} />
       <input type="hidden" name="semester" value={semester} />
       <input type="hidden" name="hobbies" value={hobbies.join(",")} />
+      <input type="hidden" name="studyTimes" value={studyTimes.join(",")} />
+      <input type="hidden" name="learningStyles" value={learningStyles.join(",")} />
 
       <div className="grid grid-cols-1 gap-x-5 gap-y-[18px] sm:grid-cols-2">
         <div className="flex flex-col gap-2">
@@ -331,40 +327,29 @@ export function ProfileForm({
         </div>
       </div>
 
-      <fieldset className="flex flex-col gap-2.5">
-        <div className="flex items-center justify-between">
-          <legend className="text-sm font-semibold">תחביבים</legend>
-          <span className="text-xs text-muted-foreground">
-            {hobbies.length}/{MAX_HOBBIES} · משפיע על אחוז ההתאמה עם סטודנטים אחרים
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {HOBBIES.map((h) => {
-            const selected = hobbies.includes(h);
-            const full = !selected && hobbies.length >= MAX_HOBBIES;
-            return (
-              <button
-                key={h}
-                type="button"
-                aria-pressed={selected}
-                disabled={full}
-                onClick={() =>
-                  setHobbies((cur) => (selected ? cur.filter((x) => x !== h) : [...cur, h]))
-                }
-                className={cn(
-                  "flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm transition-colors disabled:opacity-40",
-                  selected
-                    ? "bg-success-soft font-semibold text-success-ink"
-                    : "border border-border bg-white text-ink-2 hover:border-primary-line",
-                )}
-              >
-                {selected && <CheckIcon className="size-3.5" strokeWidth={2.6} aria-hidden />}
-                {h}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
+      <ChipGroup
+        legend="תחביבים"
+        options={HOBBIES.map((h) => ({ value: h, label: h }))}
+        selected={hobbies}
+        onChange={setHobbies}
+        max={MAX_HOBBIES}
+        hint="משפיע על אחוז ההתאמה עם סטודנטים אחרים"
+      />
+
+      <ChipGroup
+        legend="זמנים מועדפים ללמידה"
+        options={STUDY_TIMES.map((t) => ({ value: t, label: STUDY_TIME_LABEL[t] }))}
+        selected={studyTimes}
+        onChange={setStudyTimes}
+      />
+
+      <ChipGroup
+        legend="דרכי למידה מועדפות"
+        options={LEARNING_STYLES.map((l) => ({ value: l, label: LEARNING_STYLE_LABEL[l] }))}
+        selected={learningStyles}
+        onChange={setLearningStyles}
+        max={MAX_LEARNING_STYLES}
+      />
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
@@ -403,5 +388,61 @@ export function ProfileForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+// Toggle chips (hobbies style). `max` disables the rest once reached.
+function ChipGroup({
+  legend,
+  options,
+  selected,
+  onChange,
+  max,
+  hint,
+}: {
+  legend: string;
+  options: { value: string; label: string }[];
+  selected: string[];
+  onChange: (next: string[]) => void;
+  max?: number;
+  hint?: string;
+}) {
+  return (
+    <fieldset className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-between">
+        <legend className="text-sm font-semibold">{legend}</legend>
+        {(max || hint) && (
+          <span className="text-xs text-muted-foreground">
+            {[max ? `${selected.length}/${max}` : null, hint].filter(Boolean).join(" · ")}
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {options.map(({ value, label }) => {
+          const isSelected = selected.includes(value);
+          const full = !isSelected && max !== undefined && selected.length >= max;
+          return (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={isSelected}
+              disabled={full}
+              onClick={() =>
+                onChange(isSelected ? selected.filter((x) => x !== value) : [...selected, value])
+              }
+              className={cn(
+                "flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm transition-colors disabled:opacity-40",
+                isSelected
+                  ? "bg-success-soft font-semibold text-success-ink"
+                  : "border border-border bg-white text-ink-2 hover:border-primary-line",
+              )}
+            >
+              {isSelected && <CheckIcon className="size-3.5" strokeWidth={2.6} aria-hidden />}
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }

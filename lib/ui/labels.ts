@@ -46,3 +46,13 @@ export function semesterLabel(semester: string | null | undefined): string | nul
   if (semester.startsWith("סמסטר")) return semester;
   return semester.length === 1 ? `סמסטר ${semester}׳` : `סמסטר ${semester}`;
 }
+
+// The same text as profiles.semester (1 = א׳, 2 = ב׳, 3 = קיץ); null if unknown.
+export function semesterNumber(semester: string | null | undefined): 1 | 2 | 3 | null {
+  if (!semester) return null;
+  const s = semester.replace(/^סמסטר\s*/, "");
+  if (s.startsWith("קיץ")) return 3;
+  if (s.startsWith("א")) return 1;
+  if (s.startsWith("ב")) return 2;
+  return null;
+}

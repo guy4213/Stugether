@@ -140,7 +140,8 @@ UPDATE public.profiles p
        study_year     = v.study_year,
        bio            = v.bio,
        city           = v.city,
-       last_seen_at   = now() - interval '1 hour'
+       last_seen_at   = now() - interval '1 hour',
+       onboarded_at   = now() - interval '60 days'
   FROM (VALUES
     ('00000000-0000-0000-0000-0000000000a1'::uuid, '00000000-0000-0000-0002-000000000001'::uuid, 2::smallint, 'אוהבת מבני נתונים וקפה שחור.', 'תל אביב'),
     ('00000000-0000-0000-0000-0000000000a2'::uuid, '00000000-0000-0000-0002-000000000001'::uuid, 2::smallint, NULL, 'רמת גן'),
@@ -152,7 +153,8 @@ UPDATE public.profiles p
 
 UPDATE public.profiles
    SET role = 'super_admin',
-       institution_id = '00000000-0000-0000-0001-000000000001'
+       institution_id = '00000000-0000-0000-0001-000000000001',
+       onboarded_at   = now() - interval '60 days'
  WHERE id = '00000000-0000-0000-0000-0000000000ad';
 
 -- -----------------------------------------------------------------------------

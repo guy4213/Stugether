@@ -29,6 +29,8 @@ const MINI_COLUMNS = [
   "semester",
   "hobbies",
   "listed", // 20261021000001 — belongs in the student directory
+  "study_times", // 20261027000001 — onboarding wizard + match score
+  "learning_styles",
 ];
 
 test("fix: classmates get only the public mini profile, not the full profiles row", async () => {

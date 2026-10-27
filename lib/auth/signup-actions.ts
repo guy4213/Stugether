@@ -14,9 +14,8 @@ export type SignUpResult = AuthResult & { hasSession?: boolean };
 export async function signUpAndCheckSession(
   email: string,
   password: string,
-  fullName: string,
 ): Promise<SignUpResult> {
-  const result = await signUp(email, password, fullName);
+  const result = await signUp(email, password);
   if (!result.ok) return result;
 
   const user = await getCurrentUser();

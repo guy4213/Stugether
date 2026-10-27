@@ -15,7 +15,8 @@ const LAST_SEEN_THROTTLE_MS = 2 * 60 * 1000;
 
 // What the (app) top nav needs on every page: who you are, the unread
 // notifications badge and the "active room" shortcut. Also the presence
-// heartbeat behind "online" badges (throttled to one write per 2 minutes).
+// heartbeat behind "online" badges (throttled to one write per 2 minutes),
+// and whether the signup wizard is still due.
 export async function getShellData(userId: string): Promise<ShellData> {
   const demo = await getDemoScenario();
   if (demo) return demoShell(demo);
@@ -49,6 +50,8 @@ async function loadShellData(userId: string) {
     unreadNotifications,
     activeRoomId: activeRoom?.id ?? null,
     isSuperAdmin: profile?.role === "super_admin" && profile.is_active,
+    // A student who has not finished the signup wizard (SPEC §4.1).
+    needsOnboarding: profile?.role === "student" && !profile.onboarded_at,
   };
 }
 

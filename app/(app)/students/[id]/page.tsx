@@ -120,32 +120,19 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
           </ul>
         </section>
 
-        <section aria-labelledby="hobbies" className="flex flex-col gap-3">
-          <h2 id="hobbies" className="text-base font-bold">
-            תחביבים
-          </h2>
-          {data.hobbies.length === 0 ? (
-            <p className="text-sm text-muted-foreground">לא צוינו תחביבים</p>
-          ) : (
-            <ul className="flex flex-wrap gap-2">
-              {data.hobbies.map((h) => (
-                <li
-                  key={h.name}
-                  className={cn(
-                    "flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm",
-                    h.shared
-                      ? "bg-success-soft font-semibold text-success-ink"
-                      : "bg-muted text-ink-2",
-                  )}
-                >
-                  {h.shared && <CheckIcon className="size-3.5" strokeWidth={2.6} aria-hidden />}
-                  {h.name}
-                  {h.shared && <span className="sr-only">(משותף)</span>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <TagSection id="hobbies" title="תחביבים" empty="לא צוינו תחביבים" tags={data.hobbies} />
+        <TagSection
+          id="study-times"
+          title="זמנים מועדפים ללמידה"
+          empty="לא צוינו זמנים"
+          tags={data.studyTimes}
+        />
+        <TagSection
+          id="learning-styles"
+          title="דרכי למידה מועדפות"
+          empty="לא צוינו דרכי למידה"
+          tags={data.learningStyles}
+        />
 
         <section aria-labelledby="shared" className="flex flex-col gap-3">
           <h2 id="shared" className="text-base font-bold">
@@ -200,5 +187,45 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
         />
       </article>
     </main>
+  );
+}
+
+// Hobbies / study times / learning styles; the ones I share are highlighted.
+function TagSection({
+  id,
+  title,
+  empty,
+  tags,
+}: {
+  id: string;
+  title: string;
+  empty: string;
+  tags: { name: string; shared: boolean }[];
+}) {
+  return (
+    <section aria-labelledby={id} className="flex flex-col gap-3">
+      <h2 id={id} className="text-base font-bold">
+        {title}
+      </h2>
+      {tags.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{empty}</p>
+      ) : (
+        <ul className="flex flex-wrap gap-2">
+          {tags.map((h) => (
+            <li
+              key={h.name}
+              className={cn(
+                "flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm",
+                h.shared ? "bg-success-soft font-semibold text-success-ink" : "bg-muted text-ink-2",
+              )}
+            >
+              {h.shared && <CheckIcon className="size-3.5" strokeWidth={2.6} aria-hidden />}
+              {h.name}
+              {h.shared && <span className="sr-only">(משותף)</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

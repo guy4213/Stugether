@@ -43,7 +43,9 @@ import type {
 import type { AnalyticsData, AnalyticsRange } from "@/lib/analytics/queries";
 import type { ProfileFormData } from "@/lib/profile/queries";
 import type { StackPerson } from "@/components/ui/avatar-stack";
-import type { StudyTrack } from "@/lib/constants/profile-options";
+import type { LearningStyle, StudyTime, StudyTrack } from "@/lib/constants/profile-options";
+import type { OnboardingData } from "@/lib/onboarding/queries";
+import type { DepartmentCourse } from "@/lib/catalog/queries";
 import type { StudentInputs } from "@/lib/students/queries";
 import type { RoomSessionRow } from "@/lib/repositories/sessions";
 import { shapeRoomSessions } from "@/lib/rooms/sessions";
@@ -188,7 +190,24 @@ const ME = {
   track: "day" as const,
   semester: 1,
   hobbies: ["צילום", "בישול", "ריצה"],
+  study_times: ["morning", "evening"] as StudyTime[],
+  learning_styles: ["group", "explanations", "sample_exams"] as LearningStyle[],
 };
+
+// Preferred study times / learning styles, cycled over the people below.
+const STUDY_TIME_SETS: StudyTime[][] = [
+  ["evening"],
+  ["morning", "noon"],
+  ["evening", "night"],
+  ["morning"],
+  ["noon", "evening"],
+];
+const LEARNING_STYLE_SETS: LearningStyle[][] = [
+  ["exercises", "group", "sample_exams"],
+  ["summaries", "memorization", "pairs"],
+  ["explanations", "discussions", "group"],
+  ["exercises", "pairs", "sample_exams"],
+];
 
 // [track, semester, hobbies] per person, aligned with PEOPLE_SEED.
 const PEOPLE_EXTRA: Record<string, [StudyTrack, number, string[]]> = {
@@ -254,6 +273,8 @@ function people(scenario: DemoScenario, t: Clock): Map<string, PublicProfile> {
         track: PEOPLE_EXTRA[key][0],
         semester: PEOPLE_EXTRA[key][1],
         hobbies: PEOPLE_EXTRA[key][2],
+        study_times: STUDY_TIME_SETS[i % STUDY_TIME_SETS.length],
+        learning_styles: LEARNING_STYLE_SETS[i % LEARNING_STYLE_SETS.length],
       };
       return [profile.id, profile];
     }),
@@ -273,6 +294,8 @@ function myPublicProfile(t: Clock): PublicProfile {
     track: ME.track,
     semester: ME.semester,
     hobbies: ME.hobbies,
+    study_times: ME.study_times,
+    learning_styles: ME.learning_styles,
   };
 }
 
@@ -282,6 +305,7 @@ function myProfile(t: Clock): Profile {
     bio: ME.bio,
     role: "student",
     is_active: true,
+    onboarded_at: t.ago(40 * DAY),
     created_at: t.ago(40 * DAY),
     updated_at: t.ago(2 * DAY),
   };
@@ -900,6 +924,7 @@ export function demoShell(scenario: DemoScenario): ShellData {
     unreadNotifications: unreadCount(scenario, t),
     activeRoomId: rooms.find((r) => isRoomLive(r, t.now))?.id ?? null,
     isSuperAdmin: false,
+    needsOnboarding: false,
   };
 }
 
@@ -1019,7 +1044,6 @@ export function demoDashboard(scenario: DemoScenario): DashboardData {
   const messagesThisWeek = scenario === "active" ? 23 : 0;
 
   return {
-    needsOnboarding: false,
     firstName: ME.full_name.split(" ")[0],
     streak: scenario === "active" ? 6 : 0,
     messagesThisWeek,
@@ -1446,4 +1470,31 @@ export function demoStudentInputs(scenario: DemoScenario): StudentInputs {
     sharedCourses: new Map(others.map((p) => [p.id, sharedCourseIds(scenario, p.id)])),
     myCourses: MY_COURSE_IDS.map((id) => ({ id, name: COURSE_BY_ID.get(id)?.name ?? "" })),
   };
+}
+
+// --- onboarding (a preview: the wizard runs on this catalog and saves nothing) ---
+
+export function demoOnboarding(): OnboardingData {
+  return {
+    onboarded: false,
+    suggestedName: "",
+    avatarPath: null,
+    institutions: [{ id: INSTITUTION.id, name: INSTITUTION.name, city: INSTITUTION.city }],
+  };
+}
+
+export function demoInstitutionCatalog(institutionId: string) {
+  return institutionId === INSTITUTION.id
+    ? { faculties: FACULTIES, departments: DEPARTMENTS }
+    : { faculties: [], departments: [] };
+}
+
+export function demoDepartmentCourses(departmentId: string): DepartmentCourse[] {
+  return COURSES.filter((c) => c.department_id === departmentId).map((c) => ({
+    id: c.id,
+    name: c.name,
+    code: c.code,
+    yearLevel: c.year_level,
+    semester: c.semester,
+  }));
 }

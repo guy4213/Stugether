@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -8,15 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { AuthDivider, GoogleButton } from "@/components/auth/google-button";
 import { signIn } from "@/lib/auth/actions";
+import { safeNextPath } from "@/lib/auth/next-path";
 
-// ?next=/notifications?... (app/invitations/route.ts): back to where the user
-// was headed. Same-site paths only — never an open redirect.
 function nextPath(): string | null {
-  const next = new URLSearchParams(window.location.search).get("next");
-  return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\")
-    ? next
-    : null;
+  return safeNextPath(new URLSearchParams(window.location.search).get("next"));
 }
 
 export default function LoginPage() {
@@ -24,6 +21,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  // ?auth_error=1 comes from /auth/callback (expired link, Google sign-in
+  // cancelled). Read on mount: window is not available during prerender.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("auth_error")) {
+      toast.error("ההתחברות לא הושלמה. נסו שוב");
+    }
+  }, []);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -73,6 +78,10 @@ export default function LoginPage() {
           {isPending ? "מתחבר..." : "התחברות"}
         </Button>
       </form>
+
+      <AuthDivider />
+      <GoogleButton />
+
       <p className="mt-6 text-center text-sm text-muted-foreground">
         עדיין אין לך חשבון?{" "}
         <Link href="/signup" className="font-medium text-primary hover:underline">

@@ -1,8 +1,10 @@
 "use server";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { isAuthError } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { safeNextPath } from "@/lib/auth/next-path";
 
 export type AuthResult = { ok: true } | { ok: false; error: string };
 
@@ -58,6 +60,8 @@ function mapAuthError(error: unknown): string {
     case "signup_disabled":
     case "email_provider_disabled":
       return "ההרשמה אינה זמינה כרגע";
+    case "provider_disabled":
+      return "ההתחברות עם Google אינה זמינה כרגע";
     case "same_password":
       return "הסיסמה החדשה זהה לסיסמה הקיימת";
     case "session_expired":
@@ -71,25 +75,18 @@ function mapAuthError(error: unknown): string {
 }
 
 /**
- * signUp(email, password, fullName) — creates the auth user with
- * full_name in raw_user_meta_data so the handle_new_user DB trigger picks
- * it up when it creates the profiles row.
+ * signUp(email, password) — creates the auth user. No name yet: the
+ * handle_new_user trigger names the profile after the email, and the
+ * onboarding wizard asks for the real name (SPEC §4.1).
  */
-export async function signUp(
-  email: string,
-  password: string,
-  fullName: string,
-): Promise<AuthResult> {
+export async function signUp(email: string, password: string): Promise<AuthResult> {
   const supabase = await createClient();
   const origin = await getOrigin();
 
   const { error } = await supabase.auth.signUp({
     email,
     password,
-    options: {
-      data: { full_name: fullName },
-      emailRedirectTo: `${origin}/auth/callback`,
-    },
+    options: { emailRedirectTo: `${origin}/auth/callback` },
   });
 
   if (error) {
@@ -117,6 +114,51 @@ export async function signIn(email: string, password: string): Promise<AuthResul
   }
 
   return { ok: true };
+}
+
+async function isGoogleEnabled(): Promise<boolean> {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/settings`, {
+      headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
+      cache: "no-store",
+    });
+    if (!res.ok) return true; // can't tell — let the Auth server decide
+    const settings = (await res.json()) as { external?: { google?: boolean } };
+    return settings.external?.google === true;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * signInWithGoogle(next) — signs in or signs up with Google. Redirects to
+ * Google; it comes back to /auth/callback, which exchanges the PKCE code
+ * (its verifier cookie is set here) and continues to `next` or the
+ * dashboard — a new student goes on to the onboarding wizard from there.
+ * Returns only on failure.
+ */
+export async function signInWithGoogle(next?: string | null): Promise<AuthResult> {
+  // signInWithOAuth only builds a URL; a disabled provider would fail on the
+  // Auth server's own page (raw JSON). Its public settings say up front.
+  if (!(await isGoogleEnabled())) {
+    return { ok: false, error: "ההתחברות עם Google אינה זמינה כרגע" };
+  }
+
+  const supabase = await createClient();
+  const origin = await getOrigin();
+  const safeNext = safeNextPath(next);
+  const callback = `${origin}/auth/callback${safeNext ? `?next=${encodeURIComponent(safeNext)}` : ""}`;
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: callback, queryParams: { prompt: "select_account" } },
+  });
+
+  if (error || !data.url) {
+    return { ok: false, error: mapAuthError(error) };
+  }
+
+  redirect(data.url);
 }
 
 /** signOut() — ends the current session. */
