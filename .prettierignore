@@ -3,3 +3,6 @@ node_modules
 package-lock.json
 supabase/.temp
 supabase/catalog/*.json
+
+# Standalone HTML pages (QA checklists)
+docs/*.html
