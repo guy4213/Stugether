@@ -22,6 +22,8 @@ import {
   SEMESTER_LABEL,
   STUDY_TIME_LABEL,
   TRACK_LABEL,
+  type StudyTime,
+  type StudyTrack,
 } from "@/lib/constants/profile-options";
 import { isOnline } from "@/lib/ui/people";
 import { yearLabel } from "@/lib/ui/labels";
@@ -38,6 +40,9 @@ export interface StudentFilters {
   year?: number;
   courseId?: string;
   online?: boolean;
+  track?: StudyTrack;
+  /** "מתי נוח לך ללמוד?" — any of these. */
+  studyTimes?: StudyTime[];
   page?: number;
 }
 
@@ -116,17 +121,47 @@ function shapeDirectory(inputs: StudentInputs, filters: StudentFilters) {
   const institutionById = new Map(inputs.institutions.map((i) => [i.id, i]));
   const departmentById = new Map(inputs.departments.map((d) => [d.id, d]));
   const q = filters.q?.trim().toLowerCase();
+  const courseNameById = new Map(inputs.myCourses.map((c) => [c.id, c.name]));
+  const myHobbies = inputs.me?.hobbies ?? [];
+  const myStudyTimes: string[] = inputs.me?.study_times ?? [];
+  const myLearningStyles: string[] = inputs.me?.learning_styles ?? [];
 
-  const all = inputs.others.map((p) => ({
-    profile: p,
-    online: isOnline(p.last_seen_at, now),
-    departmentName: p.department_id ? (departmentById.get(p.department_id)?.name ?? null) : null,
-    institutionName: p.institution_id
-      ? (institutionById.get(p.institution_id)?.name ?? null)
-      : null,
-    sharedCourseIds: inputs.sharedCourses.get(p.id) ?? [],
-    match: matchFor(inputs, p),
-  }));
+  const all = inputs.others.map((p) => {
+    const sharedCourseIds = inputs.sharedCourses.get(p.id) ?? [];
+    const studyTimes = (p.study_times ?? []).map((t) => ({
+      name: STUDY_TIME_LABEL[t],
+      shared: myStudyTimes.includes(t),
+    }));
+    const learningStyles = (p.learning_styles ?? []).map((l) => ({
+      name: LEARNING_STYLE_LABEL[l],
+      shared: myLearningStyles.includes(l),
+    }));
+    const hobbies = (p.hobbies ?? []).map((name) => ({ name, shared: myHobbies.includes(name) }));
+    return {
+      profile: p,
+      online: isOnline(p.last_seen_at, now),
+      departmentName: p.department_id ? (departmentById.get(p.department_id)?.name ?? null) : null,
+      institutionName: p.institution_id
+        ? (institutionById.get(p.institution_id)?.name ?? null)
+        : null,
+      sharedCourseIds,
+      // Card (Figma "כרטיסיות סטודנטים"): shared courses, then "פרטים נוספים".
+      sharedCourses: sharedCourseIds
+        .map((id) => ({ id, name: courseNameById.get(id) ?? "" }))
+        .filter((c) => c.name),
+      details: {
+        track: p.track ? TRACK_LABEL[p.track] : null,
+        semester: p.semester ? (SEMESTER_LABEL[p.semester] ?? null) : null,
+        studyTimes,
+        learningStyles,
+        hobbies,
+        sharedExtras: [...learningStyles, ...studyTimes, ...hobbies]
+          .filter((x) => x.shared)
+          .map((x) => x.name),
+      },
+      match: matchFor(inputs, p),
+    };
+  });
 
   const matching = all
     .filter((s) => {
@@ -136,6 +171,13 @@ function shapeDirectory(inputs: StudentInputs, filters: StudentFilters) {
       if (filters.year && s.profile.study_year !== filters.year) return false;
       if (filters.courseId && !s.sharedCourseIds.includes(filters.courseId)) return false;
       if (filters.online && !s.online) return false;
+      if (filters.track && s.profile.track !== filters.track) return false;
+      if (
+        filters.studyTimes?.length &&
+        !filters.studyTimes.some((t) => (s.profile.study_times ?? []).includes(t))
+      ) {
+        return false;
+      }
       return true;
     })
     .sort(

@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRoom, listRoomMembers } from "@/lib/repositories/rooms";
 import { listRoomMessages, type Message } from "@/lib/repositories/messages";
+import { listRoomExercises } from "@/lib/repositories/exercises";
 import type { GeminiTurn } from "./gemini";
 
 // -----------------------------------------------------------------------------
@@ -26,6 +27,7 @@ import type { GeminiTurn } from "./gemini";
 const DEFAULT_CONTEXT_MESSAGES = 30; // AI_CONTEXT_MESSAGES
 const DEFAULT_MAX_INPUT_TOKENS = 8000; // AI_MAX_INPUT_TOKENS
 const CHARS_PER_TOKEN = 4; // simple chars/4 heuristic (TECHNICAL_SPEC §6.5)
+const MAX_EXERCISE_CHARS = 6000; // ~1500 tokens of the input budget
 
 // Shared with the route handler (rate limits, output token cap) so env
 // parsing/defaulting lives in exactly one place.
@@ -65,10 +67,11 @@ export interface RoomAiContext {
 export async function buildRoomAiContext(roomId: string): Promise<RoomAiContext> {
   const admin = createAdminClient();
 
-  const [settingsResult, room, allMembers] = await Promise.all([
+  const [settingsResult, room, allMembers, exercises] = await Promise.all([
     admin.from("app_settings").select("ai_system_prompt").eq("id", 1).single(),
     getRoom(admin, roomId),
     listRoomMembers(admin, roomId),
+    listRoomExercises(admin, roomId),
   ]);
 
   if (settingsResult.error) throw settingsResult.error;
@@ -92,11 +95,23 @@ export async function buildRoomAiContext(roomId: string): Promise<RoomAiContext>
 
   const nameByUserId = new Map(allMembers.map((m) => [m.user_id, m.profile?.full_name ?? "משתתף"]));
 
-  const systemPrompt = renderSystemPrompt(settingsResult.data?.ai_system_prompt ?? "", {
-    courseName: courseRow?.name ?? "הקורס",
-    roomTopic: room.topic ?? room.name,
-    participantNames: participantNames.length > 0 ? participantNames : "אין משתתפים פעילים",
-  });
+  // The exercise on the room's board (Change Request 30.10.2026): the newest
+  // one, as text. A file-only exercise is named, not read.
+  const exercise = exercises.at(-1);
+  const exerciseNote = exercise
+    ? `\n\nהתרגיל שמוצג כרגע בחדר — "${exercise.title}":\n` +
+      (exercise.content
+        ? exercise.content.slice(0, MAX_EXERCISE_CHARS)
+        : `(קובץ מצורף: ${exercise.file_name ?? "קובץ"}. התוכן אינו זמין לך — בקשו מהם לכתוב את השאלה.)`) +
+      "\nזכור: מנחים ומסבירים, לא מוסרים פתרון מלא למטלה מוערכת."
+    : "";
+
+  const systemPrompt =
+    renderSystemPrompt(settingsResult.data?.ai_system_prompt ?? "", {
+      courseName: courseRow?.name ?? "הקורס",
+      roomTopic: room.topic ?? room.name,
+      participantNames: participantNames.length > 0 ? participantNames : "אין משתתפים פעילים",
+    }) + exerciseNote;
 
   const contextLimit = parseEnvInt("AI_CONTEXT_MESSAGES", DEFAULT_CONTEXT_MESSAGES);
   const maxInputTokens = parseEnvInt("AI_MAX_INPUT_TOKENS", DEFAULT_MAX_INPUT_TOKENS);

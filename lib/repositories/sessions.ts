@@ -109,3 +109,32 @@ export async function cancelRoomSession(client: SupabaseClient, sessionId: strin
   const { error } = await client.rpc("cancel_room_session", { p_session_id: sessionId });
   if (error) throw error;
 }
+
+// Upcoming scheduled sessions with what a room card shows: time, length,
+// note and who said they are coming (rooms page "חדרי לימוד").
+export interface UpcomingSessionDetail {
+  id: string;
+  room_id: string;
+  starts_at: string;
+  duration_min: number;
+  note: string | null;
+  rsvps: { user_id: string; response: "accepted" | "declined" }[];
+}
+
+export async function listUpcomingSessionDetails(
+  client: SupabaseClient,
+  roomIds: string[],
+): Promise<UpcomingSessionDetail[]> {
+  if (roomIds.length === 0) return [];
+  const { data, error } = await client
+    .from("room_sessions")
+    .select(
+      "id, room_id, starts_at, duration_min, note, rsvps:room_session_rsvps(user_id, response)",
+    )
+    .in("room_id", roomIds)
+    .eq("status", "scheduled")
+    .gt("starts_at", new Date().toISOString())
+    .order("starts_at");
+  if (error) throw error;
+  return data as unknown as UpcomingSessionDetail[];
+}
