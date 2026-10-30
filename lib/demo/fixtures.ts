@@ -47,6 +47,7 @@ import type { LearningStyle, StudyTime, StudyTrack } from "@/lib/constants/profi
 import type { OnboardingData } from "@/lib/onboarding/queries";
 import type { DepartmentCourse } from "@/lib/catalog/queries";
 import type { StudentInputs } from "@/lib/students/queries";
+import type { RoomsInputs } from "@/lib/rooms/directory-queries";
 import type { RoomSessionRow } from "@/lib/repositories/sessions";
 import { shapeRoomSessions } from "@/lib/rooms/sessions";
 import { yearLabel } from "@/lib/ui/labels";
@@ -1209,6 +1210,14 @@ export function demoCourseDetail(scenario: DemoScenario, courseId: string): Cour
   };
 }
 
+const DEMO_EXERCISE = [
+  "נתון המרחב הווקטורי V = R^4.",
+  "נסמן את הווקטורים: v1=(1,1,0,2), v2=(2,1,1,3), v3=(1,0,1,1), v4=(3,2,1,5).",
+  "א. האם קבוצת הווקטורים פורשת את המרחב V? נמקו את תשובתכם.",
+  "ב. האם הווקטורים v1,v2,v3,v4 בלתי תלויים לינארית? הוכיחו את תשובתכם.",
+  "ג. מצאו בסיס למרחב הנפרש על ידי הקבוצה, ואת המימד שלו.",
+].join("\n");
+
 export function demoRoom(scenario: DemoScenario, roomId: string): RoomPageData | null {
   const t = clock();
   const r = myRooms(scenario, t).find((x) => x.id === roomId);
@@ -1257,6 +1266,20 @@ export function demoRoom(scenario: DemoScenario, roomId: string): RoomPageData |
       scenario === "active" && owner === ME.id
         ? [{ id: demoId(10, 1), userId: PERSON_ID.p6, name: byId.get(PERSON_ID.p6)!.full_name }]
         : [],
+    exercises: [
+      {
+        id: demoId(12, 1),
+        room_id: r.id,
+        created_by: owner,
+        title: "תרגיל 1",
+        content: DEMO_EXERCISE,
+        file_path: null,
+        file_name: null,
+        file_type: null,
+        created_at: t.ago(60 * MIN),
+      },
+    ],
+    iceServers: [],
     demoPresence: ROOM_PRESENCE[r.id] ?? [ME.id],
   };
 }
@@ -1497,4 +1520,43 @@ export function demoDepartmentCourses(departmentId: string): DepartmentCourse[] 
     yearLevel: c.year_level,
     semester: c.semester,
   }));
+}
+
+// --- rooms page ("חדרי לימוד") ---
+
+export function demoRoomsInputs(scenario: DemoScenario): RoomsInputs {
+  const t = clock();
+  const byId = people(scenario, t);
+  const rooms = myRooms(scenario, t);
+  return {
+    userId: ME.id,
+    courses: MY_COURSE_IDS.map((id) => ({ id, name: COURSE_BY_ID.get(id)?.name ?? "" })),
+    myRooms: rooms,
+    openRooms: openRooms(scenario, t),
+    members: rooms.flatMap((r) => {
+      const { owner, members } = ROOM_MEMBERS[r.id];
+      return [owner, ...members].map((id) => ({
+        room_id: r.id,
+        user_id: id,
+        full_name: id === ME.id ? ME.full_name : (byId.get(id)?.full_name ?? ""),
+        avatar_url: id === ME.id ? ME.avatar_url : (byId.get(id)?.avatar_url ?? null),
+      }));
+    }),
+    sessions: rooms.flatMap((r) =>
+      demoSessions(scenario, r.id, t)
+        .filter(
+          (s) => s.status === "scheduled" && s.starts_at && new Date(s.starts_at).getTime() > t.now,
+        )
+        .map((s) => ({
+          id: s.id,
+          room_id: s.room_id,
+          starts_at: s.starts_at!,
+          duration_min: s.duration_min,
+          note: s.note,
+          rsvps: s.rsvps,
+        })),
+    ),
+    requestedRoomIds: [],
+    watchedRoomIds: [],
+  };
 }

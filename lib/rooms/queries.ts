@@ -11,6 +11,8 @@ import {
 import { listPublicProfiles } from "@/lib/repositories/profiles";
 import { listPendingJoinRequests } from "@/lib/repositories/join-requests";
 import { listRoomSessions } from "@/lib/repositories/sessions";
+import { listRoomExercises } from "@/lib/repositories/exercises";
+import { getIceServers } from "@/lib/rooms/ice-servers";
 import { shapeRoomSessions } from "@/lib/rooms/sessions";
 import { getDemoScenario } from "@/lib/demo/state";
 import { demoRoom } from "@/lib/demo/fixtures";
@@ -36,21 +38,29 @@ async function loadRoomPageData(roomId: string, userId: string) {
   const room = await getRoom(supabase, roomId);
   if (!room) return null;
 
-  const [members, messages, course, settings, invitations, classmates, requests, sessionRows] =
-    await Promise.all([
-      listRoomMembers(supabase, roomId),
-      listRoomMessages(supabase, roomId, { limit: PAGE_SIZE }),
-      getCourse(supabase, room.course_id),
-      getAppSettings(supabase),
-      listRoomPendingInvitations(supabase, roomId),
-      listEnrolledCourseStudents(supabase, room.course_id),
-      // Requests to join while the room is in session — the owner answers
-      // (RLS returns the owner every request, anyone else only their own).
-      room.status === "active"
-        ? listPendingJoinRequests(supabase, { roomId })
-        : Promise.resolve([]),
-      listRoomSessions(supabase, roomId),
-    ]);
+  const [
+    members,
+    messages,
+    course,
+    settings,
+    invitations,
+    classmates,
+    requests,
+    sessionRows,
+    exercises,
+  ] = await Promise.all([
+    listRoomMembers(supabase, roomId),
+    listRoomMessages(supabase, roomId, { limit: PAGE_SIZE }),
+    getCourse(supabase, room.course_id),
+    getAppSettings(supabase),
+    listRoomPendingInvitations(supabase, roomId),
+    listEnrolledCourseStudents(supabase, room.course_id),
+    // Requests to join while the room is in session — the owner answers
+    // (RLS returns the owner every request, anyone else only their own).
+    room.status === "active" ? listPendingJoinRequests(supabase, { roomId }) : Promise.resolve([]),
+    listRoomSessions(supabase, roomId),
+    listRoomExercises(supabase, roomId),
+  ]);
 
   const activeMembers = members.filter((m) => !m.left_at);
   // A super_admin can SELECT the room row but is not a member: they get the
@@ -111,6 +121,9 @@ async function loadRoomPageData(roomId: string, userId: string) {
       userId: q.user_id,
       name: nameById.get(q.user_id) ?? "סטודנט/ית",
     })),
+    exercises,
+    // STUN (+ TURN when configured) for the room call (WebRTC, CR 30.10.2026).
+    iceServers: getIceServers(),
     // Demo mode only: fixed "who is online" instead of realtime presence.
     demoPresence: null as string[] | null,
   };

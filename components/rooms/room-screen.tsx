@@ -1,96 +1,70 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowRightIcon, SendIcon, SparklesIcon } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { ArrowRightIcon } from "lucide-react";
+import { cn } from "cn";
 import { Pill } from "@/components/ui/pill";
 import { AvatarStack } from "@/components/ui/avatar-stack";
-import { LiveDot } from "@/components/ui/live-dot";
-import { DELETE_WINDOW_MS, MessageBubble } from "@/components/rooms/message-bubble";
-import { RoomMembersDialog } from "@/components/rooms/room-members-dialog";
+import { ChatPanel, upsertMessage, type ChatMode } from "@/components/rooms/chat-panel";
+import { ExercisePanel } from "@/components/rooms/exercise-panel";
+import { CallPanel, type RoomLayout } from "@/components/rooms/call-panel";
 import { useRoomChannel } from "@/hooks/useRoomChannel";
-import { deleteMessage, loadOlderMessages, markRoomReadAction } from "@/lib/rooms/actions";
+import { useRoomCall } from "@/hooks/useRoomCall";
+import { useWhiteboard } from "@/hooks/useWhiteboard";
 import type { Message } from "@/lib/repositories/messages";
+import type { RoomExercise } from "@/lib/repositories/exercises";
 import type { RoomPageData } from "@/lib/rooms/queries";
-import { DEMO_AI_REPLY, DEMO_READ_ONLY_ERROR } from "@/lib/demo/constants";
 
-const TZ = "Asia/Jerusalem";
-const MARK_READ_THROTTLE_MS = 3000;
+const LAYOUT_KEY = "stugether.room-layout";
+const LAYOUT_EVENT = "stugether:room-layout";
+type MobileTab = "chat" | "exercise" | "people";
 
-// Hebrew copy for start_ai_run's non-"started" outcomes (SPEC §4.7).
-const AI_STATUS_MESSAGE: Record<string, string> = {
-  busy: "העוזר עונה כרגע, נסו שוב בעוד רגע",
-  rate_limited: "הגעתם למגבלת השימוש בעוזר לשעה הקרובה. נסו שוב מאוחר יותר",
-  disabled: "העוזר כבוי בחדר הזה",
-};
-
-function dayKey(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-CA", { timeZone: TZ });
+// "רגיל" / "ריכוז", remembered per browser. Server render is always "רגיל".
+function readLayout(): RoomLayout {
+  try {
+    return localStorage.getItem(LAYOUT_KEY) === "focus" ? "focus" : "normal";
+  } catch {
+    return "normal";
+  }
 }
-
-function dayLabel(iso: string): string {
-  const key = dayKey(iso);
-  if (key === dayKey(new Date().toISOString())) return "היום";
-  if (key === dayKey(new Date(Date.now() - 86_400_000).toISOString())) return "אתמול";
-  return new Date(iso).toLocaleDateString("he-IL", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: TZ,
-  });
-}
-
-// Same trigger as the messages route, for the demo room's simulated tutor.
-const AI_MENTION_RE = /(^|\s)@ai(\s|[.,!?]|$)/i;
-
-function localMessage(roomId: string, fields: Partial<Message>): Message {
-  return {
-    id: crypto.randomUUID(),
-    room_id: roomId,
-    sender_id: null,
-    sender_type: "user",
-    content: "",
-    status: "complete",
-    ai_run_id: null,
-    metadata: {},
-    created_at: new Date().toISOString(),
-    deleted_at: null,
-    ...fields,
+function subscribeLayout(onChange: () => void) {
+  window.addEventListener(LAYOUT_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(LAYOUT_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
   };
 }
-
-function upsert(list: Message[], row: Message): Message[] {
-  const i = list.findIndex((m) => m.id === row.id);
-  if (i === -1) return [...list, row];
-  const next = [...list];
-  next[i] = row;
-  return next;
+function saveLayout(layout: RoomLayout) {
+  try {
+    localStorage.setItem(LAYOUT_KEY, layout);
+  } catch {
+    /* storage unavailable */
+  }
+  window.dispatchEvent(new Event(LAYOUT_EVENT));
 }
 
-// The whole room screen below the app nav: header (members, presence, AI
-// state), the thread and the composer. Deliberately no side conversation
-// list — rooms are course-scoped, not a general inbox.
-export function ChatWindow({ data, currentUserId }: { data: RoomPageData; currentUserId: string }) {
+// The study room (Figma "חדר למידה", Change Request 30.10.2026): chat on the
+// right, the shared exercise + whiteboard in the middle, participants and the
+// call on the left. "ריכוז" narrows the participants to a column of circles.
+// Below lg the three columns become tabs.
+export function RoomScreen({ data, currentUserId }: { data: RoomPageData; currentUserId: string }) {
   const { room, course, isMember, aiAvailable } = data;
   const isActive = room.status === "active";
-  // Demo mode (lib/demo): no realtime, no writes — sending is simulated here.
+  // Demo mode (lib/demo): no realtime, no writes — sending is simulated.
   const demo = data.demoPresence !== null;
   const canPost = isMember && isActive;
 
   const [messages, setMessages] = useState<Message[]>(data.messages);
-  const [hasMore, setHasMore] = useState(data.hasMoreMessages);
-  const [content, setContent] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [loadingOlder, startLoadingOlder] = useTransition();
-  const [now, setNow] = useState(() => Date.now());
-
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const stickToBottom = useRef(true);
-  const lastMarkRead = useRef(0);
+  const [exercises, setExercises] = useState<RoomExercise[]>(data.exercises);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
+    data.exercises.at(-1)?.id ?? null,
+  );
+  const [chatMode, setChatMode] = useState<ChatMode>("group");
+  const [draft, setDraft] = useState<{ id: number; text: string } | null>(null);
+  const layout = useSyncExternalStore(subscribeLayout, readLayout, () => "normal" as const);
+  const [mobileTab, setMobileTab] = useState<MobileTab>("exercise");
 
   const membersById = useMemo(
     () => new Map(data.members.map((m) => [m.user_id, m])),
@@ -98,12 +72,19 @@ export function ChatWindow({ data, currentUserId }: { data: RoomPageData; curren
   );
   const activeMembers = data.members.filter((m) => !m.left_at);
 
+  // The call and the whiteboard need the channel's broadcast, and the
+  // channel needs their handlers: they meet through these refs.
+  const callSignal = useRef<(p: Record<string, unknown>) => void>(() => {});
+  const whiteboardSignal = useRef<(p: Record<string, unknown>) => void>(() => {});
+
   const channel = useRoomChannel(
     room.id,
     isMember ? currentUserId : null,
     {
-      onMessageInsert: (row) => setMessages((prev) => upsert(prev, row as unknown as Message)),
-      onMessageUpdate: (row) => setMessages((prev) => upsert(prev, row as unknown as Message)),
+      onMessageInsert: (row) =>
+        setMessages((prev) => upsertMessage(prev, row as unknown as Message)),
+      onMessageUpdate: (row) =>
+        setMessages((prev) => upsertMessage(prev, row as unknown as Message)),
       onMessageDeleted: (id) =>
         setMessages((prev) =>
           prev.flatMap((m) => {
@@ -115,345 +96,211 @@ export function ChatWindow({ data, currentUserId }: { data: RoomPageData; curren
               : [];
           }),
         ),
+      onExerciseInsert: (row) => addExercise(row as unknown as RoomExercise, false),
+      onCallSignal: (p) => callSignal.current(p),
+      onWhiteboard: (p) => whiteboardSignal.current(p),
     },
     { enabled: !demo },
   );
   const onlineUserIds = data.demoPresence ?? channel.onlineUserIds;
   const online = useMemo(() => new Set(onlineUserIds), [onlineUserIds]);
+  const ready = channel.status === "subscribed";
 
-  // Re-evaluate the 5-minute delete window without a user action.
+  const call = useRoomCall({
+    userId: currentUserId,
+    enabled: canPost && !demo,
+    ready,
+    onlineUserIds,
+    iceServers: data.iceServers,
+    broadcast: channel.broadcast,
+  });
+  const whiteboard = useWhiteboard({
+    userId: currentUserId,
+    enabled: canPost && !demo,
+    ready,
+    broadcast: channel.broadcast,
+  });
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(t);
-  }, []);
+    callSignal.current = call.onCallSignal;
+    whiteboardSignal.current = whiteboard.onWhiteboard;
+  });
 
-  const markRead = useCallback(() => {
-    if (demo || !isMember || document.visibilityState !== "visible") return;
-    const t = Date.now();
-    if (t - lastMarkRead.current < MARK_READ_THROTTLE_MS) return;
-    lastMarkRead.current = t;
-    void markRoomReadAction(room.id);
-  }, [demo, isMember, room.id]);
-
-  // Room-level "read" (SPEC §4.6): on open, on every new message while the
-  // room is on screen, and when the tab comes back into view.
-  const lastMessageId = messages.at(-1)?.id;
-  useEffect(() => {
-    markRead();
-  }, [lastMessageId, markRead]);
-  useEffect(() => {
-    document.addEventListener("visibilitychange", markRead);
-    return () => document.removeEventListener("visibilitychange", markRead);
-  }, [markRead]);
-
-  // Follow new messages only when the reader is already at the bottom.
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (el && stickToBottom.current) el.scrollTop = el.scrollHeight;
-  }, [messages]);
-
-  function onScroll() {
-    const el = scrollRef.current;
-    if (!el) return;
-    stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  function addExercise(exercise: RoomExercise, select: boolean) {
+    setExercises((prev) =>
+      prev.some((e) => e.id === exercise.id)
+        ? prev
+        : [...prev, exercise].sort((a, b) => a.created_at.localeCompare(b.created_at)),
+    );
+    // Someone else's new exercise becomes the shown one only if nothing was
+    // picked; my own always does.
+    if (select) setSelectedExerciseId(exercise.id);
+    else setSelectedExerciseId((cur) => cur ?? exercise.id);
   }
 
-  function loadOlder() {
-    const oldest = messages[0];
-    const el = scrollRef.current;
-    if (!oldest || !el) return;
-    const prevHeight = el.scrollHeight;
-    startLoadingOlder(async () => {
-      const older = await loadOlderMessages(room.id, {
-        createdAt: oldest.created_at,
-        id: oldest.id,
-      });
-      setHasMore(older.length === 50);
-      if (older.length === 0) return;
-      stickToBottom.current = false;
-      setMessages((prev) => [...older.filter((o) => !prev.some((p) => p.id === o.id)), ...prev]);
-      // Keep the reader's position after prepending.
-      requestAnimationFrame(() => {
-        el.scrollTop = el.scrollHeight - prevHeight;
-      });
+  const exercise = exercises.find((e) => e.id === selectedExerciseId) ?? exercises.at(-1) ?? null;
+  const boardKey = exercise?.id ?? "blank";
+
+  const askAboutExercise = useCallback(() => {
+    setChatMode("ai");
+    setMobileTab("chat");
+    setDraft({
+      id: Date.now(),
+      text: exercise ? `עזור לנו להבין איך לגשת לתרגיל "${exercise.title}"` : "",
     });
-  }
+  }, [exercise]);
 
-  async function send(askAi: boolean) {
-    const trimmed = content.trim();
-    if (!trimmed || isSending) return;
-    if (demo) {
-      sendDemo(trimmed, askAi || AI_MENTION_RE.test(trimmed));
-      return;
-    }
+  const readOnlyReason = !isMember
+    ? "רק משתתפי החדר יכולים לכתוב בו."
+    : room.status === "closed"
+      ? "החדר סגור — ניתן לקרוא בלבד."
+      : "החדר מאורכב — ניתן לקרוא בלבד.";
 
-    setIsSending(true);
-    try {
-      const res = await fetch(`/api/rooms/${room.id}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: trimmed, askAi }),
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) {
-        toast.error(body?.error ?? "שליחת ההודעה נכשלה");
-        return;
-      }
-      setContent("");
-      stickToBottom.current = true;
-      if (body?.message) setMessages((prev) => upsert(prev, body.message as Message));
-      const aiMessage = body?.aiStatus ? AI_STATUS_MESSAGE[body.aiStatus] : undefined;
-      if (aiMessage) toast.info(aiMessage);
-    } catch {
-      toast.error("שליחת ההודעה נכשלה");
-    } finally {
-      setIsSending(false);
-    }
-  }
-
-  function sendDemo(text: string, askAi: boolean) {
-    setContent("");
-    stickToBottom.current = true;
-    setMessages((prev) => [
-      ...prev,
-      localMessage(room.id, { sender_id: currentUserId, content: text }),
-    ]);
-    if (!askAi) return;
-    const reply = localMessage(room.id, { sender_type: "ai", status: "streaming" });
-    setTimeout(() => setMessages((prev) => [...prev, reply]), 600);
-    setTimeout(
-      () =>
-        setMessages((prev) =>
-          upsert(prev, { ...reply, status: "complete", content: DEMO_AI_REPLY }),
-        ),
-      2200,
-    );
-  }
-
-  async function handleDelete(message: Message) {
-    if (demo) {
-      setMessages((prev) =>
-        prev.map((m) => (m.id === message.id ? { ...m, deleted_at: new Date().toISOString() } : m)),
-      );
-      return;
-    }
-    setBusyId(message.id);
-    const result = await deleteMessage(message.id);
-    setBusyId(null);
-    if (!result.ok) {
-      toast.error(result.error ?? "המחיקה נכשלה");
-      return;
-    }
-    setMessages((prev) =>
-      prev.map((m) => (m.id === message.id ? { ...m, deleted_at: new Date().toISOString() } : m)),
-    );
-  }
-
-  async function handleRetry(message: Message) {
-    if (demo) {
-      toast.info(DEMO_READ_ONLY_ERROR);
-      return;
-    }
-    setBusyId(message.id);
-    try {
-      const res = await fetch(`/api/rooms/${room.id}/ai-retry`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messageId: message.id }),
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) {
-        toast.error(body?.error ?? "לא ניתן לנסות שוב כרגע");
-        return;
-      }
-      stickToBottom.current = true;
-      const aiMessage = body?.aiStatus ? AI_STATUS_MESSAGE[body.aiStatus] : undefined;
-      if (aiMessage) toast.info(aiMessage);
-    } catch {
-      toast.error("לא ניתן לנסות שוב כרגע");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void send(false);
-    }
-  }
-
-  const onlineOthers = activeMembers.filter(
-    (m) => m.user_id !== currentUserId && online.has(m.user_id),
-  );
+  const focus = layout === "focus";
+  const show = (tab: MobileTab) => (mobileTab === tab ? "flex" : "max-lg:hidden");
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card shadow-card sm:rounded-[22px] sm:border sm:border-border">
-      <div className="flex items-center gap-3 border-b border-border px-3 py-3 sm:px-5">
-        <Link
-          href={course ? `/courses/${course.id}` : "/dashboard"}
-          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-          aria-label="חזרה לקורס"
-        >
-          <ArrowRightIcon className="size-5" />
-        </Link>
-        <div className="flex min-w-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-3 px-4 sm:px-0">
+        <div className="flex min-w-0 flex-col gap-1">
+          <Link
+            href={course ? `/courses/${course.id}` : "/rooms"}
+            className="mb-1 w-fit rounded-lg p-1 text-foreground hover:bg-muted"
+            aria-label="חזרה"
+          >
+            <ArrowRightIcon className="size-7" />
+          </Link>
           <div className="flex min-w-0 items-center gap-2">
-            <h1 className="truncate text-base font-bold sm:text-lg">{room.name}</h1>
+            <h1 className="truncate text-2xl font-bold sm:text-[28px]">{room.name}</h1>
             {room.status === "archived" && <Pill tone="warning">מאורכב</Pill>}
             {room.status === "closed" && <Pill tone="neutral">סגור</Pill>}
           </div>
-          <p className="flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground">
-            {onlineOthers.length > 0 ? (
-              <>
-                <LiveDot className="size-2" />
-                <span className="truncate">
-                  {onlineOthers.length === 1
-                    ? `${onlineOthers[0].profile?.full_name ?? "משתתף/ת"} מחובר/ת עכשיו`
-                    : `${onlineOthers.length} מחוברים עכשיו`}
-                </span>
-              </>
-            ) : (
-              <span className="truncate">
-                {course?.name ?? ""}
-                {room.topic ? ` · ${room.topic}` : ""}
-              </span>
-            )}
+          <p className="flex items-center gap-2 text-lg text-foreground">
+            {activeMembers.length} משתתפים
+            <AvatarStack
+              people={activeMembers.map((m) => ({
+                id: m.user_id,
+                name: m.profile?.full_name ?? "?",
+              }))}
+              max={4}
+              size="md"
+              borderClassName="border-foreground border"
+            />
           </p>
         </div>
-        {aiAvailable && isActive && (
-          <Pill tone="teal" className="max-sm:hidden">
-            <SparklesIcon className="size-3.5" aria-hidden />
-            עוזר AI פעיל
-          </Pill>
-        )}
-        <AvatarStack
-          people={activeMembers.map((m) => ({
-            id: m.user_id,
-            name: m.profile?.full_name ?? "?",
-          }))}
-          max={4}
-          size="md"
-          showInitials
-          className="max-sm:hidden"
+
+        <div
+          role="radiogroup"
+          aria-label="תצוגת החדר"
+          className="flex h-10 items-center rounded-full bg-card p-1 shadow-soft max-lg:hidden"
+        >
+          {(
+            [
+              { id: "normal", label: "רגיל" },
+              { id: "focus", label: "ריכוז" },
+            ] as const
+          ).map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              role="radio"
+              aria-checked={layout === o.id}
+              onClick={() => saveLayout(o.id)}
+              className={cn(
+                "h-8 rounded-full px-4 text-sm transition-colors",
+                layout === o.id ? "bg-primary font-bold text-white" : "text-foreground",
+              )}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Mobile: one column at a time. */}
+      <div
+        role="tablist"
+        aria-label="אזורי החדר"
+        className="mx-4 grid grid-cols-3 gap-1 rounded-full bg-card p-1 shadow-soft sm:mx-0 lg:hidden"
+      >
+        {(
+          [
+            { id: "chat", label: "צ'אט" },
+            { id: "exercise", label: "תרגיל" },
+            { id: "people", label: "משתתפים" },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={mobileTab === t.id}
+            onClick={() => setMobileTab(t.id)}
+            className={cn(
+              "h-9 rounded-full text-sm",
+              mobileTab === t.id ? "bg-primary font-bold text-white" : "text-foreground",
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex min-h-0 flex-1 gap-4 px-4 pb-4 sm:px-0 sm:pb-0 lg:gap-[18px]">
+        <ChatPanel
+          roomId={room.id}
+          currentUserId={currentUserId}
+          messages={messages}
+          setMessages={setMessages}
+          initialHasMore={data.hasMoreMessages}
+          membersById={membersById}
+          online={online}
+          isMember={isMember}
+          canPost={canPost}
+          aiAvailable={aiAvailable && isActive}
+          readOnlyReason={readOnlyReason}
+          demo={demo}
+          mode={chatMode}
+          onModeChange={setChatMode}
+          exerciseTitle={exercise?.title ?? null}
+          draft={draft}
+          className={cn(
+            "w-full shrink-0 lg:flex",
+            focus ? "lg:w-[425px]" : "lg:w-[335px]",
+            show("chat"),
+          )}
         />
-        <RoomMembersDialog
+        <ExercisePanel
+          roomId={room.id}
+          exercises={exercises}
+          selectedId={exercise?.id ?? null}
+          onSelect={setSelectedExerciseId}
+          onAdded={(ex) => addExercise(ex, true)}
+          canPost={canPost}
+          board={{
+            items: whiteboard.boards[boardKey] ?? [],
+            add: (item) => whiteboard.add(boardKey, item),
+            undo: () => whiteboard.undo(boardKey),
+            redo: () => whiteboard.redo(boardKey),
+            clear: () => whiteboard.clear(boardKey),
+          }}
+          onAskAi={canPost && aiAvailable ? askAboutExercise : null}
+          className={cn("min-w-0 flex-1 lg:flex", show("exercise"))}
+        />
+        <CallPanel
           data={data}
           currentUserId={currentUserId}
+          members={activeMembers}
+          online={online}
           onlineUserIds={onlineUserIds}
+          call={call}
+          canPost={canPost && !demo}
+          layout={focus ? "focus" : "normal"}
+          className={cn(
+            "shrink-0 lg:flex",
+            focus ? "lg:w-[60px]" : "w-full lg:w-[277px]",
+            show("people"),
+          )}
         />
-      </div>
-
-      <div
-        ref={scrollRef}
-        onScroll={onScroll}
-        className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-5 sm:px-6"
-        aria-live="polite"
-        aria-relevant="additions"
-      >
-        {!isMember && (
-          <p className="rounded-xl bg-muted px-4 py-3 text-center text-sm text-muted-foreground">
-            צפייה במטא-נתונים בלבד — תוכן ההודעות גלוי רק למשתתפי החדר.
-          </p>
-        )}
-        {hasMore && (
-          <div className="flex justify-center pb-2">
-            <Button variant="quiet" size="chip" onClick={loadOlder} disabled={loadingOlder}>
-              {loadingOlder ? "טוען..." : "טעינת הודעות קודמות"}
-            </Button>
-          </div>
-        )}
-        {isMember && messages.length === 0 && (
-          <p className="pt-8 text-center text-sm text-muted-foreground">
-            אין עדיין הודעות בחדר הזה. כתבו הודעה כדי להתחיל, או תייגו @AI לשאלה לעוזר.
-          </p>
-        )}
-        {messages.map((message, i) => {
-          const prev = messages[i - 1];
-          const newDay = !prev || dayKey(prev.created_at) !== dayKey(message.created_at);
-          const sameSenderAsPrev =
-            !newDay &&
-            prev &&
-            prev.sender_id === message.sender_id &&
-            prev.sender_type === message.sender_type;
-          const isOwn = message.sender_type === "user" && message.sender_id === currentUserId;
-          return (
-            <Fragment key={message.id}>
-              {newDay && (
-                <div className="flex justify-center py-2">
-                  <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                    {dayLabel(message.created_at)}
-                  </span>
-                </div>
-              )}
-              <MessageBubble
-                message={message}
-                isOwn={isOwn}
-                sender={message.sender_id ? membersById.get(message.sender_id) : undefined}
-                showSender={!sameSenderAsPrev}
-                online={!!message.sender_id && online.has(message.sender_id)}
-                canDelete={
-                  isOwn &&
-                  canPost &&
-                  now - new Date(message.created_at).getTime() < DELETE_WINDOW_MS
-                }
-                onDelete={() => void handleDelete(message)}
-                canRetry={canPost && aiAvailable}
-                onRetry={() => void handleRetry(message)}
-                busy={busyId === message.id}
-              />
-            </Fragment>
-          );
-        })}
-      </div>
-
-      <div className="border-t border-border p-3 sm:p-4">
-        {canPost ? (
-          <div className="flex items-end gap-2">
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={aiAvailable ? "כתבו הודעה... (@AI לשאלה לעוזר)" : "כתבו הודעה..."}
-              aria-label="כתיבת הודעה"
-              rows={1}
-              maxLength={4000}
-              className="max-h-32 min-h-11 resize-none rounded-[22px] bg-muted/60 px-5 py-3"
-              disabled={isSending}
-            />
-            {aiAvailable && (
-              <Button
-                variant="soft"
-                size="md"
-                className="shrink-0 max-sm:size-11 max-sm:px-0"
-                onClick={() => void send(true)}
-                disabled={isSending || !content.trim()}
-                title="שליחה ושאלת העוזר"
-              >
-                <SparklesIcon className="size-4" aria-hidden />
-                <span className="max-sm:sr-only">שאל את העוזר</span>
-              </Button>
-            )}
-            <Button
-              size="icon"
-              variant="gradient"
-              className="size-11 shrink-0"
-              onClick={() => void send(false)}
-              disabled={isSending || !content.trim()}
-              aria-label="שליחת הודעה"
-            >
-              <SendIcon className="size-4 rtl:-scale-x-100" />
-            </Button>
-          </div>
-        ) : (
-          <p className="text-center text-sm text-muted-foreground">
-            {!isMember
-              ? "רק משתתפי החדר יכולים לכתוב בו."
-              : room.status === "closed"
-                ? "החדר סגור — ניתן לקרוא בלבד."
-                : "החדר מאורכב — ניתן לקרוא בלבד."}
-          </p>
-        )}
       </div>
     </div>
   );

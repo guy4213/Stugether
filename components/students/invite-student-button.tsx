@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { inviteToStudy } from "@/lib/rooms/actions";
 
-// "הזמן ללמידה" from a student's profile / card. An invitation belongs to a
+// "הזמנה ללמידה" from a student's profile / card. An invitation belongs to a
 // room of a course both students are enrolled in, so the button needs a
 // shared course; with several, the student picks one.
 export function InviteStudentButton({
@@ -21,6 +21,7 @@ export function InviteStudentButton({
   sharedCourses,
   className,
   compact = false,
+  buttonClassName,
 }: {
   inviteeId: string;
   inviteeName: string;
@@ -28,6 +29,8 @@ export function InviteStudentButton({
   className?: string;
   /** Small outline button for cards; invites to the first shared course. */
   compact?: boolean;
+  /** Restyles the button itself (student cards). */
+  buttonClassName?: string;
 }) {
   const [pending, startTransition] = useTransition();
   const [sent, setSent] = useState(false);
@@ -38,7 +41,7 @@ export function InviteStudentButton({
     return (
       <div className={className}>
         <Button type="button" variant="brand" size="xl" className="w-full" disabled>
-          הזמן ללמידה
+          הזמנה ללמידה
         </Button>
         <p className="mt-2 text-center text-xs text-muted-foreground">
           אפשר להזמין רק סטודנטים שרשומים איתך לאותו קורס
@@ -72,7 +75,7 @@ export function InviteStudentButton({
         type="button"
         variant={compact ? "outline-primary" : "brand"}
         size={compact ? "md" : "xl"}
-        className="w-full"
+        className={buttonClassName ?? "w-full"}
         disabled={pending || sent || !courseId}
         onClick={() =>
           startTransition(async () => {
@@ -86,7 +89,7 @@ export function InviteStudentButton({
           })
         }
       >
-        {sent ? "ההזמנה נשלחה" : pending ? "שולח..." : "הזמן ללמידה"}
+        {sent ? "ההזמנה נשלחה" : pending ? "שולח..." : "הזמנה ללמידה"}
       </Button>
     </div>
   );

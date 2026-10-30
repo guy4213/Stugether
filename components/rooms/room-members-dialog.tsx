@@ -35,10 +35,13 @@ export function RoomMembersDialog({
   data,
   currentUserId,
   onlineUserIds,
+  trigger,
 }: {
   data: RoomPageData;
   currentUserId: string;
   onlineUserIds: string[];
+  /** Replaces the default "משתתפים" button. */
+  trigger?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
@@ -82,11 +85,13 @@ export function RoomMembersDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="quiet" size="chip" aria-label="משתתפים והזמנות">
-          <UsersIcon aria-hidden />
-          <span className="max-sm:hidden">משתתפים</span>
-          <span className="rounded-full bg-muted px-1.5 text-xs">{activeMembers.length}/4</span>
-        </Button>
+        {trigger ?? (
+          <Button variant="quiet" size="chip" aria-label="משתתפים והזמנות">
+            <UsersIcon aria-hidden />
+            <span className="max-sm:hidden">משתתפים</span>
+            <span className="rounded-full bg-muted px-1.5 text-xs">{activeMembers.length}/4</span>
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
