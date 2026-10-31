@@ -196,3 +196,42 @@ export async function listOpenRooms(
   if (error) throw error;
   return (data as OpenRoom[]).map((r) => ({ ...r, member_count: Number(r.member_count) }));
 }
+
+// Active members of several rooms the caller belongs to (room_members RLS
+// returns rows of my rooms only), for the avatars on room cards.
+export async function listActiveMembersOfRooms(
+  client: SupabaseClient,
+  roomIds: string[],
+): Promise<{ room_id: string; user_id: string; full_name: string; avatar_url: string | null }[]> {
+  if (roomIds.length === 0) return [];
+  const { data, error } = await client
+    .from("room_members")
+    .select("room_id, user_id")
+    .in("room_id", roomIds)
+    .is("left_at", null);
+  if (error) throw error;
+  const rows = data as { room_id: string; user_id: string }[];
+  const profiles = await listPublicProfiles(client, [...new Set(rows.map((r) => r.user_id))]);
+  const byId = new Map(profiles.map((p) => [p.id, p]));
+  return rows.map((r) => ({
+    ...r,
+    full_name: byId.get(r.user_id)?.full_name ?? "סטודנט/ית",
+    avatar_url: byId.get(r.user_id)?.avatar_url ?? null,
+  }));
+}
+
+// "עדכנו כשמתפנה" (20261030000002_room_seat_watches.sql).
+export async function listMySeatWatches(client: SupabaseClient): Promise<string[]> {
+  const { data, error } = await client.from("room_seat_watches").select("room_id");
+  if (error) throw error;
+  return (data as { room_id: string }[]).map((r) => r.room_id);
+}
+
+export async function watchRoomSeat(
+  client: SupabaseClient,
+  roomId: string,
+  watch: boolean,
+): Promise<void> {
+  const { error } = await client.rpc("watch_room_seat", { p_room_id: roomId, p_watch: watch });
+  if (error) throw error;
+}

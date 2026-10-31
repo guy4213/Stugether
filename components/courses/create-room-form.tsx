@@ -36,7 +36,7 @@ export function CreateRoomForm({
   // "כניסה מהירה", SPEC §4.2).
   courseId?: string;
   courses?: { id: string; name: string }[];
-  trigger?: "glass" | "brand" | "soft";
+  trigger?: "glass" | "brand" | "soft" | "new";
   defaultTopic?: string;
   // The course syllabus (fixed-course usage). When present, the room's topics
   // are picked from it instead of typed.
@@ -83,6 +83,12 @@ export function CreateRoomForm({
           <Button variant="glass" size="md" className={className}>
             <PlusIcon strokeWidth={2.4} />
             פתיחת חדר
+          </Button>
+        ) : trigger === "new" ? (
+          // Rooms page (Figma "חדרי לימוד"): "+ חדר חדש".
+          <Button variant="brand" size="xl" className={className}>
+            <PlusIcon strokeWidth={2.4} />
+            חדר חדש
           </Button>
         ) : trigger === "brand" ? (
           <Button variant="brand" size="xl" className={className}>

@@ -180,11 +180,14 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
           </section>
         )}
 
-        <InviteStudentButton
-          inviteeId={student.id}
-          inviteeName={student.full_name}
-          sharedCourses={data.sharedCourses}
-        />
+        {/* #invite: the "הזמנה לפי קורס" icon on a student card lands here. */}
+        <div id="invite" className="scroll-mt-24">
+          <InviteStudentButton
+            inviteeId={student.id}
+            inviteeName={student.full_name}
+            sharedCourses={data.sharedCourses}
+          />
+        </div>
       </article>
     </main>
   );

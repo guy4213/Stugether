@@ -12,6 +12,7 @@ import {
   SearchIcon,
   ShieldCheckIcon,
   UserIcon,
+  UserSearchIcon,
   UsersIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -36,7 +37,8 @@ const ADMIN_LINK: NavLink = { href: "/admin", label: "ניהול", icon: ShieldC
 const NAV_LINKS: NavLink[] = [
   { href: "/dashboard", label: "בית", icon: HouseIcon },
   { href: "/courses", label: "קורסים", icon: BookOpenIcon },
-  { href: "/students", label: "סטודנטים", icon: UsersIcon },
+  { href: "/rooms", label: "חדרי לימוד", icon: UsersIcon },
+  { href: "/students", label: "סטודנטים", icon: UserSearchIcon },
   { href: "/analytics", label: "ההתקדמות שלי", icon: ChartColumnIcon },
   { href: "/profile", label: "הגדרות פרופיל", icon: UserIcon },
 ];

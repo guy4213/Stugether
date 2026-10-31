@@ -12,6 +12,7 @@ import {
   removeMember,
   setRoomStatus,
   updateRoom,
+  watchRoomSeat,
 } from "@/lib/repositories/rooms";
 import { createInvitation, revokeInvitation } from "@/lib/repositories/invitations";
 import {
@@ -342,5 +343,20 @@ export async function setRoomAiEnabled(roomId: string, aiEnabled: boolean): Prom
     return { ok: false, error: "רק יוצר/ת החדר יכול/ה לשנות את ההגדרה" };
   }
   revalidatePath(`/rooms/${roomId}`);
+  return { ok: true };
+}
+
+// "עדכנו כשמתפנה" on a full open room of one of my courses.
+export async function watchRoomSeatAction(roomId: string, watch: boolean): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
+  if (!user) return { ok: false, error: "יש להתחבר מחדש" };
+  const supabase = await createClient();
+  try {
+    await watchRoomSeat(supabase, roomId, watch);
+  } catch {
+    return { ok: false, error: "לא ניתן לעקוב אחרי החדר הזה" };
+  }
+  revalidatePath("/rooms");
   return { ok: true };
 }
