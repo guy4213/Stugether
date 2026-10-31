@@ -1,7 +1,6 @@
 "use server";
 
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { completeOnboarding as completeOnboardingRpc } from "@/lib/repositories/onboarding";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -80,6 +79,8 @@ export async function completeOnboarding(input: OnboardingInput): Promise<Onboar
     };
   }
 
-  revalidatePath("/", "layout");
+  // No revalidatePath: it would refresh /onboarding, which redirects a finished
+  // student to /dashboard before the "הכל מוכן" step shows. The (app) pages are
+  // dynamic, so the dashboard renders fresh on the way in.
   return { ok: true, enrolled };
 }
