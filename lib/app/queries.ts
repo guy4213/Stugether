@@ -8,13 +8,14 @@ import { demoShell } from "@/lib/demo/fixtures";
 import {
   getCachedMyActiveRooms,
   getCachedOwnProfile,
+  getCachedUnreadConversationCount,
   getCachedUnreadNotificationCount,
 } from "@/lib/app/cached";
 
 const LAST_SEEN_THROTTLE_MS = 2 * 60 * 1000;
 
 // What the (app) top nav needs on every page: who you are, the unread
-// notifications badge and the "active room" shortcut. Also the presence
+// notifications and messages badges and the "active room" shortcut. Also the presence
 // heartbeat behind "online" badges (throttled to one write per 2 minutes),
 // and whether the signup wizard is still due.
 export async function getShellData(userId: string): Promise<ShellData> {
@@ -24,11 +25,14 @@ export async function getShellData(userId: string): Promise<ShellData> {
 }
 
 async function loadShellData(userId: string) {
-  const [profile, unreadNotifications, rooms] = await timed(
+  const [profile, unreadNotifications, unreadMessages, rooms] = await timed(
     "layout.shell",
     Promise.all([
       getCachedOwnProfile(userId),
       getCachedUnreadNotificationCount(userId),
+      // A badge must not take the whole shell down (e.g. before migration
+      // 20261107000001 is applied to the project).
+      getCachedUnreadConversationCount(userId).catch(() => 0),
       getCachedMyActiveRooms(userId),
     ]),
   );
@@ -48,6 +52,7 @@ async function loadShellData(userId: string) {
     fullName: profile?.full_name ?? "",
     avatarPath: profile?.avatar_url ?? null,
     unreadNotifications,
+    unreadMessages,
     activeRoomId: activeRoom?.id ?? null,
     isSuperAdmin: profile?.role === "super_admin" && profile.is_active,
     // A student who has not finished the signup wizard (SPEC §4.1).

@@ -27,11 +27,11 @@ export const AI_MENTION_RE = /(^|\s)@ai(\s|[.,!?]|$)/i;
 
 export type ChatMode = "group" | "ai";
 
-function dayKey(iso: string): string {
+export function dayKey(iso: string): string {
   return new Date(iso).toLocaleDateString("en-CA", { timeZone: TZ });
 }
 
-function dayLabel(iso: string): string {
+export function dayLabel(iso: string): string {
   const key = dayKey(iso);
   if (key === dayKey(new Date().toISOString())) return "היום";
   if (key === dayKey(new Date(Date.now() - 86_400_000).toISOString())) return "אתמול";

@@ -1,32 +1,16 @@
 import Link from "next/link";
-import { ArrowLeftIcon, CalendarDaysIcon, MessageSquareIcon } from "lucide-react";
 import { MyCourseCard } from "@/components/dashboard/course-cards";
 import { ActivityRail } from "@/components/dashboard/activity-rail";
 import { RoomsPanel } from "@/components/dashboard/rooms-panel";
 import { PartnersSection } from "@/components/dashboard/partners-section";
+import { SectionHeader } from "@/components/dashboard/section-header";
 import { InfoTiles, ProgressCard } from "@/components/dashboard/side-cards";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getDashboardData } from "@/lib/dashboard/queries";
-import { greetingHe } from "@/lib/ui/format";
 
-function FlameIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B" aria-hidden>
-      <path d="M12 2.5c.9 3.3 5.5 5.4 5.5 10.4a5.5 5.5 0 0 1-11 0c0-2.4 1.1-4 2.4-5.1.2 2 1.1 3.2 2.5 3.6C10.8 8.6 11.1 5.2 12 2.5z" />
-    </svg>
-  );
-}
-
-const todayHe = () =>
-  new Intl.DateTimeFormat("he-IL", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: "Asia/Jerusalem",
-  }).format(new Date());
-
-// Dashboard (redesign 13.10.2026): partners, rooms and my courses in the
-// main column; my progress, recent activity and general numbers on the side.
+// Dashboard (redesign 07.11.2026): three rows, each a main block with a side
+// block next to it — partners | my progress, study rooms | recent activity,
+// my courses | general info. Below xl the blocks stack in that order.
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) return null; // guarded by app/(app)/layout.tsx
@@ -37,86 +21,52 @@ export default async function DashboardPage() {
   return (
     <main
       id="main-content"
-      className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-6 px-4 pt-7 pb-10 sm:px-8 xl:px-12"
+      className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-7 px-4 pt-7 pb-10 sm:px-8 xl:px-12"
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-[30px] leading-[1.15] font-extrabold tracking-[-0.5px] sm:text-[38px]">
-            {data.firstName ? `היי ${data.firstName},` : `${greetingHe()},`}
-            <br />
-            עם מי לומדים היום?
-          </h1>
-          <p className="text-[15px] text-muted-foreground">
-            מצאו שותפים, הצטרפו לחדרים והתקדמו בלמידה יחד.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-white px-3.5 text-sm font-medium">
-            <CalendarDaysIcon className="size-4 text-primary" aria-hidden />
-            {todayHe()}
-          </span>
-          {data.streak > 0 && (
-            <span className="flex h-9 items-center gap-1.5 rounded-full bg-warning-soft px-3.5 text-sm font-semibold text-warning-ink">
-              <FlameIcon />
-              {data.streak === 1 ? "יום אחד ברצף" : `${data.streak} ימים ברצף`}
-            </span>
-          )}
-          <span className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-white px-3.5 text-sm font-semibold">
-            <MessageSquareIcon className="size-4 text-primary" strokeWidth={2.2} aria-hidden />
-            {data.messagesThisWeek} הודעות השבוע
-          </span>
-        </div>
-      </div>
+      <h1 className="text-[30px] leading-[1.2] font-extrabold tracking-[-0.5px] sm:text-[36px]">
+        {data.firstName ? `היי ${data.firstName}` : "היי"}{" "}
+        <span aria-hidden className="inline-block">
+          👋
+        </span>
+        <br />
+        עם מי לומדים היום?
+      </h1>
 
-      <div className="flex flex-col gap-5 xl:flex-row xl:items-start">
-        <div className="flex min-w-0 grow flex-col gap-6">
-          <PartnersSection partners={data.partners} hasCourses={data.myCourses.length > 0} />
+      <div className="grid grid-cols-1 gap-x-6 gap-y-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <PartnersSection partners={data.partners} hasCourses={data.myCourses.length > 0} />
+        <ProgressCard hero={data.hero} stats={data.stats} />
 
-          <RoomsPanel
-            rooms={data.rooms}
-            invitations={data.pendingInvitations}
-            courses={data.roomCourses}
+        <RoomsPanel
+          rooms={data.rooms}
+          invitations={data.pendingInvitations}
+          courses={data.roomCourses}
+        />
+        <ActivityRail activity={data.activity} nextEvent={data.nextEvent} />
+
+        <section aria-labelledby="my-courses" className="flex min-w-0 flex-col gap-3.5">
+          <SectionHeader
+            id="my-courses"
+            title="הקורסים שלי"
+            link={{ href: "/courses", label: "כל הקורסים" }}
           />
-
-          <section aria-labelledby="my-courses" className="flex flex-col gap-3.5">
-            <div className="flex items-center justify-between">
-              <h2 id="my-courses" className="text-2xl font-extrabold">
-                הקורסים שלי
-              </h2>
-              <Link
-                href="/courses"
-                className="flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-strong"
-              >
-                הצג הכל
-                <ArrowLeftIcon className="size-4" strokeWidth={2.2} aria-hidden />
+          {myCourses.length === 0 ? (
+            <div className="flex flex-1 flex-col items-center justify-center rounded-[20px] border-2 border-dashed border-switch-off bg-surface-2 p-8 text-center">
+              <p className="font-bold">עוד לא נרשמת לקורסים</p>
+              <Link href="/courses" className="text-sm font-semibold text-primary">
+                למציאת קורס
               </Link>
             </div>
-            {myCourses.length === 0 ? (
-              <div className="rounded-[20px] border-2 border-dashed border-switch-off bg-surface-2 p-8 text-center">
-                <p className="font-bold">עוד לא נרשמת לקורסים</p>
-                <Link href="/courses" className="text-sm font-semibold text-primary">
-                  למציאת קורס
-                </Link>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {myCourses.map((course, i) => (
-                  <MyCourseCard key={course.id} course={course} highlight={i === 0} />
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-
-        <aside className="flex w-full shrink-0 flex-col gap-5 xl:w-[360px]">
-          <ProgressCard hero={data.hero} stats={data.stats} />
-          <ActivityRail
-            activity={data.activity}
-            unreadCount={data.unreadCount}
-            nextEvent={data.nextEvent}
-          />
-          <InfoTiles stats={data.stats} pendingInvitations={data.pendingInvitationCount} />
-        </aside>
+          ) : (
+            <ul className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {myCourses.map((course) => (
+                <li key={course.id}>
+                  <MyCourseCard course={course} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <InfoTiles stats={data.stats} pendingInvitations={data.pendingInvitationCount} />
       </div>
     </main>
   );

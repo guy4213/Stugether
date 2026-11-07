@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
-// The only place allowed to open Realtime channels.
+// The only place allowed to open Realtime channels: rooms, private chats
+// (useConversationChannel) and the per-user notification stream.
 // Swapping postgres_changes for broadcast later changes this file only.
 
 type RoomMessageRow = Record<string, unknown> & { id: string; room_id: string };
@@ -109,4 +110,112 @@ export function useRoomChannel(
   }, []);
 
   return { status, onlineUserIds, broadcast };
+}
+
+// --- Private 1:1 chat (SPEC §5.1) -------------------------------------------
+
+type DirectMessageRow = Record<string, unknown> & { id: string; conversation_id: string };
+
+// 'dm:{conversationId}' (TECHNICAL_SPEC §5): new messages via postgres_changes
+// (RLS: participants only), and soft_delete_direct_message's broadcast — the
+// other side's RLS hides a deleted row, so no UPDATE ever reaches them.
+export function useConversationChannel(
+  conversationId: string,
+  handlers: {
+    onMessageInsert?: (row: DirectMessageRow) => void;
+    onMessageUpdate?: (row: DirectMessageRow) => void;
+    onMessageDeleted?: (messageId: string) => void;
+  },
+  { enabled = true }: { enabled?: boolean } = {},
+) {
+  const [status, setStatus] = useState<ChannelStatus>("connecting");
+  const handlersRef = useRef(handlers);
+
+  useEffect(() => {
+    handlersRef.current = handlers;
+  });
+
+  useEffect(() => {
+    if (!enabled) return;
+    const supabase = createClient();
+    const filter = `conversation_id=eq.${conversationId}`;
+    const channel: RealtimeChannel = supabase.channel(`dm:${conversationId}`, {
+      config: { private: true },
+    });
+
+    channel
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "direct_messages", filter },
+        (payload) => handlersRef.current.onMessageInsert?.(payload.new as DirectMessageRow),
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "direct_messages", filter },
+        (payload) => handlersRef.current.onMessageUpdate?.(payload.new as DirectMessageRow),
+      )
+      .on("broadcast", { event: "message_deleted" }, ({ payload }) => {
+        const id = (payload as { id?: unknown } | null)?.id;
+        if (typeof id === "string") handlersRef.current.onMessageDeleted?.(id);
+      })
+      .subscribe((s) => {
+        if (s === "SUBSCRIBED") setStatus("subscribed");
+        else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") setStatus("error");
+        else if (s === "CLOSED") setStatus("closed");
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, enabled]);
+
+  return { status };
+}
+
+// --- In-site notifications ---------------------------------------------------
+
+export type NotificationRow = Record<string, unknown> & {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  conversation_id: string | null;
+  room_id: string | null;
+};
+
+// 'user:{userId}' (TECHNICAL_SPEC §5, owner only): every new notification row
+// for me, live — the toast and the nav badges. RLS on notifications limits
+// the stream to my own rows.
+export function useUserNotifications(
+  userId: string | null,
+  onInsert: (row: NotificationRow) => void,
+) {
+  const handlerRef = useRef(onInsert);
+
+  useEffect(() => {
+    handlerRef.current = onInsert;
+  });
+
+  useEffect(() => {
+    if (!userId) return;
+    const supabase = createClient();
+    const channel: RealtimeChannel = supabase.channel(`user:${userId}`, {
+      config: { private: true },
+    });
+    channel
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => handlerRef.current(payload.new as NotificationRow),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
 }

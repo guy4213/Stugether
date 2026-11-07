@@ -1,22 +1,18 @@
 import "server-only";
-import {
-  getCachedMyActiveRooms,
-  getCachedOwnProfile,
-  getCachedUnreadNotificationCount,
-} from "@/lib/app/cached";
+import { getCachedMyActiveRooms, getCachedOwnProfile } from "@/lib/app/cached";
 import { createClient } from "@/lib/supabase/server";
 import { listPublicProfiles } from "@/lib/repositories/profiles";
 import { listCourseRosters, listMyEnrollments } from "@/lib/repositories/enrollments";
-import { listOpenRooms } from "@/lib/repositories/rooms";
+import { listActiveMembersOfRooms, listOpenRooms } from "@/lib/repositories/rooms";
 import { listDepartments } from "@/lib/repositories/catalog";
 import { listCourseTopics, listMyTopicProgress } from "@/lib/repositories/topics";
-import { listEventRegistrations, listUpcomingTestsForCourses } from "@/lib/repositories/tests";
+import { listUpcomingTestsForCourses } from "@/lib/repositories/tests";
 import { listNotifications, type NotificationType } from "@/lib/repositories/notifications";
-import { getUnreadSummary, listMyMessageTimestamps } from "@/lib/repositories/messages";
+import { getUnreadSummary } from "@/lib/repositories/messages";
 import { listPendingInvitations } from "@/lib/repositories/invitations";
 import { listUpcomingSessions } from "@/lib/repositories/sessions";
 import { summarizeTopics, type TopicWithState } from "@/lib/courses/topic-state";
-import { computeStreak } from "@/lib/stats/streak";
+import { dashboardRoom, type RoomPerson } from "@/lib/dashboard/room-row";
 import { computeMatchPercent } from "@/lib/matching/score";
 import { isOnline } from "@/lib/ui/people";
 import { yearLabel } from "@/lib/ui/labels";
@@ -35,10 +31,16 @@ export interface DashboardCourse {
   id: string;
   name: string;
   code: string | null;
+  /** "שנה א׳" */
+  yearLabel: string | null;
   progress: number;
   completed: boolean;
   badge: CourseBadge;
   people: StackPerson[];
+  /** Everyone enrolled, me included. */
+  studentCount: number;
+  topicsTotal: number;
+  topicsMastered: number;
   continueHref: string;
 }
 
@@ -55,7 +57,7 @@ export interface DashboardPartner {
   sharedCourses: { id: string; name: string }[];
 }
 
-const PARTNERS_SHOWN = 5;
+const PARTNERS_SHOWN = 4;
 
 export interface ActivityItem {
   id: string;
@@ -76,7 +78,6 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
 
 async function loadDashboardData(userId: string) {
   const supabase = await createClient();
-  const since60 = new Date(Date.now() - 60 * DAY_MS).toISOString();
 
   // A dependency graph, not rounds: every query starts as soon as what it
   // needs has arrived (e.g. rosters wait only for my enrollments, the catalog
@@ -93,65 +94,49 @@ async function loadDashboardData(userId: string) {
   const pInstitutionId = pProfile.then((p) => p?.institution_id ?? null);
   const pRosters = pCourseIds.then((ids) => listCourseRosters(supabase, ids));
   const now = Date.now();
-  const pNextEvent = pEvents.then(
-    (events) => events.find((e) => e.due_at && new Date(e.due_at).getTime() > now) ?? null,
-  );
-  const pRegistrations = pNextEvent.then((e) => listEventRegistrations(supabase, e ? [e.id] : []));
   // One batched lookup for every person shown on the page.
-  const pPeople = Promise.all([pRosters, pRegistrations, pNotifications]).then(
-    ([rosterRows, registrationRows, notificationRows]) => {
-      const personIds = new Set<string>();
-      rosterRows.forEach((r) => personIds.add(r.user_id));
-      registrationRows.forEach((r) => personIds.add(r.user_id));
-      notificationRows.forEach((n) => n.actor_id && personIds.add(n.actor_id));
-      personIds.delete(userId);
-      return listPublicProfiles(supabase, [...personIds]);
-    },
-  );
+  const pPeople = Promise.all([pRosters, pNotifications]).then(([rosterRows, notificationRows]) => {
+    const personIds = new Set<string>();
+    rosterRows.forEach((r) => personIds.add(r.user_id));
+    notificationRows.forEach((n) => n.actor_id && personIds.add(n.actor_id));
+    personIds.delete(userId);
+    return listPublicProfiles(supabase, [...personIds]);
+  });
+  const pMyRooms = getCachedMyActiveRooms(userId);
+  const pMyRoomIds = pMyRooms.then((rooms) => rooms.map((r) => r.id));
 
   const [
     profile,
     enrollments,
     myRooms,
     progress,
-    messageTimes,
     events,
     notifications,
-    unreadCount,
     invitations,
     unreadSummary,
     topics,
     rosters,
     openRooms,
     departments,
-    nextEventRaw,
-    registrations,
     people,
     upcomingSessions,
+    roomMembers,
   ] = await Promise.all([
     pProfile,
     pEnrollments,
-    getCachedMyActiveRooms(userId),
+    pMyRooms,
     listMyTopicProgress(supabase, userId),
-    listMyMessageTimestamps(supabase, userId, since60),
     pEvents,
     pNotifications,
-    getCachedUnreadNotificationCount(userId),
     listPendingInvitations(supabase),
     getUnreadSummary(supabase),
     pCourseIds.then((ids) => listCourseTopics(supabase, ids)),
     pRosters,
     pCourseIds.then((ids) => listOpenRooms(supabase, ids)),
     pInstitutionId.then((id) => (id ? listDepartments(supabase, id) : [])),
-    pNextEvent,
-    pRegistrations,
     pPeople,
-    getCachedMyActiveRooms(userId).then((rooms) =>
-      listUpcomingSessions(
-        supabase,
-        rooms.map((r) => r.id),
-      ),
-    ),
+    pMyRoomIds.then((ids) => listUpcomingSessions(supabase, ids)),
+    pMyRoomIds.then((ids) => listActiveMembersOfRooms(supabase, ids)),
   ]);
 
   const active = enrollments.filter((e) => e.status === "active");
@@ -167,7 +152,9 @@ async function loadDashboardData(userId: string) {
     topicsByCourse.set(t.course_id, [...(topicsByCourse.get(t.course_id) ?? []), t]);
   }
   const classmatesByCourse = new Map<string, string[]>();
+  const rosterCountByCourse = new Map<string, number>();
   for (const r of rosters) {
+    rosterCountByCourse.set(r.course_id, (rosterCountByCourse.get(r.course_id) ?? 0) + 1);
     if (r.user_id === userId) continue;
     classmatesByCourse.set(r.course_id, [
       ...(classmatesByCourse.get(r.course_id) ?? []),
@@ -217,14 +204,20 @@ async function loadDashboardData(userId: string) {
     if ((room && isRoomLive(room)) || openRoomByCourse.has(e.course_id)) badge = { kind: "live" };
     else if (testSoonByCourse.has(e.course_id)) badge = { kind: "test" };
     else if (learners > 0) badge = { kind: "learners", count: learners };
+    const topicSummary = summarizeTopics(topicsByCourse.get(e.course_id) ?? [], progress);
     return {
       id: e.course_id,
       name: e.course.name,
       code: e.course.code,
+      yearLabel: yearLabel(e.course.year_level),
       progress: e.progress_percent,
       completed: e.progress_percent >= 100,
       badge,
       people: toPeople(classmatesByCourse.get(e.course_id) ?? []),
+      // Rosters include me; at least 1 even if RLS returned nothing.
+      studentCount: Math.max(1, rosterCountByCourse.get(e.course_id) ?? 0),
+      topicsTotal: topicSummary.total,
+      topicsMastered: topicSummary.mastered,
       continueHref: continueHref(e.course_id),
     };
   });
@@ -339,16 +332,16 @@ async function loadDashboardData(userId: string) {
       n.type === "room_opened" && n.room_id && joinableOpenRooms.has(n.room_id) ? n.room_id : null,
   }));
 
-  // --- next event -------------------------------------------------------------------------
+  // --- next event (shown at the end of "פעילות אחרונה") ------------------------------------
+  const nextEventRaw = upcomingEvents[0] ?? null;
   const nextEvent = nextEventRaw
     ? {
         id: nextEventRaw.id,
         courseId: nextEventRaw.course_id,
+        courseName: courseNames.get(nextEventRaw.course_id) ?? null,
         title: nextEventRaw.title,
         kind: nextEventRaw.kind,
         dueAt: nextEventRaw.due_at!,
-        registered: toPeople(registrations.map((r) => r.user_id)),
-        registeredCount: registrations.length,
       }
     : null;
 
@@ -358,18 +351,26 @@ async function loadDashboardData(userId: string) {
   const nextSessionByRoom = new Map<string, string>();
   for (const s of upcomingSessions)
     if (!nextSessionByRoom.has(s.room_id)) nextSessionByRoom.set(s.room_id, s.starts_at);
+  const membersByRoom = new Map<string, RoomPerson[]>();
+  for (const m of roomMembers) {
+    membersByRoom.set(m.room_id, [
+      ...(membersByRoom.get(m.room_id) ?? []),
+      { id: m.user_id, name: m.full_name, avatarPath: m.avatar_url },
+    ]);
+  }
   const courseNameById = new Map(enrollments.map((e) => [e.course_id, e.course.name]));
   const rooms = myRooms
-    .map((r) => ({
-      id: r.id,
-      name: r.name,
-      courseName: courseNameById.get(r.course_id) ?? null,
-      status: r.status,
-      unread: Number(unreadByRoom.get(r.id)?.unread_count ?? 0),
-      lastMessageAt: unreadByRoom.get(r.id)?.last_message_at ?? r.last_message_at,
-      live: r.status === "active" && isRoomLive(r),
-      nextSessionAt: nextSessionByRoom.get(r.id) ?? null,
-    }))
+    .map((r) =>
+      dashboardRoom({
+        room: r,
+        courseName: courseNameById.get(r.course_id) ?? null,
+        unread: Number(unreadByRoom.get(r.id)?.unread_count ?? 0),
+        lastMessageAt: unreadByRoom.get(r.id)?.last_message_at ?? r.last_message_at,
+        nextSessionAt: nextSessionByRoom.get(r.id) ?? null,
+        people: membersByRoom.get(r.id) ?? [],
+        now,
+      }),
+    )
     .sort((a, b) => (b.lastMessageAt ?? "").localeCompare(a.lastMessageAt ?? ""));
   // get_pending_invitations already hides expired ones; re-check against the
   // clock in case the page is rendered right at the boundary.
@@ -383,22 +384,14 @@ async function loadDashboardData(userId: string) {
       expiresAt: i.expires_at,
     }));
 
-  // --- streak / weekly activity -----------------------------------------------------------
-  const activityTimes = [...messageTimes, ...progress.map((p) => p.updated_at)];
-  const weekAgo = now - 7 * DAY_MS;
-
   return {
     firstName: profile?.full_name.split(/\s+/)[0] ?? "",
-    streak: computeStreak(activityTimes),
-    messagesThisWeek: messageTimes.filter((t) => new Date(t).getTime() >= weekAgo).length,
     hero,
     stats,
     myCourses,
     partners,
     activity,
-    pendingInvitationCount: invitations.filter((i) => new Date(i.expires_at).getTime() > now)
-      .length,
-    unreadCount,
+    pendingInvitationCount: pendingInvitations.length,
     nextEvent,
     rooms,
     pendingInvitations,

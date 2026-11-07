@@ -1,133 +1,121 @@
-import Link from "next/link";
-import { BellIcon, CalendarDaysIcon, ChevronLeftIcon, StarIcon, UsersIcon } from "lucide-react";
-import { cn } from "cn";
-import { AvatarStack } from "@/components/ui/avatar-stack";
+import type { ReactNode } from "react";
+import {
+  BellIcon,
+  CalendarClockIcon,
+  CalendarDaysIcon,
+  CircleCheckIcon,
+  MailIcon,
+  MessageSquareIcon,
+  UsersIcon,
+  VideoIcon,
+  type LucideIcon,
+} from "lucide-react";
+import { IconTile } from "@/components/ui/icon-tile";
 import { JoinRoomButton } from "@/components/rooms/join-room-button";
-import { initials, personTone } from "@/lib/ui/people";
+import { SectionHeader } from "@/components/dashboard/section-header";
+import type { NotificationType } from "@/lib/repositories/notifications";
+import type { Tone } from "@/lib/ui/tones";
 import { eventDayLabelHe, relativeTimeHe, timeHe } from "@/lib/ui/format";
+import { NEXT_EVENT_LABEL } from "@/lib/ui/labels";
 import type { ActivityItem, DashboardData } from "@/lib/dashboard/queries";
 
-function ActivityIcon({ item }: { item: ActivityItem }) {
-  const ring = item.joinRoomId ? "shadow-[0_0_0_2px_#10B981]" : "";
-  if (item.actor) {
-    return (
-      <span
-        aria-hidden
-        className={cn(
-          "flex size-11 shrink-0 items-center justify-center rounded-full border-3 border-white text-sm font-bold",
-          personTone(item.actor.id),
-          ring,
-        )}
-      >
-        {initials(item.actor.name)}
-      </span>
-    );
-  }
-  const Icon =
-    item.type === "event_scheduled"
-      ? CalendarDaysIcon
-      : item.type === "course_recommendation"
-        ? StarIcon
-        : item.type === "system"
-          ? BellIcon
-          : UsersIcon;
+const TYPE_ICON: Record<NotificationType, { icon: LucideIcon; tone: Tone }> = {
+  room_invitation: { icon: MailIcon, tone: "violet" },
+  room_opened: { icon: VideoIcon, tone: "violet" },
+  room_joined: { icon: UsersIcon, tone: "success" },
+  room_join_request: { icon: UsersIcon, tone: "success" },
+  room_join_decided: { icon: CircleCheckIcon, tone: "blue" },
+  event_scheduled: { icon: CalendarDaysIcon, tone: "warning" },
+  session_proposed: { icon: CalendarDaysIcon, tone: "warning" },
+  session_scheduled: { icon: CalendarClockIcon, tone: "warning" },
+  direct_message: { icon: MessageSquareIcon, tone: "blue" },
+  course_recommendation: { icon: CircleCheckIcon, tone: "blue" },
+  system: { icon: BellIcon, tone: "rose" },
+};
+
+function Row({
+  icon: Icon,
+  tone,
+  title,
+  subtitle,
+  end,
+}: {
+  icon: LucideIcon;
+  tone: Tone;
+  title: string;
+  subtitle: string | null;
+  end: ReactNode;
+}) {
   return (
-    <span
-      aria-hidden
-      className="flex size-11 shrink-0 items-center justify-center rounded-full border-3 border-white bg-primary-tint text-primary"
-    >
-      <Icon className="size-[18px]" strokeWidth={2} />
-    </span>
+    <li className="flex items-center gap-3 py-3">
+      <IconTile tone={tone} className="size-10 rounded-[12px] [&_svg]:size-[18px]">
+        <Icon strokeWidth={2} />
+      </IconTile>
+      <div className="flex min-w-0 grow flex-col">
+        <span className="truncate text-sm font-bold">{title}</span>
+        {subtitle && <span className="truncate text-xs text-muted-foreground">{subtitle}</span>}
+      </div>
+      <span className="shrink-0 text-[11px] text-muted-foreground">{end}</span>
+    </li>
   );
 }
 
-// Right rail of the dashboard: the latest notifications as a timeline and the
-// next course event as a gradient card.
+// "פעילות אחרונה" (SPEC §4.2): the latest notifications + the next course event.
 export function ActivityRail({
   activity,
-  unreadCount,
   nextEvent,
 }: {
   activity: ActivityItem[];
-  unreadCount: number;
   nextEvent: DashboardData["nextEvent"];
 }) {
+  const empty = activity.length === 0 && !nextEvent;
   return (
-    <div className="flex w-full flex-col gap-1.5 rounded-[24px] border border-border bg-card p-[22px]">
-      <div className="flex items-center justify-between pb-2.5">
-        <h2 className="text-xl font-extrabold">פעילות אחרונה</h2>
-        {unreadCount > 0 && (
-          <Link
-            href="/notifications"
-            className="rounded-full bg-primary-tint px-2.5 py-1 text-xs font-bold text-primary-strong"
-          >
-            {unreadCount} חדשות
-          </Link>
+    <section aria-labelledby="recent-activity" className="flex min-w-0 flex-col gap-3.5">
+      <SectionHeader
+        id="recent-activity"
+        title="פעילות אחרונה"
+        link={{ href: "/notifications", label: "כל ההיסטוריה", chevron: true }}
+      />
+      <div className="flex-1 rounded-[20px] border border-border bg-card px-4 py-1 shadow-card-sm">
+        {empty ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">אין פעילות חדשה</p>
+        ) : (
+          <ol className="divide-y divide-divider">
+            {activity.map((item) => {
+              const { icon, tone } = TYPE_ICON[item.type] ?? TYPE_ICON.system;
+              return (
+                <Row
+                  key={item.id}
+                  icon={item.type === "system" && item.actor ? MessageSquareIcon : icon}
+                  tone={tone}
+                  title={item.title}
+                  subtitle={item.body}
+                  end={
+                    item.joinRoomId ? (
+                      <JoinRoomButton
+                        roomId={item.joinRoomId}
+                        variant="solid"
+                        className="h-8 rounded-[10px] px-3 text-[12px]"
+                      />
+                    ) : (
+                      relativeTimeHe(item.createdAt)
+                    )
+                  }
+                />
+              );
+            })}
+            {nextEvent && (
+              <Row
+                icon={CalendarClockIcon}
+                tone="blue"
+                title={`${NEXT_EVENT_LABEL[nextEvent.kind]}: ${nextEvent.title}`}
+                subtitle={nextEvent.courseName}
+                end={`${eventDayLabelHe(nextEvent.dueAt)} ${timeHe(nextEvent.dueAt)}`}
+              />
+            )}
+          </ol>
         )}
       </div>
-
-      {activity.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">אין פעילות חדשה</p>
-      ) : (
-        <ol className="relative flex flex-col">
-          <span
-            aria-hidden
-            className="absolute start-[21px] top-[22px] bottom-[22px] w-0.5 bg-divider"
-          />
-          {activity.map((item) => (
-            <li key={item.id} className="relative flex gap-3 py-2.5">
-              <ActivityIcon item={item} />
-              <div className="flex min-w-0 grow flex-col gap-0.5">
-                <span className="text-sm font-semibold">{item.title}</span>
-                <span className="text-xs text-muted-foreground">
-                  {relativeTimeHe(item.createdAt)}
-                </span>
-              </div>
-              {item.joinRoomId && (
-                <JoinRoomButton
-                  roomId={item.joinRoomId}
-                  variant="solid"
-                  className="h-[34px] self-center rounded-[10px] px-3.5 text-[13px]"
-                />
-              )}
-            </li>
-          ))}
-        </ol>
-      )}
-
-      {nextEvent && (
-        <Link
-          href={`/courses/${nextEvent.courseId}`}
-          className="mt-3 flex flex-col gap-3 rounded-2xl bg-[linear-gradient(135deg,#1d4ed8,#0d9488)] p-4 text-white shadow-[0_14px_28px_-14px_rgba(29,78,216,.6)] transition-transform hover:-translate-y-0.5"
-        >
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 rounded-full bg-white/18 px-2.5 py-1 text-[13px] font-semibold">
-              <CalendarDaysIcon className="size-3.5" strokeWidth={2.2} aria-hidden />
-              {eventDayLabelHe(nextEvent.dueAt)}
-            </span>
-            <ChevronLeftIcon className="size-5" strokeWidth={2.2} aria-hidden />
-          </div>
-          <div className="flex items-end justify-between gap-2">
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <span className="text-4xl leading-none font-extrabold tracking-[-1px]">
-                {timeHe(nextEvent.dueAt)}
-              </span>
-              <span className="truncate text-[15px] font-semibold">{nextEvent.title}</span>
-            </div>
-            {nextEvent.registeredCount > 0 && (
-              <span className="flex shrink-0 items-center gap-2 text-[13px] font-semibold">
-                <AvatarStack
-                  people={nextEvent.registered}
-                  max={3}
-                  size="sm"
-                  borderClassName="border-[#1E5BC6]"
-                />
-                {nextEvent.registeredCount} רשומים
-              </span>
-            )}
-          </div>
-        </Link>
-      )}
-    </div>
+    </section>
   );
 }

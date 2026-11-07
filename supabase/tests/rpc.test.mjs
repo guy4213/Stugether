@@ -407,15 +407,15 @@ test("extra: AI disabled (global or room) -> 'disabled'", async (t) => {
   );
 });
 
-test("extra: invitation INSERT for a user not enrolled in the course -> denied", async () => {
-  await base.asOwner(async (tx) => {
-    // Control: a1 can invite a5 (enrolled in CS-201, not a member).
-    await become(tx, U.a1);
-    await tx
+// 20261107000001_invite_any_student: the invitee no longer needs to be in the
+// room's course (accepting enrolls them), but a super_admin is never invitable.
+test("extra: invitation INSERT — any active student, never a super_admin", async () => {
+  const tryInvite = (tx, invitee) =>
+    tx
       .savepoint(async () => {
         const ok = await tx.query(
           "insert into public.room_invitations (room_id, inviter_id, invitee_user_id) values ($1, $2, $3) returning id",
-          [ROOM.r1, U.a1, U.a5],
+          [ROOM.r1, U.a1, invitee],
         );
         assert.equal(ok.rows.length, 1);
         throw new Error("rollback-savepoint");
@@ -424,25 +424,47 @@ test("extra: invitation INSERT for a user not enrolled in the course -> denied",
         if (e.message !== "rollback-savepoint") throw e;
       });
 
-    // Admin has no enrollments at all.
+  await base.asOwner(async (tx) => {
+    // a1 can invite a5 (enrolled in CS-201, not a member).
+    await become(tx, U.a1);
+    await tryInvite(tx, U.a5);
+
+    // The admin is never invitable (would see message content).
     await tx.expectError(
       "insert into public.room_invitations (room_id, inviter_id, invitee_user_id) values ($1, $2, $3)",
       [ROOM.r1, U.a1, U.admin],
       "row-level security",
     );
 
-    // a5's CS-201 enrollment archived -> no longer invitable.
+    // a5's CS-201 enrollment archived -> still invitable.
     await become(tx, "owner");
     await tx.query(
       "update public.enrollments set status = 'archived' where user_id = $1 and course_id = $2",
       [U.a5, COURSE.cs201],
     );
     await become(tx, U.a1);
+    await tryInvite(tx, U.a5);
+
+    // ...and with no CS-201 enrollment at all.
+    await become(tx, "owner");
+    await tx.query("delete from public.enrollments where user_id = $1 and course_id = $2", [
+      U.a5,
+      COURSE.cs201,
+    ]);
+    await become(tx, U.a1);
+    await tryInvite(tx, U.a5);
+
+    // A deactivated profile is not invitable.
+    await become(tx, "owner");
+    await tx.query("update public.profiles set is_active = false where id = $1", [U.a5]);
+    await become(tx, U.a1);
     await tx.expectError(
       "insert into public.room_invitations (room_id, inviter_id, invitee_user_id) values ($1, $2, $3)",
       [ROOM.r1, U.a1, U.a5],
       "row-level security",
     );
+    await become(tx, "owner");
+    await tx.query("update public.profiles set is_active = true where id = $1", [U.a5]);
 
     // Non-member (a4) cannot invite into R1.
     await become(tx, "owner");
@@ -464,12 +486,64 @@ test("extra: invitation INSERT for a user not enrolled in the course -> denied",
   assert.equal(i2.status, "pending");
 });
 
-test("extra: accept by an invitee no longer enrolled -> NOT_ALLOWED", async () => {
+test("extra: accept by an invitee no longer enrolled -> re-enrolled and joined", async () => {
   await base.asOwner(async (tx) => {
     await tx.query(
       "update public.enrollments set status = 'archived' where user_id = $1 and course_id = $2",
       [U.a4, COURSE.cs201],
     );
+    await become(tx, U.a4);
+    const { rows } = await tx.query("select public.accept_room_invitation($1) as room_id", [
+      INV.i1_a4_valid,
+    ]);
+    assert.equal(rows[0].room_id, ROOM.r1);
+    await become(tx, "owner");
+    const e = await tx.query(
+      "select status from public.enrollments where user_id = $1 and course_id = $2",
+      [U.a4, COURSE.cs201],
+    );
+    assert.deepEqual(
+      e.rows.map((r) => r.status),
+      ["active"],
+    );
+  });
+});
+
+test("extra: accept by an invitee never enrolled -> enrolled and joined", async () => {
+  await base.asOwner(async (tx) => {
+    await tx.query("delete from public.enrollments where user_id = $1 and course_id = $2", [
+      U.a4,
+      COURSE.cs201,
+    ]);
+    await become(tx, U.a4);
+    const { rows } = await tx.query("select public.accept_room_invitation($1) as room_id", [
+      INV.i1_a4_valid,
+    ]);
+    assert.equal(rows[0].room_id, ROOM.r1);
+    await become(tx, "owner");
+    const member = await tx.query(
+      "select 1 from public.room_members where room_id = $1 and user_id = $2 and left_at is null",
+      [ROOM.r1, U.a4],
+    );
+    assert.equal(member.rows.length, 1);
+    const e = await tx.query(
+      "select status from public.enrollments where user_id = $1 and course_id = $2",
+      [U.a4, COURSE.cs201],
+    );
+    assert.deepEqual(
+      e.rows.map((r) => r.status),
+      ["active"],
+    );
+  });
+});
+
+test("extra: accept into a deactivated course without enrollment -> NOT_ALLOWED", async () => {
+  await base.asOwner(async (tx) => {
+    await tx.query("delete from public.enrollments where user_id = $1 and course_id = $2", [
+      U.a4,
+      COURSE.cs201,
+    ]);
+    await tx.query("update public.courses set is_active = false where id = $1", [COURSE.cs201]);
     await become(tx, U.a4);
     await tx.expectError(
       "select public.accept_room_invitation($1)",

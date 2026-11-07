@@ -3,21 +3,148 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarClockIcon, MailIcon, MessageSquareIcon } from "lucide-react";
+import { MailIcon, MessageSquareIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
-import { LiveDot } from "@/components/ui/live-dot";
-import { Pill } from "@/components/ui/pill";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { CreateRoomForm } from "@/components/courses/create-room-form";
+import { SectionHeader } from "@/components/dashboard/section-header";
+import { RowMenu } from "@/components/dashboard/row-menu";
 import { acceptRoomInvitation, declineRoomInvitation } from "@/lib/notifications/actions";
-import { relativeTimeHe, shortDateHe, timeHe } from "@/lib/ui/format";
+import { shortDateHe } from "@/lib/ui/format";
+import type { DashboardRoom, RoomRowStatus } from "@/lib/dashboard/room-row";
 import type { DashboardData } from "@/lib/dashboard/queries";
 
-// Dashboard areas from SPEC §4.2 that the mockup has no card for: pending
-// invitations (accept/decline in place), my rooms sorted by last message with
-// an unread badge, and the quick "new room" entry.
+const ROWS_SHOWN = 5;
+const MAX_MEMBERS = 4;
+
+const PILL = "inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-xs font-semibold";
+
+function StatusPill({ status }: { status: RoomRowStatus }) {
+  if (!status) return <span className="text-xs text-muted-foreground">—</span>;
+  switch (status.kind) {
+    case "live":
+      return (
+        <span className={cn(PILL, "bg-success-soft text-success-ink")}>
+          <span className="size-1.5 rounded-full bg-success" aria-hidden />
+          פעיל עכשיו
+        </span>
+      );
+    case "soon":
+      return (
+        <span className={cn(PILL, "bg-warning-soft text-warning-ink")}>
+          מתחיל בעוד {status.minutes} דקות
+        </span>
+      );
+    case "seats":
+      return (
+        <span className={cn(PILL, "bg-warning-soft text-warning-ink")}>
+          {status.free === 1 ? "נותר מקום אחד" : `נותרו ${status.free} מקומות`}
+        </span>
+      );
+    case "scheduled":
+      return <span className={cn(PILL, "bg-warning-soft text-warning-ink")}>ממתין להתחלה</span>;
+    case "waiting":
+      return <span className={cn(PILL, "bg-surface-2 text-muted-foreground")}>ממתין למשתתפים</span>;
+    case "archived":
+      return <span className={cn(PILL, "bg-surface-2 text-muted-foreground")}>מאורכב</span>;
+    case "closed":
+      return <span className={cn(PILL, "bg-surface-2 text-muted-foreground")}>סגור</span>;
+  }
+}
+
+function RoomRow({ room }: { room: DashboardRoom }) {
+  const href = `/rooms/${room.id}`;
+  return (
+    <tr className={cn("align-middle", room.status !== "active" && "opacity-75")}>
+      <td className="py-3.5 ps-5 pe-3">
+        <Link
+          prefetch={false}
+          href={href}
+          className="block max-w-[220px] truncate font-bold hover:text-primary"
+        >
+          {room.name}
+        </Link>
+        {room.topic && (
+          <span className="block max-w-[220px] truncate text-xs text-muted-foreground">
+            נושא: {room.topic}
+          </span>
+        )}
+      </td>
+      <td className="max-w-[160px] truncate px-3 py-3.5 text-[13px]">{room.courseName ?? "—"}</td>
+      <td
+        className={cn(
+          "px-3 py-3.5 text-[13px] whitespace-nowrap",
+          !room.when && "text-muted-foreground",
+        )}
+      >
+        {room.when ?? "לא נקבע"}
+      </td>
+      <td className="px-3 py-3.5">
+        <span
+          className="flex items-center gap-2"
+          aria-label={`${room.memberCount} מתוך ${MAX_MEMBERS} משתתפים`}
+        >
+          <span className="flex" aria-hidden>
+            {room.people.slice(0, 3).map((p) => (
+              <PersonAvatar
+                key={p.id}
+                id={p.id}
+                name={p.name}
+                avatarPath={p.avatarPath}
+                className="-ms-1.5 size-7 border-2 border-white text-[10px] first:ms-0"
+              />
+            ))}
+          </span>
+          <span className="text-[13px] font-semibold">
+            {room.memberCount}/{MAX_MEMBERS}
+          </span>
+        </span>
+      </td>
+      <td className="px-3 py-3.5">
+        <span className="flex items-center gap-2 whitespace-nowrap">
+          <StatusPill status={room.rowStatus} />
+          {room.unread > 0 && (
+            <Link
+              prefetch={false}
+              href={href}
+              aria-label={`${room.unread} הודעות שלא נקראו`}
+              className="flex items-center gap-1 text-xs font-bold text-primary"
+            >
+              <MessageSquareIcon className="size-4" aria-hidden />
+              {room.unread > 99 ? "99+" : room.unread}
+            </Link>
+          )}
+        </span>
+      </td>
+      <td className="py-3.5 ps-3 pe-5">
+        <span className="flex items-center justify-end gap-1.5">
+          <RowMenu
+            label={`אפשרויות לחדר ${room.name}`}
+            items={[
+              { label: "כניסה לחדר", href },
+              { label: "לדף הקורס", href: `/courses/${room.courseId}` },
+            ]}
+          />
+          <Button
+            asChild
+            variant={room.live ? "solid" : "outline-primary"}
+            size="chip"
+            className="min-w-[112px] rounded-[10px]"
+          >
+            <Link prefetch={false} href={href}>
+              {room.live ? "הצטרפות" : room.nextSessionAt ? "פרטי המפגש" : "כניסה לחדר"}
+            </Link>
+          </Button>
+        </span>
+      </td>
+    </tr>
+  );
+}
+
+// "חדרי למידה" (SPEC §4.2): my rooms by last message with unread counts, the
+// pending invitations (accept/decline in place) and "new room".
 export function RoomsPanel({
   rooms,
   invitations,
@@ -27,17 +154,33 @@ export function RoomsPanel({
   invitations: DashboardData["pendingInvitations"];
   courses: DashboardData["roomCourses"];
 }) {
-  const activeRooms = rooms.filter((r) => r.status === "active");
-  const readOnlyRooms = rooms.filter((r) => r.status !== "active");
+  // Active rooms first, each group by last message (already sorted).
+  const ordered = [
+    ...rooms.filter((r) => r.status === "active"),
+    ...rooms.filter((r) => r.status !== "active"),
+  ].slice(0, ROWS_SHOWN);
+  const liveCount = rooms.filter((r) => r.live).length;
 
   return (
-    <section aria-labelledby="my-rooms" className="flex flex-col gap-3.5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 id="my-rooms" className="text-2xl font-extrabold">
-          חדרי לימוד
-        </h2>
-        {courses.length > 0 && <CreateRoomForm courses={courses} />}
-      </div>
+    <section aria-labelledby="my-rooms" className="flex min-w-0 flex-col gap-3.5">
+      <SectionHeader
+        id="my-rooms"
+        title="חדרי למידה"
+        extra={
+          liveCount > 0 && (
+            <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-success-soft px-2.5 text-xs font-semibold text-success-ink">
+              <span className="size-1.5 rounded-full bg-success" aria-hidden />
+              פעילים {liveCount}
+            </span>
+          )
+        }
+        actions={
+          courses.length > 0 && (
+            <CreateRoomForm courses={courses} className="h-9 rounded-[10px] px-3 text-[13px]" />
+          )
+        }
+        link={{ href: "/rooms", label: "הצג הכל" }}
+      />
 
       {invitations.length > 0 && (
         <ul className="flex flex-col gap-2.5" aria-label="הזמנות ממתינות">
@@ -47,58 +190,45 @@ export function RoomsPanel({
         </ul>
       )}
 
-      {activeRooms.length === 0 && readOnlyRooms.length === 0 ? (
-        <div className="rounded-[20px] border-2 border-dashed border-switch-off bg-surface-2 p-6 text-center">
+      {ordered.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center rounded-[20px] border-2 border-dashed border-switch-off bg-surface-2 p-6 text-center">
           <p className="font-bold">עוד אין לך חדרי לימוד</p>
           <p className="text-sm text-muted-foreground">
             פתחו חדר בקורס והזמינו עד 3 חברים ללמוד יחד עם העוזר.
           </p>
         </div>
       ) : (
-        <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {[...activeRooms, ...readOnlyRooms].map((room) => (
-            <li key={room.id}>
-              <Link
-                prefetch={false}
-                href={`/rooms/${room.id}`}
-                className={cn(
-                  "flex h-full items-center gap-3 rounded-[18px] border border-border bg-card p-4 transition-colors hover:border-primary-line",
-                  room.status !== "active" && "opacity-75",
-                )}
-              >
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-primary-tint text-primary">
-                  <MessageSquareIcon className="size-5" aria-hidden />
-                </span>
-                <span className="flex min-w-0 grow flex-col gap-0.5">
-                  <span className="flex items-center gap-1.5">
-                    {room.live && <LiveDot />}
-                    <span className="truncate font-bold">{room.name}</span>
-                  </span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {room.courseName ?? ""}
-                    {room.lastMessageAt ? ` · ${relativeTimeHe(room.lastMessageAt)}` : ""}
-                  </span>
-                  {room.nextSessionAt && (
-                    <span className="flex items-center gap-1 text-xs font-semibold text-primary-strong">
-                      <CalendarClockIcon className="size-3.5" aria-hidden />
-                      מפגש הבא: {shortDateHe(room.nextSessionAt)} · {timeHe(room.nextSessionAt)}
-                    </span>
-                  )}
-                </span>
-                {room.status === "archived" && <Pill tone="warning">מאורכב</Pill>}
-                {room.status === "closed" && <Pill tone="neutral">סגור</Pill>}
-                {room.unread > 0 && (
-                  <span
-                    className="h-6 min-w-6 rounded-full bg-primary px-2 text-center text-xs leading-6 font-bold text-white"
-                    aria-label={`${room.unread} הודעות שלא נקראו`}
-                  >
-                    {room.unread > 99 ? "99+" : room.unread}
-                  </span>
-                )}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div className="flex-1 overflow-x-auto rounded-[20px] border border-border bg-card shadow-card-sm">
+          <table className="w-full min-w-[760px] border-separate border-spacing-0 text-start">
+            <thead>
+              <tr className="text-xs text-muted-foreground">
+                <th scope="col" className="py-3 ps-5 pe-3 text-start font-medium">
+                  נושא המפגש
+                </th>
+                <th scope="col" className="px-3 py-3 text-start font-medium">
+                  קורס
+                </th>
+                <th scope="col" className="px-3 py-3 text-start font-medium">
+                  שעה
+                </th>
+                <th scope="col" className="px-3 py-3 text-start font-medium">
+                  משתתפים
+                </th>
+                <th scope="col" className="px-3 py-3 text-start font-medium">
+                  סטטוס
+                </th>
+                <th scope="col" className="py-3 ps-3 pe-5">
+                  <span className="sr-only">פעולות</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="[&>tr>td]:border-t [&>tr>td]:border-divider">
+              {ordered.map((room) => (
+                <RoomRow key={room.id} room={room} />
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );

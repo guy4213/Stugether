@@ -234,8 +234,8 @@ export function SessionPanel({
           aria-label="הצעה למפגש"
           className="mx-3 mb-3 flex flex-col gap-2.5 rounded-[18px] border border-primary-line bg-primary-soft p-3.5 sm:mx-0"
         >
-          <p className="flex items-center gap-2 font-bold">
-            <CalendarClockIcon className="size-5 text-primary" aria-hidden />
+          <p className="flex min-w-0 items-start gap-2 font-bold">
+            <CalendarClockIcon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
             {s.proposedByName} הציע/ה מפגש נוסף — סמנו מועדים שמתאימים לכם
           </p>
           <ul className="flex flex-col gap-1.5">

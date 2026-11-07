@@ -16,6 +16,7 @@ import { cn } from "cn";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { InviteStudentButton } from "@/components/students/invite-student-button";
+import { MessageStudentButton } from "@/components/messages/message-student-button";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getStudentProfileData } from "@/lib/students/queries";
 
@@ -180,12 +181,20 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
           </section>
         )}
 
+        {/* Private chat with this student (SPEC §5.1). */}
+        <MessageStudentButton
+          studentId={student.id}
+          studentName={student.full_name}
+          className="self-start"
+        />
+
         {/* #invite: the "הזמנה לפי קורס" icon on a student card lands here. */}
         <div id="invite" className="scroll-mt-24">
           <InviteStudentButton
             inviteeId={student.id}
             inviteeName={student.full_name}
             sharedCourses={data.sharedCourses}
+            myCourses={data.myCourses}
           />
         </div>
       </article>

@@ -33,6 +33,7 @@ import type {
   DashboardData,
   DashboardPartner,
 } from "@/lib/dashboard/queries";
+import { dashboardRoom } from "@/lib/dashboard/room-row";
 import type { CourseDetailData, MemberStatus } from "@/lib/courses/detail-queries";
 import type { RoomPageData } from "@/lib/rooms/queries";
 import type {
@@ -713,6 +714,7 @@ const CATEGORY: Record<NotificationType, NotificationCategory> = {
   room_join_decided: "rooms",
   session_proposed: "rooms",
   session_scheduled: "rooms",
+  direct_message: "messages",
 };
 
 function notifications(scenario: DemoScenario, t: Clock): AppNotification[] {
@@ -738,6 +740,7 @@ function notifications(scenario: DemoScenario, t: Clock): AppNotification[] {
     room_id: null,
     invitation_id: null,
     event_id: null,
+    conversation_id: null,
     ...refs,
     title,
     body,
@@ -923,6 +926,7 @@ export function demoShell(scenario: DemoScenario): ShellData {
     fullName: ME.full_name,
     avatarPath: ME.avatar_url,
     unreadNotifications: unreadCount(scenario, t),
+    unreadMessages: 0,
     activeRoomId: rooms.find((r) => isRoomLive(r, t.now))?.id ?? null,
     isSuperAdmin: false,
     needsOnboarding: false,
@@ -959,14 +963,22 @@ export function demoDashboard(scenario: DemoScenario): DashboardData {
     if ((r && isRoomLive(r, t.now)) || openByCourse.has(e.course_id)) badge = { kind: "live" };
     else if (testSoon.has(e.course_id)) badge = { kind: "test" };
     else if (learners > 0) badge = { kind: "learners", count: learners };
+    const topicSummary = summarizeTopics(
+      TOPICS.filter((x) => x.course_id === e.course_id),
+      progress,
+    );
     return {
       id: e.course_id,
       name: e.course.name,
       code: e.course.code,
+      yearLabel: yearLabel(e.course.year_level),
       progress: e.progress_percent,
       completed: false,
       badge,
       people: stackAll(roster(scenario, e.course_id), byId),
+      studentCount: studentCount(scenario, e.course_id),
+      topicsTotal: topicSummary.total,
+      topicsMastered: topicSummary.mastered,
       continueHref: continueHref(e.course_id),
     };
   });
@@ -1024,7 +1036,7 @@ export function demoDashboard(scenario: DemoScenario): DashboardData {
       };
     })
     .sort((a, b) => b.percent - a.percent || Number(b.online) - Number(a.online))
-    .slice(0, 5);
+    .slice(0, 4);
 
   const joinable = new Set(open.map((r) => r.room_id));
   const activity: ActivityItem[] = notes.slice(0, 4).map((n) => ({
@@ -1039,15 +1051,19 @@ export function demoDashboard(scenario: DemoScenario): DashboardData {
   }));
 
   const next = allEvents.find((e) => new Date(e.due_at!).getTime() > t.now) ?? null;
-  const registered = next ? registrations(scenario, next.id) : [];
 
   const unreadByRoom: Record<string, number> = { [R.live]: 0, [R.recursion]: 3 };
-  const messagesThisWeek = scenario === "active" ? 23 : 0;
+  const roomPeople = (roomId: string) => {
+    const { owner, members } = ROOM_MEMBERS[roomId];
+    return [owner, ...members].map((id) => ({
+      id,
+      name: id === ME.id ? ME.full_name : (byId.get(id)?.full_name ?? ""),
+      avatarPath: id === ME.id ? ME.avatar_url : (byId.get(id)?.avatar_url ?? null),
+    }));
+  };
 
   return {
     firstName: ME.full_name.split(" ")[0],
-    streak: scenario === "active" ? 6 : 0,
-    messagesThisWeek,
     hero,
     stats: {
       activeCourses: enrolled.length,
@@ -1062,33 +1078,32 @@ export function demoDashboard(scenario: DemoScenario): DashboardData {
     partners,
     activity,
     pendingInvitationCount: pendingInvitations(scenario, t).length,
-    unreadCount: notes.filter((n) => n.read_at === null).length,
     nextEvent: next
       ? {
           id: next.id,
           courseId: next.course_id,
+          courseName: COURSE_BY_ID.get(next.course_id)?.name ?? null,
           title: next.title,
           kind: next.kind,
           dueAt: next.due_at!,
-          registered: stackAll(
-            registered.filter((id) => id !== ME.id),
-            byId,
-          ),
-          registeredCount: registered.length,
         }
       : null,
     rooms: rooms
-      .map((r) => ({
-        id: r.id,
-        name: r.name,
-        courseName: COURSE_BY_ID.get(r.course_id)?.name ?? null,
-        status: r.status,
-        unread: unreadByRoom[r.id] ?? 0,
-        lastMessageAt: r.last_message_at,
-        live: isRoomLive(r, t.now),
-        nextSessionAt:
-          demoSessions(scenario, r.id, t).find((s) => s.status === "scheduled")?.starts_at ?? null,
-      }))
+      .map((r) =>
+        dashboardRoom({
+          room: r,
+          courseName: COURSE_BY_ID.get(r.course_id)?.name ?? null,
+          unread: unreadByRoom[r.id] ?? 0,
+          lastMessageAt: r.last_message_at,
+          nextSessionAt:
+            demoSessions(scenario, r.id, t).find(
+              (s) =>
+                s.status === "scheduled" && s.starts_at && new Date(s.starts_at).getTime() > t.now,
+            )?.starts_at ?? null,
+          people: roomPeople(r.id),
+          now: t.now,
+        }),
+      )
       .sort((a, b) => (b.lastMessageAt ?? "").localeCompare(a.lastMessageAt ?? "")),
     pendingInvitations: pendingInvitations(scenario, t).map((i) => ({
       id: i.id,
@@ -1375,7 +1390,13 @@ export function demoNotifications(
     groups[key === today ? 0 : key === yesterday ? 1 : 2].items.push(item);
   }
 
-  const categories: NotificationCategory[] = ["invitations", "rooms", "courses", "system"];
+  const categories: NotificationCategory[] = [
+    "invitations",
+    "rooms",
+    "messages",
+    "courses",
+    "system",
+  ];
   const count = (list: AppNotification[], c: NotificationCategory) =>
     list.filter((n) => n.category === c).length;
   const week = all.filter((n) => t.now - new Date(n.created_at).getTime() < 7 * DAY);

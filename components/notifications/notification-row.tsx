@@ -9,6 +9,7 @@ import {
   CalendarClockIcon,
   DoorOpenIcon,
   MailIcon,
+  MessageCircleIcon,
   StarIcon,
   UserPlusIcon,
   UsersIcon,
@@ -40,6 +41,7 @@ const TYPE_ICON: Record<NotificationType, { icon: LucideIcon; tile: string; fill
   room_join_request: { icon: DoorOpenIcon, tile: "bg-warning-soft text-warning-ink" },
   room_join_decided: { icon: DoorOpenIcon, tile: "bg-success-soft text-success-ink" },
   session_proposed: { icon: CalendarClockIcon, tile: "bg-primary-tint text-primary" },
+  direct_message: { icon: MessageCircleIcon, tile: "bg-primary-tint text-primary" },
   session_scheduled: {
     icon: CalendarCheckIcon,
     tile: "bg-brand-diag text-white shadow-[0_8px_16px_-8px_rgba(37,99,235,.6)]",
@@ -173,6 +175,17 @@ export function NotificationRow({ item, time }: { item: NotificationItem; time: 
           <Button asChild variant="soft" size="chip">
             <Link prefetch={false} href={`/rooms/${item.action.roomId}`} onClick={markRead}>
               לחדר
+            </Link>
+          </Button>
+        )}
+        {item.action?.kind === "conversation" && (
+          <Button asChild variant="soft" size="chip">
+            <Link
+              prefetch={false}
+              href={`/messages/${item.action.conversationId}`}
+              onClick={markRead}
+            >
+              לשיחה
             </Link>
           </Button>
         )}

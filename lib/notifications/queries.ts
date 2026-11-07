@@ -20,6 +20,7 @@ import { demoNotifications } from "@/lib/demo/fixtures";
 export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
   "invitations",
   "rooms",
+  "messages",
   "courses",
   "system",
 ];
@@ -35,6 +36,7 @@ export type NotificationAction =
   | { kind: "join"; roomId: string; live: boolean; requested: boolean }
   | { kind: "join_request"; requestId: string }
   | { kind: "room"; roomId: string }
+  | { kind: "conversation"; conversationId: string }
   | { kind: "course"; courseId: string; label: string }
   | null;
 
@@ -105,6 +107,8 @@ async function loadNotificationsData(userId: string, category: NotificationCateg
       pendingRequestIds.has(n.request_id)
     ) {
       action = { kind: "join_request", requestId: n.request_id };
+    } else if (n.type === "direct_message" && n.conversation_id) {
+      action = { kind: "conversation", conversationId: n.conversation_id };
     } else if (n.room_id && myRoomIds.has(n.room_id)) {
       action = { kind: "room", roomId: n.room_id };
     } else if (n.type === "room_opened" && n.room_id && joinable.has(n.room_id)) {

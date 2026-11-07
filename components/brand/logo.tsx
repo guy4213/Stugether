@@ -57,3 +57,18 @@ export function Logo({
     </span>
   );
 }
+
+// App top bar logo (Figma 07.11.2026): the blue→green "StuGether" wordmark
+// with "Students learn together" under it. Below sm: smaller, no tagline.
+export function LogoWordmark({ className }: { className?: string }) {
+  return (
+    <span dir="ltr" className={cn("flex flex-col items-start leading-none", className)}>
+      <span className="bg-[linear-gradient(90deg,#3d7fe8_0%,#3d8fe0_45%,#43b38a_100%)] bg-clip-text text-[24px] font-extrabold tracking-[-0.5px] text-transparent sm:text-[30px]">
+        StuGether
+      </span>
+      <span className="mt-[3px] hidden text-xs tracking-[0.3px] text-[#8a9bb0] sm:block">
+        Students learn together
+      </span>
+    </span>
+  );
+}

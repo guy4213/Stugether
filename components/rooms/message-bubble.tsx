@@ -4,9 +4,12 @@ import { PersonAvatar } from "@/components/ui/person-avatar";
 import { AiMarkdown } from "@/components/rooms/ai-markdown";
 import { timeHe } from "@/lib/ui/format";
 import type { Message } from "@/lib/repositories/messages";
-import type { RoomMember } from "@/lib/repositories/rooms";
+import type { PublicProfile } from "@/lib/repositories/profiles";
 
 export const DELETE_WINDOW_MS = 5 * 60 * 1000;
+
+// A room member, or the other side of a private chat.
+export type BubbleSender = { profile: Pick<PublicProfile, "full_name" | "avatar_url"> | null };
 
 export function MessageBubble({
   message,
@@ -22,7 +25,7 @@ export function MessageBubble({
 }: {
   message: Message;
   isOwn: boolean;
-  sender: RoomMember | undefined;
+  sender: BubbleSender | undefined;
   showSender: boolean;
   online: boolean;
   canDelete: boolean;

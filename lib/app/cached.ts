@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getOwnProfile } from "@/lib/repositories/profiles";
 import { listMyActiveRooms } from "@/lib/repositories/rooms";
 import { countUnreadNotifications } from "@/lib/repositories/notifications";
+import { countUnreadConversations } from "@/lib/repositories/conversations";
 import { timed } from "@/lib/perf/timing";
 
 // Reads that both the (app) shell (top nav) and most pages need. cache()
@@ -24,3 +25,10 @@ export const getCachedMyActiveRooms = cache(async (userId: string) =>
 export const getCachedUnreadNotificationCount = cache(async (userId: string) =>
   countUnreadNotifications(await createClient(), userId),
 );
+
+// Conversations with unread private messages — the nav's messages badge.
+// The RPC is scoped to the caller; the id only keys the cache.
+export const getCachedUnreadConversationCount = cache(async (userId: string) => {
+  void userId;
+  return countUnreadConversations(await createClient());
+});

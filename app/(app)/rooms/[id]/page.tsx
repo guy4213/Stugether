@@ -16,7 +16,7 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
   return (
     <main
       id="main-content"
-      className="mx-auto flex w-full max-w-[1680px] flex-col gap-3 pt-6 sm:px-8 sm:pb-6 lg:h-[calc(100dvh-73px)] lg:min-h-[640px] xl:px-14"
+      className="mx-auto flex w-full max-w-[1680px] min-w-0 flex-col gap-4 pt-5 sm:px-8 sm:pb-6 xl:px-12"
     >
       <JoinRequestsBanner requests={data.joinRequests} />
       {data.isMember && (

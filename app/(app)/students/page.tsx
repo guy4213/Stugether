@@ -56,7 +56,7 @@ export default async function StudentsPage({
   return (
     <main id="main-content" className="flex w-full flex-1 flex-col">
       <div className="bg-surface-2">
-        <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 pt-9 pb-8 sm:px-8 xl:px-24">
+        <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 pt-9 pb-8 sm:px-8 xl:px-12">
           <header className="flex flex-col gap-1.5">
             <h1 className="text-[34px] leading-tight font-extrabold tracking-[-0.5px]">סטודנטים</h1>
             <p className="text-[17px] text-muted-foreground">
@@ -82,7 +82,7 @@ export default async function StudentsPage({
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 px-4 pt-6 pb-12 sm:px-8 xl:px-[76px]">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 pt-6 pb-12 sm:px-8 xl:px-12">
         {data.students.length === 0 ? (
           <p className="rounded-[22px] border-2 border-dashed border-switch-off bg-surface-2 p-8 text-center text-muted-foreground">
             לא נמצאו סטודנטים תואמים.{" "}
@@ -94,7 +94,7 @@ export default async function StudentsPage({
           <ul className="grid grid-cols-1 gap-x-8 gap-y-8 sm:grid-cols-2 xl:grid-cols-4">
             {data.students.map((s) => (
               <li key={s.profile.id}>
-                <StudentCard student={s} />
+                <StudentCard student={s} myCourses={data.options.myCourses} />
               </li>
             ))}
           </ul>

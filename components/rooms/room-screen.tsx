@@ -159,22 +159,28 @@ export function RoomScreen({ data, currentUserId }: { data: RoomPageData; curren
   const show = (tab: MobileTab) => (mobileTab === tab ? "flex" : "max-lg:hidden");
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-3 px-4 sm:px-0">
+    // lg+: the room fills one screen below the nav (73px) and the page's
+    // vertical padding (main pt-5 + pb-6 = 44px). Banners above it (join
+    // requests, the next session) push it down instead of squeezing the
+    // columns; the page scrolls by their height.
+    <div className="flex min-h-0 flex-1 flex-col gap-4 lg:h-[calc(100dvh-117px)] lg:min-h-[600px] lg:flex-none">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-0">
         <div className="flex min-w-0 flex-col gap-1">
-          <Link
-            href={course ? `/courses/${course.id}` : "/rooms"}
-            className="mb-1 w-fit rounded-lg p-1 text-foreground hover:bg-muted"
-            aria-label="חזרה"
-          >
-            <ArrowRightIcon className="size-7" />
-          </Link>
           <div className="flex min-w-0 items-center gap-2">
-            <h1 className="truncate text-2xl font-bold sm:text-[28px]">{room.name}</h1>
+            <Link
+              href={course ? `/courses/${course.id}` : "/rooms"}
+              className="-ms-1 shrink-0 rounded-lg p-1 text-foreground hover:bg-muted"
+              aria-label="חזרה"
+            >
+              <ArrowRightIcon className="size-6" />
+            </Link>
+            <h1 className="truncate text-2xl leading-tight font-bold sm:text-[26px]">
+              {room.name}
+            </h1>
             {room.status === "archived" && <Pill tone="warning">מאורכב</Pill>}
             {room.status === "closed" && <Pill tone="neutral">סגור</Pill>}
           </div>
-          <p className="flex items-center gap-2 text-lg text-foreground">
+          <p className="flex items-center gap-2 ps-9 text-base text-foreground">
             {activeMembers.length} משתתפים
             <AvatarStack
               people={activeMembers.map((m) => ({

@@ -31,6 +31,7 @@ import { WhiteboardCanvas } from "@/components/rooms/whiteboard-canvas";
 import type { WhiteboardItem, WhiteboardTool } from "@/hooks/useWhiteboard";
 import type { RoomExercise } from "@/lib/repositories/exercises";
 import { getRoomFileUrl } from "@/lib/storage";
+import { downloadExerciseImage } from "@/components/rooms/export-exercise-image";
 
 const COLORS = ["#2563eb", "#0f1b33", "#e11d48", "#0d9488"];
 
@@ -118,6 +119,8 @@ export function ExercisePanel({
   className?: string;
 }) {
   const panelRef = useRef<HTMLElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
   const [tool, setTool] = useState<WhiteboardTool | null>(null);
   const [color, setColor] = useState(COLORS[0]);
   const [fullscreen, setFullscreen] = useState(false);
@@ -149,20 +152,31 @@ export function ExercisePanel({
     }
   }
 
-  function download() {
-    if (!exercise) return;
-    if (fileUrl && exercise.file_path) {
-      window.open(fileUrl, "_blank", "noopener");
-      return;
+  // An image of the exercise with the whiteboard on it (PNG). A PDF can't be
+  // drawn from its viewer, so a PDF exercise downloads the PDF itself.
+  async function download() {
+    if (!exercise || downloading) return;
+    setDownloading(true);
+    try {
+      if (exercise.file_type === "application/pdf") {
+        if (!fileUrl) throw new Error("file not loaded");
+        const blob = await (await fetch(fileUrl)).blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = exercise.file_name ?? `${exercise.title}.pdf`;
+        document.body.append(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      } else {
+        if (!scrollerRef.current) return;
+        await downloadExerciseImage(scrollerRef.current, exercise.title);
+      }
+    } catch {
+      toast.error("לא ניתן להוריד את התרגיל");
+    } finally {
+      setDownloading(false);
     }
-    const blob = new Blob([`${exercise.title}\n\n${exercise.content ?? ""}`], {
-      type: "text/plain;charset=utf-8",
-    });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${exercise.title}.txt`;
-    a.click();
-    URL.revokeObjectURL(a.href);
   }
 
   return (
@@ -205,7 +219,15 @@ export function ExercisePanel({
               onAdded={onAdded}
             />
           )}
-          <IconButton label="הורדת התרגיל" onClick={download} disabled={!exercise}>
+          <IconButton
+            label={
+              exercise?.file_type === "application/pdf"
+                ? "הורדת התרגיל (PDF)"
+                : "הורדת התרגיל כתמונה"
+            }
+            onClick={() => void download()}
+            disabled={!exercise || downloading}
+          >
             <DownloadIcon />
           </IconButton>
           <IconButton label="שיתוף החדר" onClick={() => void share()}>
@@ -296,7 +318,10 @@ export function ExercisePanel({
           </button>
         </div>
 
-        <div className="relative min-h-0 flex-1 overflow-y-auto ps-6 pe-20 pt-8 pb-24 sm:ps-10 sm:pe-24">
+        <div
+          ref={scrollerRef}
+          className="relative min-h-0 flex-1 overflow-y-auto ps-6 pe-20 pt-8 pb-24 sm:ps-10 sm:pe-24"
+        >
           {exercise ? (
             <article className="flex flex-col gap-4">
               {exercise.content && (

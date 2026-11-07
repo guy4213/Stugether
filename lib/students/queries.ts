@@ -263,6 +263,8 @@ export async function getStudentProfileData(userId: string, studentId: string) {
       shared: myLearningStyles.includes(l),
     })),
     sharedCourses: inputs.myCourses.filter((c) => sharedIds.includes(c.id)),
+    // "הזמנה ללמידה" may use any of my courses (accepting enrolls the invitee).
+    myCourses: inputs.myCourses,
   };
 }
 

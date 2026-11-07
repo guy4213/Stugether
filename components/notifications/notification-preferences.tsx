@@ -13,8 +13,8 @@ const ROWS: { key: NotificationPreferenceKey; title: string; description: string
   { key: "live_rooms", title: "חדרים חיים", description: "כשחבר/ה פותח/ת חדר בקורס שלך" },
   {
     key: "messages_invites",
-    title: "הזמנות וחדרים",
-    description: "הזמנות ללמידה ומי שהצטרף/ה לחדר שלך",
+    title: "הודעות, הזמנות וחדרים",
+    description: "הודעות פרטיות, הזמנות ללמידה ומי שהצטרף/ה לחדר שלך",
   },
   { key: "course_recs", title: "המלצות קורסים", description: "קורסים שמתאימים למסלול שלך" },
   { key: "system_updates", title: "עדכוני מערכת", description: "פיצ׳רים חדשים ותחזוקה" },

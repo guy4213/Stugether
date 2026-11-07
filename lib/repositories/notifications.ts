@@ -10,9 +10,10 @@ export type NotificationType =
   | "room_join_request"
   | "room_join_decided"
   | "session_proposed"
-  | "session_scheduled";
+  | "session_scheduled"
+  | "direct_message";
 
-export type NotificationCategory = "invitations" | "rooms" | "courses" | "system";
+export type NotificationCategory = "invitations" | "rooms" | "messages" | "courses" | "system";
 
 export interface AppNotification {
   id: string;
@@ -25,6 +26,8 @@ export interface AppNotification {
   invitation_id: string | null;
   event_id: string | null;
   request_id: string | null;
+  /** direct_message: the private chat it points to. */
+  conversation_id: string | null;
   title: string;
   body: string | null;
   read_at: string | null;
@@ -96,6 +99,7 @@ export async function getNotificationSummary(
   const summary: NotificationSummary = {
     invitations: { total: 0, unread: 0 },
     rooms: { total: 0, unread: 0 },
+    messages: { total: 0, unread: 0 },
     courses: { total: 0, unread: 0 },
     system: { total: 0, unread: 0 },
   };

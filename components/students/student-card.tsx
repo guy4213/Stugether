@@ -9,12 +9,12 @@ import {
   ClockIcon,
   GraduationCapIcon,
   HeartIcon,
-  MessageSquareTextIcon,
   UserRoundPlusIcon,
 } from "lucide-react";
 import { cn } from "cn";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { InviteStudentButton } from "@/components/students/invite-student-button";
+import { MessageStudentButton } from "@/components/messages/message-student-button";
 import { yearLabel } from "@/lib/ui/labels";
 import type { StudentCard as StudentCardData } from "@/lib/students/queries";
 
@@ -48,7 +48,14 @@ function DetailRow({
 
 // One student in the directory (Figma "כרטיסיות סטודנטים"): photo, match,
 // shared courses, and "פרטים נוספים" opening over the cards below.
-export function StudentCard({ student }: { student: StudentCardData }) {
+export function StudentCard({
+  student,
+  myCourses,
+}: {
+  student: StudentCardData;
+  /** My active courses: "הזמנה ללמידה" works without a shared course too. */
+  myCourses: { id: string; name: string }[];
+}) {
   const { profile, match, details } = student;
   const [open, setOpen] = useState(false);
   const subtitle = [student.departmentName, yearLabel(profile.study_year)]
@@ -107,13 +114,15 @@ export function StudentCard({ student }: { student: StudentCardData }) {
           ) : (
             <>
               {courses.slice(0, MAX_COURSE_CHIPS).map((c) => (
-                <span
+                <Link
                   key={c.id}
-                  className="inline-flex h-[26px] max-w-[48%] items-center gap-1 rounded-full border border-success/40 bg-success-soft px-2.5 text-[11px] font-medium text-success-ink"
+                  href={`/courses/${c.id}`}
+                  title={`לעמוד הקורס ${c.name}`}
+                  className="inline-flex h-[26px] max-w-[48%] items-center gap-1 rounded-full border border-success/40 bg-success-soft px-2.5 text-[11px] font-medium text-success-ink hover:border-success"
                 >
                   <CheckIcon className="size-3 shrink-0" aria-hidden />
-                  <span className="truncate">{c.name}</span>
-                </span>
+                  <span className="truncate underline underline-offset-2">{c.name}</span>
+                </Link>
               ))}
               {courses.length > MAX_COURSE_CHIPS && (
                 <span
@@ -188,32 +197,8 @@ export function StudentCard({ student }: { student: StudentCardData }) {
             </ul>
           </div>
         ) : (
+          // RTL: the icons sit at the start (right), "הזמנה ללמידה" at the end (left).
           <div className="mt-auto flex items-center gap-2.5 pt-6">
-            {courses.length > 0 ? (
-              <InviteStudentButton
-                compact
-                inviteeId={profile.id}
-                inviteeName={profile.full_name}
-                sharedCourses={courses}
-                className="grow"
-                buttonClassName="h-[38px] w-full rounded-full border-0 bg-primary text-[13px] font-bold text-white hover:bg-primary-strong"
-              />
-            ) : (
-              <span
-                className="flex h-[38px] grow items-center justify-center rounded-full bg-surface-2 text-[12px] text-muted-foreground"
-                title="אפשר להזמין רק סטודנטים שרשומים איתך לאותו קורס"
-              >
-                אין קורס משותף להזמנה
-              </span>
-            )}
-            <Link
-              href={`/students/${profile.id}`}
-              aria-label={`הפרופיל של ${profile.full_name}`}
-              title="לפרופיל"
-              className="flex size-[38px] shrink-0 items-center justify-center rounded-[10px] bg-surface-2 text-primary hover:bg-primary-soft"
-            >
-              <MessageSquareTextIcon className="size-[18px]" aria-hidden />
-            </Link>
             <Link
               href={`/students/${profile.id}#invite`}
               aria-label={`הזמנה של ${profile.full_name} לפי קורס`}
@@ -222,6 +207,16 @@ export function StudentCard({ student }: { student: StudentCardData }) {
             >
               <UserRoundPlusIcon className="size-[18px]" aria-hidden />
             </Link>
+            <MessageStudentButton compact studentId={profile.id} studentName={profile.full_name} />
+            <InviteStudentButton
+              compact
+              inviteeId={profile.id}
+              inviteeName={profile.full_name}
+              sharedCourses={courses}
+              myCourses={myCourses}
+              className="min-w-0 grow"
+              buttonClassName="h-[38px] w-full rounded-full border-0 bg-primary text-[13px] font-bold text-white hover:bg-primary-strong"
+            />
           </div>
         )}
       </div>

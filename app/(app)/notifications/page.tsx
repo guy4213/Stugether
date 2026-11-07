@@ -19,6 +19,7 @@ import { shortDateHe, timeHe } from "@/lib/ui/format";
 const CATEGORY_LABEL: Record<NotificationCategory, string> = {
   invitations: "הזמנות",
   rooms: "חדרים",
+  messages: "הודעות",
   courses: "קורסים",
   system: "מערכת",
 };

@@ -14,7 +14,7 @@ import { relativeTimeHe, timeHe } from "@/lib/ui/format";
 import type { RoomCardData } from "@/lib/rooms/directory-queries";
 
 const PRIMARY_BTN =
-  "inline-flex h-[42px] items-center justify-center gap-2 rounded-full px-5 text-[15px] font-bold transition-colors disabled:opacity-60";
+  "inline-flex h-[42px] items-center justify-center shrink-0 gap-2 rounded-full px-5 text-[15px] whitespace-nowrap font-bold transition-colors disabled:opacity-60";
 
 function StatusPill({ room }: { room: RoomCardData }) {
   const base = "inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-semibold";
@@ -161,7 +161,7 @@ export function RoomCard({ room }: { room: RoomCardData }) {
   return (
     <article
       className={cn(
-        "flex h-full flex-col rounded-[22px] bg-card px-7 pt-7 pb-6 shadow-card",
+        "flex h-full min-h-[300px] flex-col rounded-[24px] bg-card px-8 pt-8 pb-7 shadow-card",
         room.status === "live" && "border-[1.5px] border-primary",
         room.status === "full" && "border-[1.5px] border-muted-foreground/60",
       )}
@@ -175,7 +175,7 @@ export function RoomCard({ room }: { room: RoomCardData }) {
         <StatusPill room={room} />
       </div>
 
-      <p className="mt-5 text-[11px] text-muted-foreground">נושא המפגש</p>
+      <p className="mt-6 text-[11px] text-muted-foreground">נושא המפגש</p>
       <h3 className="truncate text-xl leading-tight font-bold">
         {room.isMember ? (
           <Link prefetch={false} href={`/rooms/${room.id}`} className="hover:text-primary">
@@ -185,7 +185,7 @@ export function RoomCard({ room }: { room: RoomCardData }) {
           title
         )}
       </h3>
-      <ul className="mt-2 flex flex-col gap-1.5 text-[13px] text-foreground">
+      <ul className="mt-3 flex flex-col gap-2.5 pb-6 text-[13px] text-foreground">
         {goal && (
           <li className="flex items-center gap-1.5">
             <TargetIcon className="size-4 shrink-0 text-primary" aria-hidden />
@@ -207,7 +207,7 @@ export function RoomCard({ room }: { room: RoomCardData }) {
         )}
       </ul>
 
-      <div className="mt-auto flex items-center justify-between gap-3 border-t border-divider pt-5">
+      <div className="mt-auto flex items-center justify-between gap-3 border-t border-divider pt-6">
         <span className="flex items-center" aria-label={`${room.memberCount} משתתפים`}>
           {room.people.slice(0, 4).map((p) => (
             <PersonAvatar
@@ -215,11 +215,11 @@ export function RoomCard({ room }: { room: RoomCardData }) {
               id={p.id}
               name={p.name}
               avatarPath={p.avatarPath}
-              className="-ms-2 size-8 border-2 border-white text-[11px] first:ms-0"
+              className="-ms-2 size-9 border-2 border-white text-[11px] first:ms-0"
             />
           ))}
           {extra > 0 && (
-            <span className="-ms-2 flex size-8 items-center justify-center rounded-full border-2 border-white bg-violet-soft text-[11px] font-bold text-violet">
+            <span className="-ms-2 flex size-9 items-center justify-center rounded-full border-2 border-white bg-violet-soft text-[11px] font-bold text-violet">
               +{extra}
             </span>
           )}

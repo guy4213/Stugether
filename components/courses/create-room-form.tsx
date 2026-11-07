@@ -8,21 +8,67 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { createRoomForCourse } from "@/lib/courses/actions";
 
 // Matches set_room_topics (TOO_MANY_TOPICS above 10).
 const MAX_TOPICS = 10;
+// The first session's length when an opening time is set.
+const SESSION_MINUTES = 90;
 
-// "פתיחת חדר". trigger: glass (course banner) / brand (overview card) /
-// soft (rooms tab). Open rooms are announced to the course and joinable
-// without an invitation (up to 4).
+const GOALS = [
+  "חזרה לקראת מבחן",
+  "פתרון תרגילים",
+  "למידה בזוגות",
+  "הבנת חומר חדש",
+  "עבודה / פרויקט משותף",
+];
+
+const FIELD =
+  "h-12 w-full rounded-[14px] border border-input bg-white px-4 text-[15px] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+
+// "YYYY-MM-DD" / "HH:MM" in the browser's time zone, for the date/time inputs.
+const pad = (n: number) => String(n).padStart(2, "0");
+const dateValue = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const timeValue = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+// The next round quarter hour — the default opening time.
+function nextQuarterHour(): Date {
+  const d = new Date();
+  d.setSeconds(0, 0);
+  d.setMinutes(Math.ceil((d.getMinutes() + 1) / 15) * 15);
+  return d;
+}
+
+function Field({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor={htmlFor} className="text-[15px] font-bold">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+// "חדר לימוד חדש". trigger: glass (course banner) / brand (overview card) /
+// soft (rooms tab) / new (rooms page). Open rooms are announced to the course
+// and joinable without an invitation (up to 4). A future opening time becomes
+// the room's first scheduled session, with the goal as its note.
 export function CreateRoomForm({
   courseId: fixedCourseId,
   courses,
@@ -50,18 +96,39 @@ export function CreateRoomForm({
   const [name, setName] = useState("");
   const [topic, setTopic] = useState(defaultTopic);
   const [topicIds, setTopicIds] = useState<string[]>(defaultTopicIds);
+  const [goal, setGoal] = useState(GOALS[0]);
+  // Filled when the dialog opens (not on the server: it depends on "now").
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [isOpenRoom, setIsOpenRoom] = useState(true);
+  const [isPending, startTransition] = useTransition();
   const pickTopics = Boolean(fixedCourseId) && topics.length > 0;
+
+  function onOpenChange(next: boolean) {
+    if (next) {
+      const at = nextQuarterHour();
+      setDate(dateValue(at));
+      setTime(timeValue(at));
+    }
+    setOpen(next);
+  }
 
   function toggleTopic(id: string, checked: boolean) {
     setTopicIds((ids) =>
       checked ? (ids.length >= MAX_TOPICS ? ids : [...ids, id]) : ids.filter((x) => x !== id),
     );
   }
-  const [isOpenRoom, setIsOpenRoom] = useState(true);
-  const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Local date + time -> an instant. A time that already came (the form was
+    // open for a while) opens the room now, without a session.
+    const startsAt = date && time ? new Date(`${date}T${time}`) : null;
+    if (startsAt && Number.isNaN(startsAt.getTime())) {
+      toast.error("מועד הפתיחה אינו תקין");
+      return;
+    }
+    const later = startsAt && startsAt.getTime() > Date.now() + 60_000;
     startTransition(async () => {
       const result = await createRoomForCourse(
         courseId,
@@ -69,6 +136,9 @@ export function CreateRoomForm({
         pickTopics ? "" : topic,
         isOpenRoom,
         pickTopics ? topicIds : [],
+        later && startsAt
+          ? { startsAt: startsAt.toISOString(), durationMin: SESSION_MINUTES, goal: goal || null }
+          : null,
       );
       // On success the action redirects and never returns; only a failure
       // (a plain ActionResult) reaches this branch.
@@ -77,7 +147,7 @@ export function CreateRoomForm({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         {trigger === "glass" ? (
           <Button variant="glass" size="md" className={className}>
@@ -102,41 +172,50 @@ export function CreateRoomForm({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] gap-5 overflow-y-auto rounded-[24px] p-6 sm:max-w-[460px]">
         <DialogHeader>
-          <DialogTitle>פתיחת חדר לימוד</DialogTitle>
-          <DialogDescription>עד 4 משתתפים, עם עוזר AI בתוך החדר.</DialogDescription>
+          <DialogTitle className="text-[22px] font-extrabold">חדר לימוד חדש</DialogTitle>
+          <DialogDescription className="sr-only">
+            עד 4 משתתפים, עם עוזר AI בתוך החדר.
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <Field label="שם החדר" htmlFor="room-name">
+            <Input
+              id="room-name"
+              placeholder="לדוגמה: חזרה לפני המבחן"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={100}
+              required
+              className={FIELD}
+            />
+          </Field>
+
           {!fixedCourseId && courses && (
-            <select
-              aria-label="קורס"
-              value={pickedCourseId}
-              onChange={(e) => setPickedCourseId(e.target.value)}
-              className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              {courses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            <Field label="קורס" htmlFor="room-course">
+              <select
+                id="room-course"
+                value={pickedCourseId}
+                onChange={(e) => setPickedCourseId(e.target.value)}
+                className={FIELD}
+              >
+                {courses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
           )}
-          <Input
-            placeholder="שם החדר"
-            aria-label="שם החדר"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={100}
-            required
-          />
+
           {pickTopics ? (
-            <fieldset className="flex flex-col gap-1.5">
-              <legend className="mb-1 text-sm font-semibold">
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-2 text-[15px] font-bold">
                 נושאי החדר{" "}
                 <span className="font-normal text-muted-foreground">(עד {MAX_TOPICS})</span>
               </legend>
-              <div className="flex max-h-52 flex-col gap-1 overflow-y-auto rounded-lg border border-input p-2">
+              <div className="flex max-h-44 flex-col gap-1 overflow-y-auto rounded-[14px] border border-input p-2">
                 {topics.map((t) => {
                   const checked = topicIds.includes(t.id);
                   return (
@@ -157,14 +236,58 @@ export function CreateRoomForm({
               </div>
             </fieldset>
           ) : (
-            <Input
-              placeholder="נושא (לא חובה)"
-              aria-label="נושא"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              maxLength={500}
-            />
+            <Field label="נושא" htmlFor="room-topic">
+              <Input
+                id="room-topic"
+                placeholder="לדוגמה: רקורסיה"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                maxLength={500}
+                className={FIELD}
+              />
+            </Field>
           )}
+
+          <Field label="מטרת המפגש" htmlFor="room-goal">
+            <select
+              id="room-goal"
+              value={goal}
+              onChange={(e) => setGoal(e.target.value)}
+              className={FIELD}
+            >
+              {GOALS.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="תאריך פתיחה" htmlFor="room-date">
+              <input
+                id="room-date"
+                type="date"
+                value={date}
+                min={date ? dateValue(new Date()) : undefined}
+                onChange={(e) => setDate(e.target.value)}
+                required
+                className={FIELD}
+              />
+            </Field>
+            <Field label="שעת פתיחה" htmlFor="room-time">
+              <input
+                id="room-time"
+                type="time"
+                step={300}
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                required
+                className={FIELD}
+              />
+            </Field>
+          </div>
+
           <label className="flex items-start gap-2.5 text-sm">
             <Checkbox
               checked={isOpenRoom}
@@ -178,16 +301,24 @@ export function CreateRoomForm({
               </span>
             </span>
           </label>
-          <DialogFooter>
+
+          {/* RTL: flex-end = the left side. */}
+          <div className="flex justify-end gap-2.5 pt-1">
             <Button
               type="submit"
               variant="brand"
-              size="md"
+              size="xl"
+              className="rounded-[14px] px-6"
               disabled={isPending || !name.trim() || !courseId}
             >
-              {isPending ? "פותח..." : "פתיחת החדר"}
+              {isPending ? "יוצר..." : "יצירת חדר"}
             </Button>
-          </DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" size="xl" className="rounded-[14px] px-6">
+                ביטול
+              </Button>
+            </DialogClose>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

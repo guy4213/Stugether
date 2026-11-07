@@ -30,7 +30,7 @@ export default async function RoomsPage({
   return (
     <main id="main-content" className="flex w-full flex-1 flex-col">
       <header className="bg-surface-2">
-        <div className="mx-auto flex w-full max-w-[1440px] flex-wrap items-center justify-between gap-4 px-4 pt-10 pb-8 sm:px-8 xl:px-24">
+        <div className="mx-auto flex w-full max-w-[1440px] flex-wrap items-center justify-between gap-4 px-4 pt-10 pb-8 sm:px-8 xl:px-12">
           <div className="flex flex-col gap-2">
             <h1 className="text-[34px] leading-tight font-extrabold tracking-[-0.5px]">
               חדרי לימוד
@@ -43,7 +43,7 @@ export default async function RoomsPage({
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-8 px-4 pt-7 pb-12 sm:px-8 xl:px-24">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-8 px-4 pt-7 pb-12 sm:px-8 xl:px-12">
         <RoomsFilters courses={data.courses} />
 
         {empty ? (
@@ -66,7 +66,7 @@ export default async function RoomsPage({
                 <h2 id="live-rooms" className="text-[22px] font-extrabold">
                   חדרים פעילים
                 </h2>
-                <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+                <ul className="grid grid-cols-1 gap-7 sm:grid-cols-2 xl:grid-cols-3">
                   {data.liveRooms.map((r) => (
                     <li key={r.id}>
                       <RoomCard room={r} />
@@ -80,7 +80,7 @@ export default async function RoomsPage({
                 <h2 id="all-rooms" className="text-[22px] font-extrabold">
                   כל חדרי הלימוד
                 </h2>
-                <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+                <ul className="grid grid-cols-1 gap-7 sm:grid-cols-2 xl:grid-cols-3">
                   {data.otherRooms.map((r) => (
                     <li key={r.id}>
                       <RoomCard room={r} />
