@@ -198,7 +198,10 @@ export function RoomsPanel({
           </p>
         </div>
       ) : (
-        <div className="flex-1 overflow-x-auto rounded-[20px] border border-border bg-card shadow-card-sm">
+        // `relative`: makes this scroll box the containing block of the
+        // absolutely positioned sr-only header text, which otherwise escapes
+        // the clip and widens the whole page on phones (RTL overflow).
+        <div className="relative flex-1 overflow-x-auto rounded-[20px] border border-border bg-card shadow-card-sm">
           <table className="w-full min-w-[760px] border-separate border-spacing-0 text-start">
             <thead>
               <tr className="text-xs text-muted-foreground">
