@@ -35,6 +35,7 @@ import type {
 } from "@/lib/dashboard/queries";
 import { dashboardRoom } from "@/lib/dashboard/room-row";
 import type { CourseDetailData, MemberStatus } from "@/lib/courses/detail-queries";
+import type { CoursesInputs } from "@/lib/courses/queries";
 import type { RoomPageData } from "@/lib/rooms/queries";
 import type {
   NotificationAction,
@@ -1118,7 +1119,9 @@ export function demoDashboard(scenario: DemoScenario): DashboardData {
 
 // Raw catalog for the courses page; lib/courses/queries.ts filters and sorts
 // it with the same code as the real catalog.
-export function demoCatalog(scenario: DemoScenario) {
+export function demoCatalog(scenario: DemoScenario): CoursesInputs {
+  const t = clock();
+  const byId = people(scenario, t);
   return {
     institutionId: INSTITUTION.id,
     courses: COURSES,
@@ -1126,6 +1129,21 @@ export function demoCatalog(scenario: DemoScenario) {
     favoriteIds: scenario === "empty" ? [] : [C.infi, C.ds],
     studentCounts: Object.fromEntries(COURSES.map((c) => [c.id, studentCount(scenario, c.id)])),
     roomCounts: Object.fromEntries(COURSES.map((c) => [c.id, roomCount(scenario, c.id)])),
+    enrollments: enrollments(scenario, t),
+    topics: TOPICS,
+    progress: topicProgress(scenario, t),
+    events: events(scenario, t),
+    partners: Object.fromEntries(
+      MY_COURSE_IDS.map((courseId) => [
+        courseId,
+        roster(scenario, courseId)
+          .slice(0, 4)
+          .flatMap((id) => {
+            const p = byId.get(id);
+            return p ? [{ id: p.id, name: p.full_name, avatarPath: p.avatar_url }] : [];
+          }),
+      ]),
+    ),
   };
 }
 

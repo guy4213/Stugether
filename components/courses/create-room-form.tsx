@@ -77,20 +77,26 @@ export function CreateRoomForm({
   topics = [],
   defaultTopicIds = [],
   className,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: {
   // Either a fixed course (course page) or a list to pick from (dashboard
   // "כניסה מהירה", SPEC §4.2).
   courseId?: string;
   courses?: { id: string; name: string }[];
-  trigger?: "glass" | "brand" | "soft" | "new";
+  /** "none": no button — opened from outside (open / onOpenChange). */
+  trigger?: "glass" | "brand" | "soft" | "new" | "none";
   defaultTopic?: string;
   // The course syllabus (fixed-course usage). When present, the room's topics
   // are picked from it instead of typed.
   topics?: { id: string; title: string }[];
   defaultTopicIds?: string[];
   className?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  const open = controlledOpen ?? ownOpen;
   const [pickedCourseId, setPickedCourseId] = useState(courses?.[0]?.id ?? "");
   const courseId = fixedCourseId ?? pickedCourseId;
   const [name, setName] = useState("");
@@ -104,13 +110,25 @@ export function CreateRoomForm({
   const [isPending, startTransition] = useTransition();
   const pickTopics = Boolean(fixedCourseId) && topics.length > 0;
 
+  // Opened from outside (trigger "none"): fill the date and time the same way.
+  const [filledFor, setFilledFor] = useState(false);
+  if (controlledOpen && !filledFor) {
+    setFilledFor(true);
+    const at = nextQuarterHour();
+    setDate(dateValue(at));
+    setTime(timeValue(at));
+  } else if (!controlledOpen && filledFor) {
+    setFilledFor(false);
+  }
+
   function onOpenChange(next: boolean) {
     if (next) {
       const at = nextQuarterHour();
       setDate(dateValue(at));
       setTime(timeValue(at));
     }
-    setOpen(next);
+    setOwnOpen(next);
+    controlledOnOpenChange?.(next);
   }
 
   function toggleTopic(id: string, checked: boolean) {
@@ -148,30 +166,32 @@ export function CreateRoomForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        {trigger === "glass" ? (
-          <Button variant="glass" size="md" className={className}>
-            <PlusIcon strokeWidth={2.4} />
-            פתיחת חדר
-          </Button>
-        ) : trigger === "new" ? (
-          // Rooms page (Figma "חדרי לימוד"): "+ חדר חדש".
-          <Button variant="brand" size="xl" className={className}>
-            <PlusIcon strokeWidth={2.4} />
-            חדר חדש
-          </Button>
-        ) : trigger === "brand" ? (
-          <Button variant="brand" size="xl" className={className}>
-            <VideoIcon />
-            פתיחת חדר
-          </Button>
-        ) : (
-          <Button variant="soft" size="md" className={className}>
-            <PlusIcon />
-            חדר לימוד חדש
-          </Button>
-        )}
-      </DialogTrigger>
+      {trigger !== "none" && (
+        <DialogTrigger asChild>
+          {trigger === "glass" ? (
+            <Button variant="glass" size="md" className={className}>
+              <PlusIcon strokeWidth={2.4} />
+              פתיחת חדר
+            </Button>
+          ) : trigger === "new" ? (
+            // Rooms page (Figma "חדרי לימוד"): "+ חדר חדש".
+            <Button variant="brand" size="xl" className={className}>
+              <PlusIcon strokeWidth={2.4} />
+              חדר חדש
+            </Button>
+          ) : trigger === "brand" ? (
+            <Button variant="brand" size="xl" className={className}>
+              <VideoIcon />
+              פתיחת חדר
+            </Button>
+          ) : (
+            <Button variant="soft" size="md" className={className}>
+              <PlusIcon />
+              חדר לימוד חדש
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-h-[calc(100dvh-2rem)] gap-5 overflow-y-auto rounded-[24px] p-6 sm:max-w-[460px]">
         <DialogHeader>
           <DialogTitle className="text-[22px] font-extrabold">חדר לימוד חדש</DialogTitle>

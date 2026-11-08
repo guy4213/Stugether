@@ -146,3 +146,20 @@ export async function countActiveClassmates(
 
   return new Set((data as { user_id: string }[]).map((row) => row.user_id)).size;
 }
+
+// "סימון כהושלם" on a course card (Change Request 07.11.2026). The topic
+// progress trigger also sets completed_at at 100% and clears it below.
+export async function setEnrollmentCompleted(
+  client: SupabaseClient,
+  userId: string,
+  courseId: string,
+  completed: boolean,
+): Promise<void> {
+  const { error } = await client
+    .from("enrollments")
+    .update({ completed_at: completed ? new Date().toISOString() : null })
+    .eq("user_id", userId)
+    .eq("course_id", courseId)
+    .eq("status", "active");
+  if (error) throw error;
+}

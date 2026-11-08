@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Loader2Icon, SearchIcon } from "lucide-react";
+import { ChevronDownIcon, Loader2Icon, SearchIcon } from "lucide-react";
 import { cn } from "cn";
 import type { Department } from "@/lib/repositories/catalog";
 
@@ -23,7 +23,7 @@ function useUrlParams() {
   return { searchParams, navigate, isPending };
 }
 
-// Hero search (Discover.dc.html): white 60px field with a gradient "חיפוש"
+// Hero search (Figma "קורסים"): white 64px field with a gradient "חיפוש"
 // button. Typing is debounced into ?q=; the button / Enter applies at once.
 export function CourseSearchBox() {
   const { searchParams, navigate, isPending } = useUrlParams();
@@ -49,12 +49,12 @@ export function CourseSearchBox() {
         e.preventDefault();
         apply(query);
       }}
-      className="flex h-[60px] items-center gap-3 rounded-[18px] bg-white ps-5 pe-2 text-muted-foreground shadow-[0_10px_24px_-10px_rgba(15,27,51,.35)]"
+      className="flex h-16 items-center gap-3 rounded-[18px] bg-white ps-[18px] pe-2 text-[#4a5160] shadow-[0_6px_18px_rgba(20,60,120,.12)]"
     >
       {isPending ? (
-        <Loader2Icon className="size-[22px] shrink-0 animate-spin" aria-hidden />
+        <Loader2Icon className="size-6 shrink-0 animate-spin" aria-hidden />
       ) : (
-        <SearchIcon className="size-[22px] shrink-0" strokeWidth={2} aria-hidden />
+        <SearchIcon className="size-6 shrink-0" strokeWidth={1.8} aria-hidden />
       )}
       <input
         type="search"
@@ -62,11 +62,11 @@ export function CourseSearchBox() {
         onChange={(e) => setQuery(e.target.value)}
         aria-label="חיפוש קורס"
         placeholder="חיפוש קורס לפי שם או קוד"
-        className="min-w-0 grow border-0 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
+        className="min-w-0 grow border-0 bg-transparent text-lg text-foreground outline-none placeholder:text-[#8b8f99]"
       />
       <button
         type="submit"
-        className="h-[46px] shrink-0 rounded-[13px] bg-brand px-6 text-[15px] font-bold text-white hover:brightness-105"
+        className="h-12 shrink-0 rounded-[14px] bg-figma-brand px-7 text-[17px] font-bold text-white transition hover:brightness-105"
       >
         חיפוש
       </button>
@@ -89,10 +89,10 @@ function Chip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-[42px] shrink-0 items-center gap-1.5 rounded-full px-[18px] text-sm transition-colors",
+        "inline-flex h-[46px] shrink-0 items-center rounded-full px-5 text-[17px] transition-colors",
         active
-          ? "bg-brand px-5 font-bold text-white shadow-[0_8px_16px_-8px_rgba(37,99,235,.6)]"
-          : "border border-border bg-white font-medium text-ink-2 hover:border-primary-line",
+          ? "border border-transparent bg-figma-brand font-bold text-white shadow-[0_4px_10px_rgba(80,146,241,.25)]"
+          : "border border-[#dbe5f5] bg-white font-medium text-[#3b3b3b] hover:border-[#b9c9e6]",
       )}
     >
       {children}
@@ -100,61 +100,65 @@ function Chip({
   );
 }
 
-function StarOutline() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#F59E0B"
-      strokeWidth="2"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />
-    </svg>
-  );
-}
+const SORTS = [
+  { value: "relevance", label: "רלוונטיות" },
+  { value: "progress", label: "התקדמות" },
+  { value: "exam", label: "מבחן קרוב" },
+  { value: "az", label: "שם הקורס" },
+];
 
-// Chips (הכל / מועדפים / departments) + sort select.
+// Chips (הכל / הקורסים שלי / מועדפים | departments) + sort, per the Figma.
 export function CoursesFilterBar({ departments }: { departments: Department[] }) {
   const { searchParams, navigate } = useUrlParams();
   const departmentId = searchParams.get("departmentId");
-  const favoritesOnly = searchParams.get("favorites") === "1";
+  const view =
+    searchParams.get("view") ?? (searchParams.get("favorites") === "1" ? "favorites" : "all");
   // Matches parseCourseSort: a department defaults to its study plan.
-  const defaultSort = departmentId ? "semester" : "popular";
+  const defaultSort = departmentId ? "semester" : "relevance";
   const sort = searchParams.get("sort") ?? defaultSort;
+  const setView = (next: string) =>
+    navigate((p) => {
+      p.delete("favorites");
+      if (next === "all") p.delete("view");
+      else p.set("view", next);
+    });
   // "semester" is only offered inside a department, so leaving one drops it.
   const dropSemesterSort = (p: URLSearchParams) => {
-    if (p.get("sort") === "semester" || (!p.has("departmentId") && p.get("sort") === "popular"))
-      p.delete("sort");
+    if (p.get("sort") === "semester") p.delete("sort");
   };
 
   return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-      <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="סינון קורסים">
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div
+        className="flex items-center gap-2.5 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible lg:pb-0"
+        role="group"
+        aria-label="סינון קורסים"
+      >
         <Chip
-          active={!departmentId && !favoritesOnly}
+          active={view === "all" && !departmentId}
           onClick={() =>
             navigate((p) => {
-              p.delete("departmentId");
+              p.delete("view");
               p.delete("favorites");
+              p.delete("departmentId");
               dropSemesterSort(p);
             })
           }
         >
           הכל
         </Chip>
+        <Chip active={view === "mine"} onClick={() => setView(view === "mine" ? "all" : "mine")}>
+          הקורסים שלי
+        </Chip>
         <Chip
-          active={favoritesOnly}
-          onClick={() =>
-            navigate((p) => (favoritesOnly ? p.delete("favorites") : p.set("favorites", "1")))
-          }
+          active={view === "favorites"}
+          onClick={() => setView(view === "favorites" ? "all" : "favorites")}
         >
-          <StarOutline />
           מועדפים
         </Chip>
+        {departments.length > 0 && (
+          <span aria-hidden className="mx-1 h-7 w-px shrink-0 bg-[#dbe5f5]" />
+        )}
         {departments.map((dept) => (
           <Chip
             key={dept.id}
@@ -171,22 +175,30 @@ export function CoursesFilterBar({ departments }: { departments: Department[] })
           </Chip>
         ))}
       </div>
-      <label className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
+      <label className="flex shrink-0 items-center gap-3 text-base text-[#737885]">
         מיון
-        <select
-          value={sort}
-          onChange={(e) =>
-            navigate((p) =>
-              e.target.value === defaultSort ? p.delete("sort") : p.set("sort", e.target.value),
-            )
-          }
-          className="h-[42px] rounded-xl border border-border bg-white px-3.5 text-sm text-foreground"
-        >
-          {departmentId && <option value="semester">לפי שנה וסמסטר</option>}
-          <option value="popular">הכי פופולרי</option>
-          <option value="rooms">הכי הרבה חדרים</option>
-          <option value="az">א׳–ת׳</option>
-        </select>
+        <span className="relative">
+          <select
+            value={sort}
+            onChange={(e) =>
+              navigate((p) =>
+                e.target.value === defaultSort ? p.delete("sort") : p.set("sort", e.target.value),
+              )
+            }
+            className="h-[46px] w-[185px] cursor-pointer appearance-none rounded-xl border border-[#dbe5f5] bg-white ps-5 pe-10 text-[17px] font-medium text-foreground"
+          >
+            {departmentId && <option value="semester">לפי שנה וסמסטר</option>}
+            {SORTS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDownIcon
+            aria-hidden
+            className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-foreground"
+          />
+        </span>
       </label>
     </div>
   );

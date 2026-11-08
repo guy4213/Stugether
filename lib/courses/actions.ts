@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { enroll, unenroll } from "@/lib/repositories/enrollments";
+import { enroll, setEnrollmentCompleted, unenroll } from "@/lib/repositories/enrollments";
 import { createRoom } from "@/lib/repositories/rooms";
 import { setRoomTopics } from "@/lib/repositories/topics";
 import { proposeRoomSession } from "@/lib/repositories/sessions";
@@ -43,6 +43,27 @@ export async function unenrollFromCourse(courseId: string): Promise<ActionResult
     return { ok: false, error: "משהו השתבש" };
   }
   revalidatePath(`/courses/${courseId}`);
+  revalidatePath("/courses");
+  revalidatePath("/dashboard");
+  revalidatePath("/analytics");
+  revalidatePath("/profile");
+  return { ok: true };
+}
+
+// "סימון כהושלם" / "ביטול הסימון" from the course card menu.
+export async function setCourseCompleted(
+  courseId: string,
+  completed: boolean,
+): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
+  if (!user) return { ok: false, error: "יש להתחבר מחדש" };
+  const supabase = await createClient();
+  try {
+    await setEnrollmentCompleted(supabase, user.id, courseId, completed);
+  } catch {
+    return { ok: false, error: "משהו השתבש" };
+  }
   revalidatePath("/courses");
   revalidatePath("/dashboard");
   revalidatePath("/analytics");

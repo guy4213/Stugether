@@ -269,3 +269,11 @@
 @utility animate-float-slow {
   animation: landing-float 7s ease-in-out infinite reverse;
 }
+
+/* Courses page (Figma 07.11.2026): green → blue, drawn from the start (right). */
+@utility bg-figma-hero {
+  background-image: linear-gradient(260deg, #5cbc93 0%, #58a9c4 45%, #5092f1 100%);
+}
+@utility bg-figma-brand {
+  background-image: linear-gradient(260deg, #5cbc93 30.8%, #5092f1 61.6%);
+}

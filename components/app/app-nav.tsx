@@ -85,7 +85,7 @@ function IconLink({
     >
       <Icon className="size-6" strokeWidth={1.8} aria-hidden />
       {count > 0 && (
-        <span className="absolute -top-0.5 start-0.5 flex h-4 min-w-5 items-center justify-center rounded-full bg-[#f0384f] px-1.5 text-[11px] leading-none font-bold text-white">
+        <span className="absolute start-0.5 -top-0.5 flex h-4 min-w-5 items-center justify-center rounded-full bg-[#f0384f] px-1.5 text-[11px] leading-none font-bold text-white">
           {count > 99 ? "99+" : count}
         </span>
       )}
