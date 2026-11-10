@@ -71,8 +71,16 @@ function RoomRow({ room }: { room: DashboardRoom }) {
             נושא: {room.topic}
           </span>
         )}
+        {/* Below lg (tablet portrait) the course column folds in here. */}
+        {room.courseName && (
+          <span className="block max-w-[220px] truncate text-xs text-muted-foreground lg:hidden">
+            {room.courseName}
+          </span>
+        )}
       </td>
-      <td className="max-w-[160px] truncate px-3 py-3.5 text-[13px]">{room.courseName ?? "—"}</td>
+      <td className="max-w-[160px] truncate px-3 py-3.5 text-[13px] max-lg:hidden">
+        {room.courseName ?? "—"}
+      </td>
       <td
         className={cn(
           "px-3 py-3.5 text-[13px] whitespace-nowrap",
@@ -202,13 +210,14 @@ export function RoomsPanel({
         // absolutely positioned sr-only header text, which otherwise escapes
         // the clip and widens the whole page on phones (RTL overflow).
         <div className="relative flex-1 overflow-x-auto rounded-[20px] border border-border bg-card shadow-card-sm">
-          <table className="w-full min-w-[760px] border-separate border-spacing-0 text-start">
+          {/* Without the course column (below lg) it fits a portrait tablet. */}
+          <table className="w-full min-w-[600px] border-separate border-spacing-0 text-start lg:min-w-[760px]">
             <thead>
               <tr className="text-xs text-muted-foreground">
                 <th scope="col" className="py-3 ps-5 pe-3 text-start font-medium">
                   נושא המפגש
                 </th>
-                <th scope="col" className="px-3 py-3 text-start font-medium">
+                <th scope="col" className="px-3 py-3 text-start font-medium max-lg:hidden">
                   קורס
                 </th>
                 <th scope="col" className="px-3 py-3 text-start font-medium">
