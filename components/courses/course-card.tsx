@@ -55,7 +55,8 @@ function Badge({ card }: { card: Card }) {
   return null;
 }
 
-// "שותפים ללמידה": classmates of my course, on hover / focus.
+// "שותפים ללמידה": classmates of my course, on hover / focus (`group-focus`,
+// not focus-visible: a tap focuses it on a tablet, which has no hover).
 function Students({ card }: { card: Card }) {
   const text = card.students === 1 ? "סטודנט אחד בקורס" : `${card.students} סטודנטים בקורס`;
   const hasTooltip = card.partners.length > 0;
@@ -69,7 +70,7 @@ function Students({ card }: { card: Card }) {
       {hasTooltip && (
         <div
           role="tooltip"
-          className="invisible absolute bottom-[calc(100%+10px)] left-1/2 z-10 w-max min-w-[120px] -translate-x-1/2 translate-y-1 rounded-[10px] bg-[#1c1f26] px-3 pt-2 pb-2.5 text-center opacity-0 shadow-[0_4px_12px_rgba(0,0,0,.18)] transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:visible group-focus-visible:translate-y-0 group-focus-visible:opacity-100 after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-6 after:border-transparent after:border-t-[#1c1f26]"
+          className="invisible absolute bottom-[calc(100%+10px)] left-1/2 z-10 w-max min-w-[120px] -translate-x-1/2 translate-y-1 rounded-[10px] bg-[#1c1f26] px-3 pt-2 pb-2.5 text-center opacity-0 shadow-[0_4px_12px_rgba(0,0,0,.18)] transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus:visible group-focus:translate-y-0 group-focus:opacity-100 after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-6 after:border-transparent after:border-t-[#1c1f26]"
         >
           <p className="text-[10px] font-semibold whitespace-nowrap text-white">שותפים ללמידה</p>
           <div className="mt-[7px] flex justify-center gap-1.5">

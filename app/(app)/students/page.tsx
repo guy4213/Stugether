@@ -91,7 +91,7 @@ export default async function StudentsPage({
             </Link>
           </p>
         ) : (
-          <ul className="grid grid-cols-1 gap-x-8 gap-y-8 sm:grid-cols-2 xl:grid-cols-4">
+          <ul className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
             {data.students.map((s) => (
               <li key={s.profile.id}>
                 <StudentCard student={s} myCourses={data.options.myCourses} />

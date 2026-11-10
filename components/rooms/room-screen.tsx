@@ -159,11 +159,12 @@ export function RoomScreen({ data, currentUserId }: { data: RoomPageData; curren
   const show = (tab: MobileTab) => (mobileTab === tab ? "flex" : "max-lg:hidden");
 
   return (
-    // lg+: the room fills one screen below the nav (73px) and the page's
-    // vertical padding (main pt-5 + pb-6 = 44px). Banners above it (join
-    // requests, the next session) push it down instead of squeezing the
-    // columns; the page scrolls by their height.
-    <div className="flex min-h-0 flex-1 flex-col gap-4 lg:h-[calc(100dvh-117px)] lg:min-h-[600px] lg:flex-none">
+    // md+ (tablets and up): the room fills one screen below the nav (73px)
+    // and the page's vertical padding (main pt-5 + pb-6 = 44px), so the
+    // whiteboard has room for its toolbar. Banners above it (join requests,
+    // the next session) push it down instead of squeezing the columns; the
+    // page scrolls by their height.
+    <div className="flex min-h-0 flex-1 flex-col gap-4 md:h-[calc(100dvh-117px)] md:min-h-[600px] md:flex-none">
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-0">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex min-w-0 items-center gap-2">
@@ -251,7 +252,9 @@ export function RoomScreen({ data, currentUserId }: { data: RoomPageData; curren
         ))}
       </div>
 
-      <div className="flex min-h-0 flex-1 gap-4 px-4 pb-4 sm:px-0 sm:pb-0 lg:gap-[18px]">
+      {/* lg-xl (tablet landscape): narrower side columns, so the exercise in
+          the middle keeps ~420px instead of being squeezed to ~310px. */}
+      <div className="flex min-h-0 flex-1 gap-4 px-4 pb-4 sm:px-0 sm:pb-0 lg:gap-3 xl:gap-[18px]">
         <ChatPanel
           roomId={room.id}
           currentUserId={currentUserId}
@@ -271,7 +274,7 @@ export function RoomScreen({ data, currentUserId }: { data: RoomPageData; curren
           draft={draft}
           className={cn(
             "w-full shrink-0 lg:flex",
-            focus ? "lg:w-[425px]" : "lg:w-[335px]",
+            focus ? "lg:w-[380px] xl:w-[425px]" : "lg:w-[300px] xl:w-[335px]",
             show("chat"),
           )}
         />
@@ -303,7 +306,7 @@ export function RoomScreen({ data, currentUserId }: { data: RoomPageData; curren
           layout={focus ? "focus" : "normal"}
           className={cn(
             "shrink-0 lg:flex",
-            focus ? "lg:w-[60px]" : "w-full lg:w-[277px]",
+            focus ? "lg:w-[60px]" : "w-full lg:w-[220px] xl:w-[277px]",
             show("people"),
           )}
         />

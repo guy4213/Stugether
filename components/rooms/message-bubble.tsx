@@ -123,7 +123,7 @@ export function MessageBubble({
               type="button"
               onClick={onDelete}
               disabled={busy}
-              className="flex items-center gap-1 rounded text-[11px] text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive focus-visible:opacity-100 disabled:opacity-50 max-sm:opacity-100"
+              className="flex items-center gap-1 rounded text-[11px] text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive focus-visible:opacity-100 disabled:opacity-50 max-sm:opacity-100 pointer-coarse:opacity-100"
             >
               <Trash2Icon className="size-3" aria-hidden />
               מחיקה
