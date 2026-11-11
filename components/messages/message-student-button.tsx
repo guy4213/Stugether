@@ -15,12 +15,15 @@ export function MessageStudentButton({
   studentName,
   compact = false,
   className,
+  iconClassName,
 }: {
   studentId: string;
   studentName: string;
-  /** Icon-only square (the student card). */
+  /** Icon-only square (the student card, the dashboard partners). */
   compact?: boolean;
   className?: string;
+  /** Icon size in the compact square (default 18px). */
+  iconClassName?: string;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -46,7 +49,7 @@ export function MessageStudentButton({
         )}
       >
         <MessageSquareTextIcon
-          className={cn("size-[18px]", pending && "animate-pulse")}
+          className={cn("size-[18px]", iconClassName, pending && "animate-pulse")}
           aria-hidden
         />
       </button>
