@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { MessageSquareTextIcon, UserRoundPlusIcon } from "lucide-react";
+import { UserRoundPlusIcon } from "lucide-react";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { InviteStudentButton } from "@/components/students/invite-student-button";
+import { MessageStudentButton } from "@/components/messages/message-student-button";
 import { SectionHeader } from "@/components/dashboard/section-header";
 import type { DashboardPartner } from "@/lib/dashboard/queries";
 
@@ -12,7 +13,8 @@ function sharedLabel(count: number) {
   return count === 1 ? "קורס משותף אחד" : `${count} קורסים משותפים`;
 }
 
-// "שותפים ללמידה": the classmates I match best, each with an invite button.
+// "שותפים ללמידה": the classmates I match best, each with an invite button and
+// a message button that opens the private chat directly (not the profile).
 export function PartnersSection({
   partners,
   hasCourses,
@@ -79,14 +81,13 @@ export function PartnersSection({
                 >
                   <UserRoundPlusIcon className="size-4" aria-hidden />
                 </Link>
-                <Link
-                  href={`/students/${p.id}`}
-                  aria-label={`הפרופיל של ${p.name}`}
-                  title="לפרופיל"
+                <MessageStudentButton
+                  compact
+                  studentId={p.id}
+                  studentName={p.name}
                   className={ICON_BTN}
-                >
-                  <MessageSquareTextIcon className="size-4" aria-hidden />
-                </Link>
+                  iconClassName="size-4"
+                />
                 <InviteStudentButton
                   compact
                   inviteeId={p.id}
