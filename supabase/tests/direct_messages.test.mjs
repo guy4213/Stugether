@@ -35,7 +35,7 @@ async function send(db, me, conversationId, content) {
   );
 }
 
-test("open_conversation: one row per pair, from either side; self / admin refused", async (t) => {
+test("open_conversation: one row per pair, from either side; self / unknown refused", async (t) => {
   const db = await fresh(t);
   const id = await open(db, U.a1, U.a4);
   assert.equal(await open(db, U.a4, U.a1), id);
@@ -44,16 +44,41 @@ test("open_conversation: one row per pair, from either side; self / admin refuse
 
   await db.asUser(U.a1, async (tx) => {
     await tx.expectError("select public.open_conversation($1)", [U.a1], "INVALID_ARGUMENT");
-    await tx.expectError("select public.open_conversation($1)", [U.admin], "NOT_ALLOWED");
     await tx.expectError(
       "select public.open_conversation($1)",
       ["00000000-0000-0000-0000-00000000ffff"],
       "NOT_ALLOWED",
     );
   });
-  await db.asUser(U.admin, (tx) =>
-    tx.expectError("select public.open_conversation($1)", [U.a1], "NOT_ALLOWED"),
-  );
+});
+
+// 20261114000011_admin_friends_and_dms.sql: a Super Admin may chat privately
+// too, in their own conversations only.
+test("open_conversation: a Super Admin can chat with a student, from either side", async (t) => {
+  const db = await fresh(t);
+  const seesAdmin = (who) =>
+    db.asUser(
+      who,
+      async (tx) =>
+        (await tx.query("select listed from public.public_profiles where id = $1", [U.admin])).rows,
+    );
+  assert.deepEqual(await seesAdmin(U.a1), []);
+  const id = await open(db, U.admin, U.a1);
+  assert.equal(await open(db, U.a1, U.admin), id);
+  // The student now sees who they talk to (not as a listed student); others don't.
+  assert.deepEqual(await seesAdmin(U.a1), [{ listed: false }]);
+  assert.deepEqual(await seesAdmin(U.a2), []);
+  const msg = await send(db, U.admin, id, "שלום מהצוות");
+  assert.equal(msg.content, "שלום מהצוות");
+  await send(db, U.a1, id, "תודה!");
+  // Still no access to other people's chats.
+  const other = await open(db, U.a2, U.a3);
+  await db.asUser(U.admin, async (tx) => {
+    const r = await tx.query("select 1 from public.direct_messages where conversation_id = $1", [
+      other,
+    ]);
+    assert.equal(r.rows.length, 0);
+  });
 });
 
 test("direct messages: only the two participants see them; no direct writes", async (t) => {

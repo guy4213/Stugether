@@ -121,15 +121,15 @@ test("friend request: asking back accepts; declined can be re-sent; remove is id
   assert.equal(resent.status, "pending");
 });
 
-test("friend request: not to myself, not to or from a Super Admin", async (t) => {
+test("friend request: not to myself; a Super Admin may send and receive (14.11.2026)", async (t) => {
   const db = await fresh(t);
   await db.asUser(U.a1, (tx) =>
     tx.expectError("select public.send_friend_request($1)", [U.a1], "INVALID_FRIEND"),
   );
-  await db.asUser(U.a1, (tx) =>
-    tx.expectError("select public.send_friend_request($1)", [U.admin], "NOT_ALLOWED"),
-  );
-  await db.asUser(U.admin, (tx) =>
-    tx.expectError("select public.send_friend_request($1)", [U.a1], "NOT_ALLOWED"),
-  );
+  const fromAdmin = await send(db, U.admin, U.a1);
+  assert.equal(fromAdmin.status, "pending");
+  const back = await send(db, U.a1, U.admin);
+  assert.equal(back.status, "accepted");
+  const toAdmin = await send(db, U.a2, U.admin);
+  assert.equal(toAdmin.status, "pending");
 });

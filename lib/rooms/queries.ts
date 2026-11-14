@@ -15,6 +15,7 @@ import { listRoomExercises } from "@/lib/repositories/exercises";
 import { getIceServers } from "@/lib/rooms/ice-servers";
 import { shapeRoomSessions } from "@/lib/rooms/sessions";
 import { getDemoScenario } from "@/lib/demo/state";
+import { getHiddenUserIds } from "@/lib/blocks/queries";
 import { demoRoom } from "@/lib/demo/fixtures";
 
 const PAGE_SIZE = 50;
@@ -80,6 +81,8 @@ async function loadRoomPageData(roomId: string, userId: string) {
   const nameById = new Map([...classmates, ...extra].map((p) => [p.id, p.full_name]));
 
   const memberIds = new Set(activeMembers.map((m) => m.user_id));
+  // Blocked either way: not offered as an invitee.
+  const hidden = await getHiddenUserIds();
   const invitedIds = new Set(invitations.map((i) => i.invitee_user_id));
   const openSeats = MAX_MEMBERS - activeMembers.length - invitations.length;
 
@@ -103,7 +106,10 @@ async function loadRoomPageData(roomId: string, userId: string) {
       expiresAt: i.expires_at,
     })),
     inviteCandidates: classmates
-      .filter((c) => c.id !== userId && !memberIds.has(c.id) && !invitedIds.has(c.id))
+      .filter(
+        (c) =>
+          c.id !== userId && !memberIds.has(c.id) && !invitedIds.has(c.id) && !hidden.has(c.id),
+      )
       .map((c) => ({ id: c.id, name: c.full_name, avatarPath: c.avatar_url }))
       .sort((a, b) => a.name.localeCompare(b.name, "he")),
     openSeats: Math.max(0, openSeats),

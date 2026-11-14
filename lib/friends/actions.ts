@@ -21,6 +21,7 @@ const uuid = z.guid();
 function messageOf(err: unknown): string {
   const m = (err as { message?: string } | null)?.message ?? "";
   if (m.includes("RATE_LIMITED")) return "שלחת הרבה בקשות היום. נסו שוב מחר";
+  if (m.includes("BLOCKED")) return "לא ניתן להוסיף: יש חסימה ביניכם";
   if (m.includes("NOT_ALLOWED")) return "לא ניתן להוסיף את המשתמש הזה";
   if (m.includes("FRIEND_REQUEST_NOT_PENDING")) return "הבקשה כבר טופלה";
   if (m.includes("FRIEND_REQUEST_NOT_FOUND")) return "הבקשה לא נמצאה";
