@@ -769,19 +769,21 @@ SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
 
 ### 12.4 RPCs
 
-| RPC                                                  | נגיש ל-                      | תפקיד                                                                                |
-| ---------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------ |
-| `start_ai_run`                                       | **service_role בלבד**        | נעילה + placeholder, טרנזקציה אחת                                                    |
-| `accept_room_invitation`                             | authenticated                | נעילת חדר, תוקף, קיבולת                                                              |
-| `decline_room_invitation` · `revoke_room_invitation` | authenticated                | מוזמן / מזמין                                                                        |
-| `get_pending_invitations`                            | authenticated                | מסונן לפי `expires_at`                                                               |
-| `soft_delete_message`                                | authenticated                | הודעה עצמית, 5 דקות                                                                  |
-| `mark_room_read` · `get_unread_summary`              | authenticated                | unread                                                                               |
-| `leave_room` · `remove_room_member`                  | authenticated                | עזיבה / הסרה ע"י owner. owner שעוזב — החדר נמחק (מחזיר `{room_deleted, file_paths}`) |
-| `set_room_status` · `update_room`                    | authenticated                | owner או אדמין                                                                       |
-| `admin_room_stats` · `admin_global_stats`            | authenticated (בודקות אדמין) | מספרים בלבד, בלי תוכן הודעות                                                         |
-| `admin_usage_stats(p_days)`                          | authenticated (בודקת אדמין)  | מסך "שימוש": סדרה יומית + מובילים, 1-365 ימים, ספירות בלבד (20261111000001)          |
-| `complete_onboarding`                                | authenticated                | תשובות שאלון ההרשמה + רישום לקורסים + `onboarded_at`, טרנזקציה אחת (20261027000001)  |
+| RPC                                                  | נגיש ל-                      | תפקיד                                                                                                                  |
+| ---------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `start_ai_run`                                       | **service_role בלבד**        | נעילה + placeholder, טרנזקציה אחת                                                                                      |
+| `accept_room_invitation`                             | authenticated                | נעילת חדר, תוקף, קיבולת                                                                                                |
+| `decline_room_invitation` · `revoke_room_invitation` | authenticated                | מוזמן / מזמין                                                                                                          |
+| `get_pending_invitations`                            | authenticated                | מסונן לפי `expires_at`                                                                                                 |
+| `soft_delete_message`                                | authenticated                | הודעה עצמית, 5 דקות                                                                                                    |
+| `mark_room_read` · `get_unread_summary`              | authenticated                | unread                                                                                                                 |
+| `leave_room` · `remove_room_member`                  | authenticated                | עזיבה / הסרה ע"י owner. owner שעוזב — החדר נמחק (מחזיר `{room_deleted, file_paths}`)                                   |
+| `set_room_status` · `update_room`                    | authenticated                | owner או אדמין                                                                                                         |
+| `admin_room_stats` · `admin_global_stats`            | authenticated (בודקות אדמין) | מספרים בלבד, בלי תוכן הודעות                                                                                           |
+| `admin_usage_stats(p_days)`                          | authenticated (בודקת אדמין)  | מסך "שימוש": סדרה יומית + מובילים, 1-365 ימים, ספירות בלבד (20261111000001)                                            |
+| `admin_usage_heatmap(p_days)`                        | authenticated (בודקת אדמין)  | פעולות לפי יום בשבוע × שעה (שעון ישראל), ספירות בלבד (20261114000001)                                                  |
+| `admin_user_details(p_user_id)`                      | authenticated (בודקת אדמין)  | פופאפ פרטי משתמש: פרופיל, מייל מ-`auth.users`, ספירות פעילות, קורסים, חדרים. בלי תוכן ובלי שותפי שיחה (20261114000002) |
+| `complete_onboarding`                                | authenticated                | תשובות שאלון ההרשמה + רישום לקורסים + `onboarded_at`, טרנזקציה אחת (20261027000001)                                    |
 
 **אין UPDATE ישיר** למשתמשים על `rooms`, `room_members`, `room_invitations`, `messages`. כל שינוי עובר ב-RPC.
 

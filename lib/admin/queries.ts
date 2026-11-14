@@ -8,11 +8,14 @@ import {
   getAiUsageSummary,
   getAppSettings,
   getGlobalStats,
+  getUsageHeatmap,
   getUsageStats,
+  getUserDetails,
   listAllRooms,
   listAllUsers,
   listFullCatalog,
   listRecentAiFailures,
+  type UsageDay,
 } from "@/lib/repositories/admin";
 
 // Super Admin panel reads (SPEC §4.9). Every read goes through the user-scoped
@@ -73,6 +76,7 @@ export async function getAdminUsers(filters: {
     users: users.map((u) => ({
       id: u.id,
       fullName: u.full_name,
+      avatarPath: u.avatar_url,
       role: u.role,
       isActive: u.is_active,
       institution: u.institution_id ? (institutionName.get(u.institution_id) ?? null) : null,
@@ -116,71 +120,124 @@ function estimateCostUsd(promptTokens: number, completionTokens: number): number
 export const USAGE_PERIODS = [7, 30, 90] as const;
 export type UsagePeriod = (typeof USAGE_PERIODS)[number];
 
-// "שימוש" (SPEC §4.9, CR 11.11.2026): daily series, period totals, top
-// courses / users / AI consumers — counts only (admin_usage_stats), with the
-// estimated AI cost added per row.
+export function parseUsagePeriod(value: string | null | undefined): UsagePeriod {
+  const requested = Number(value);
+  return (USAGE_PERIODS as readonly number[]).includes(requested) ? (requested as UsagePeriod) : 30;
+}
+
+const num = (v: unknown) => Number(v ?? 0);
+
+function toDaily(rows: UsageDay[]) {
+  return rows.map((d) => ({
+    day: d.day,
+    signups: num(d.signups),
+    activeUsers: num(d.active_users),
+    roomMessages: num(d.room_messages),
+    directMessages: num(d.direct_messages),
+    roomsCreated: num(d.rooms_created),
+    aiRuns: num(d.ai_runs),
+    aiFailed: num(d.ai_failed),
+    tokens: num(d.prompt_tokens) + num(d.completion_tokens),
+    costUsd: estimateCostUsd(num(d.prompt_tokens), num(d.completion_tokens)),
+  }));
+}
+
+// Additive totals of a daily series (active users are distinct per period, so
+// they cannot be summed from the days and are not part of this).
+function sumDaily(daily: ReturnType<typeof toDaily>) {
+  const total = (pick: (d: (typeof daily)[number]) => number) =>
+    daily.reduce((sum, d) => sum + pick(d), 0);
+  return {
+    signups: total((d) => d.signups),
+    roomMessages: total((d) => d.roomMessages),
+    directMessages: total((d) => d.directMessages),
+    roomsCreated: total((d) => d.roomsCreated),
+    aiRuns: total((d) => d.aiRuns),
+    aiFailed: total((d) => d.aiFailed),
+    tokens: total((d) => d.tokens),
+    costUsd: total((d) => d.costUsd),
+  };
+}
+
+// "שימוש" (SPEC §4.9, CR 11.11.2026 + 14.11.2026): daily series, period
+// totals vs the previous period of the same length, top courses / users / AI
+// consumers and activity by weekday x hour — counts only
+// (admin_usage_stats, admin_usage_heatmap), with the estimated AI cost added.
 export async function getAdminUsage(days: UsagePeriod) {
   await assertSuperAdmin();
   const supabase = await createClient();
-  const stats = await getUsageStats(supabase, days);
-  const n = (v: unknown) => Number(v ?? 0);
+  const [stats, doubled, heatmap] = await Promise.all([
+    getUsageStats(supabase, days),
+    // The previous period = the older half of a window twice as long.
+    getUsageStats(supabase, days * 2),
+    // Optional: the page still renders if the heatmap RPC is not deployed yet.
+    getUsageHeatmap(supabase, days).catch(() => null),
+  ]);
 
-  const daily = stats.daily.map((d) => ({
-    day: d.day,
-    signups: n(d.signups),
-    activeUsers: n(d.active_users),
-    roomMessages: n(d.room_messages),
-    directMessages: n(d.direct_messages),
-    roomsCreated: n(d.rooms_created),
-    aiRuns: n(d.ai_runs),
-    aiFailed: n(d.ai_failed),
-    tokens: n(d.prompt_tokens) + n(d.completion_tokens),
-    costUsd: estimateCostUsd(n(d.prompt_tokens), n(d.completion_tokens)),
-  }));
-  const total = (pick: (d: (typeof daily)[number]) => number) =>
-    daily.reduce((sum, d) => sum + pick(d), 0);
+  const daily = toDaily(stats.daily);
+  const previous = sumDaily(toDaily(doubled.daily.slice(0, doubled.daily.length - days)));
 
   return {
     days: stats.days,
     daily,
-    totals: {
-      activeUsers: n(stats.active_users),
-      signups: total((d) => d.signups),
-      roomMessages: total((d) => d.roomMessages),
-      directMessages: total((d) => d.directMessages),
-      roomsCreated: total((d) => d.roomsCreated),
-      aiRuns: total((d) => d.aiRuns),
-      aiFailed: total((d) => d.aiFailed),
-      tokens: total((d) => d.tokens),
-      costUsd: total((d) => d.costUsd),
-    },
+    totals: { activeUsers: num(stats.active_users), ...sumDaily(daily) },
+    previous,
+    heatmap: heatmap?.map((c) => ({ dow: num(c.dow), hour: num(c.hour), n: num(c.n) })) ?? null,
     topCourses: stats.top_courses.map((c) => ({
       id: c.id,
       name: c.name,
       code: c.code,
-      roomsCreated: n(c.rooms_created),
-      activeRooms: n(c.active_rooms),
-      messages: n(c.messages),
-      aiRuns: n(c.ai_runs),
-      costUsd: estimateCostUsd(n(c.prompt_tokens), n(c.completion_tokens)),
+      roomsCreated: num(c.rooms_created),
+      activeRooms: num(c.active_rooms),
+      messages: num(c.messages),
+      aiRuns: num(c.ai_runs),
+      costUsd: estimateCostUsd(num(c.prompt_tokens), num(c.completion_tokens)),
     })),
     topUsers: stats.top_users.map((u) => ({
       id: u.id,
       fullName: u.full_name,
-      roomMessages: n(u.room_messages),
-      directMessages: n(u.direct_messages),
-      aiRuns: n(u.ai_runs),
+      roomMessages: num(u.room_messages),
+      directMessages: num(u.direct_messages),
+      aiRuns: num(u.ai_runs),
     })),
     topAiUsers: stats.top_ai_users.map((u) => ({
       id: u.id,
       fullName: u.full_name,
-      aiRuns: n(u.ai_runs),
-      aiFailed: n(u.ai_failed),
-      tokens: n(u.prompt_tokens) + n(u.completion_tokens),
-      costUsd: estimateCostUsd(n(u.prompt_tokens), n(u.completion_tokens)),
+      aiRuns: num(u.ai_runs),
+      aiFailed: num(u.ai_failed),
+      tokens: num(u.prompt_tokens) + num(u.completion_tokens),
+      costUsd: estimateCostUsd(num(u.prompt_tokens), num(u.completion_tokens)),
     })),
   };
 }
+
+export type AdminUsage = Awaited<ReturnType<typeof getAdminUsage>>;
+
+// The user details popup in "משתמשים". Returns null (not notFound) so the
+// server action calling it can answer with a plain error.
+export async function getAdminUserDetails(userId: string) {
+  if (!(await requireSuperAdmin())) return null;
+  const supabase = await createClient();
+  const d = await getUserDetails(supabase, userId);
+  if (!d) return null;
+  const s = d.stats;
+  return {
+    ...d,
+    stats: {
+      roomMessages: num(s.room_messages),
+      directMessages: num(s.direct_messages),
+      aiRuns: num(s.ai_runs),
+      aiFailed: num(s.ai_failed),
+      tokens: num(s.prompt_tokens) + num(s.completion_tokens),
+      costUsd: estimateCostUsd(num(s.prompt_tokens), num(s.completion_tokens)),
+      roomsCreated: num(s.rooms_created),
+      friends: num(s.friends),
+      lastActivityAt: s.last_activity_at,
+    },
+  };
+}
+
+export type AdminUserDetailsView = NonNullable<Awaited<ReturnType<typeof getAdminUserDetails>>>;
 
 export async function getAdminAi() {
   await assertSuperAdmin();

@@ -13,7 +13,11 @@ import {
   updateInstitution,
 } from "@/lib/repositories/catalog";
 import { setRoomStatus } from "@/lib/repositories/rooms";
-import { requireSuperAdmin } from "@/lib/admin/queries";
+import {
+  getAdminUserDetails,
+  requireSuperAdmin,
+  type AdminUserDetailsView,
+} from "@/lib/admin/queries";
 
 // Super Admin writes. RLS + the profile guard trigger are the real gate (a
 // student calling these gets a Postgres error); requireSuperAdmin() just
@@ -71,6 +75,21 @@ export async function setUserRoleAction(
   return guarded(["/admin/users", "/admin", "/admin/usage"], (supabase) =>
     setUserRole(supabase, parsed.data.userId, parsed.data.role),
   );
+}
+
+// Read for the user details popup (loaded when the popup opens, not with the
+// list). Metadata and counts only — admin_user_details never returns content.
+export async function getUserDetailsAction(
+  userId: string,
+): Promise<{ ok: true; user: AdminUserDetailsView } | { ok: false; error: string }> {
+  if (!z.string().uuid().safeParse(userId).success) return { ok: false, error: "ערך לא תקין" };
+  try {
+    const user = await getAdminUserDetails(userId);
+    if (!user) return { ok: false, error: "המשתמש/ת לא נמצא/ה או שאין הרשאה" };
+    return { ok: true, user };
+  } catch {
+    return { ok: false, error: "טעינת הפרטים נכשלה" };
+  }
 }
 
 // --- catalog -----------------------------------------------------------------

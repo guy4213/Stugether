@@ -129,6 +129,81 @@ export async function getUsageStats(client: SupabaseClient, days: number): Promi
   return data as UsageStats;
 }
 
+export interface UsageHeatCell {
+  dow: number; // 0 = Sunday
+  hour: number; // 0-23, Asia/Jerusalem
+  n: number;
+}
+
+// Wraps admin_usage_heatmap(p_days): actions per weekday x hour (non-empty
+// cells only). super_admin only; counts only.
+export async function getUsageHeatmap(
+  client: SupabaseClient,
+  days: number,
+): Promise<UsageHeatCell[]> {
+  const { data, error } = await client.rpc("admin_usage_heatmap", { p_days: days });
+  if (error) throw error;
+  return data as UsageHeatCell[];
+}
+
+export interface AdminUserDetails {
+  id: string;
+  full_name: string;
+  avatar_url: string | null;
+  bio: string | null;
+  city: string | null;
+  study_year: number | null;
+  role: "student" | "super_admin";
+  is_active: boolean;
+  onboarded_at: string | null;
+  created_at: string;
+  last_seen_at: string | null;
+  institution: string | null;
+  department: string | null;
+  email: string | null;
+  provider: string | null;
+  last_sign_in_at: string | null;
+  stats: {
+    room_messages: number;
+    direct_messages: number;
+    ai_runs: number;
+    ai_failed: number;
+    prompt_tokens: number;
+    completion_tokens: number;
+    rooms_created: number;
+    friends: number;
+    last_activity_at: string | null;
+  };
+  courses: {
+    id: string;
+    name: string;
+    code: string | null;
+    status: "active" | "archived";
+    enrolled_at: string;
+  }[];
+  rooms: {
+    id: string;
+    name: string;
+    status: string;
+    course: string;
+    role: "owner" | "member";
+    joined_at: string;
+    left_at: string | null;
+  }[];
+}
+
+// Wraps admin_user_details(p_user_id): one user's metadata, email (auth.users)
+// and all-time activity counts. super_admin only; null for an unknown user.
+// Never message content, never who the user talks to privately.
+export async function getUserDetails(
+  client: SupabaseClient,
+  userId: string,
+): Promise<AdminUserDetails | null> {
+  const { data, error } = await client.rpc("admin_user_details", { p_user_id: userId });
+  if (error) throw error;
+  return (data as AdminUserDetails | null) ?? null;
+}
+
 // Full profile rows across all users. RLS (profiles_select_own_or_admin)
 // already restricts this to an active super_admin session — call with the
 // user-scoped client, not the admin client, so an ordinary user's call
