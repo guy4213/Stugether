@@ -101,6 +101,11 @@ export default async function AdminUsersPage({
                       {u.role === "super_admin" && <Pill tone="violet">אדמין</Pill>}
                       {!u.isActive && <Pill tone="rose">מושבת/ת</Pill>}
                     </span>
+                    {u.email && (
+                      <span dir="ltr" className="max-w-full self-start truncate text-xs text-ink-2">
+                        {u.email}
+                      </span>
+                    )}
                     <span className="truncate text-xs text-muted-foreground">
                       {[u.institution, u.department, u.studyYear ? `שנה ${u.studyYear}` : null]
                         .filter(Boolean)

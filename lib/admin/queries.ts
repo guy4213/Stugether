@@ -11,6 +11,7 @@ import {
   getUsageHeatmap,
   getUsageStats,
   getUserDetails,
+  getUserEmails,
   listAllRooms,
   listAllUsers,
   listFullCatalog,
@@ -70,12 +71,19 @@ export async function getAdminUsers(filters: {
     listAllUsers(supabase, filters),
     listFullCatalog(supabase),
   ]);
+  // Emails tell apart near-identical names. Optional: the list still renders
+  // if the RPC is unavailable (e.g. migration not deployed yet).
+  const emails = await getUserEmails(
+    supabase,
+    users.map((u) => u.id),
+  ).catch(() => new Map<string, string>());
   const institutionName = new Map(catalog.institutions.map((i) => [i.id, i.name]));
   const departmentName = new Map(catalog.departments.map((d) => [d.id, d.name]));
   return {
     users: users.map((u) => ({
       id: u.id,
       fullName: u.full_name,
+      email: emails.get(u.id) ?? null,
       avatarPath: u.avatar_url,
       role: u.role,
       isActive: u.is_active,

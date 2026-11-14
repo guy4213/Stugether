@@ -216,3 +216,31 @@ test("admin_user_details: metadata and counts, never content", async () => {
   assert.ok(raw.sample_content && !json.includes(raw.sample_content), "no message text");
   assert.equal(missing, null);
 });
+
+// 20261114000003_admin_user_emails.sql — emails in the users list.
+const EMAILS = "select user_id::text, email from public.admin_user_emails($1::uuid[])";
+
+test("admin_user_emails: a student gets NOT_ALLOWED", async () => {
+  await base.asUser(U.a1, async (tx) => {
+    await tx.expectError(EMAILS, [[U.a2]], "NOT_ALLOWED");
+  });
+});
+
+test("admin_user_emails: returns auth.users emails for the requested ids only", async () => {
+  const raw = await base.query(
+    "select id::text, email from auth.users where id = any($1::uuid[]) order by id",
+    [[U.a1, U.a2]],
+  );
+  const rows = await base.asUser(
+    U.admin,
+    async (tx) => (await tx.query(EMAILS, [[U.a1, U.a2]])).rows,
+  );
+  assert.equal(rows.length, 2);
+  const byId = new Map(rows.map((r) => [r.user_id, r.email]));
+  for (const r of raw.rows) assert.equal(byId.get(r.id), r.email);
+
+  await base.asUser(U.admin, async (tx) => {
+    const none = await tx.query(EMAILS, [[]]);
+    assert.equal(none.rows.length, 0);
+  });
+});

@@ -204,6 +204,25 @@ export async function getUserDetails(
   return (data as AdminUserDetails | null) ?? null;
 }
 
+// Wraps admin_user_emails(p_user_ids): auth.users emails for the users list.
+// super_admin only; at most 2000 ids per call (chunked here).
+export async function getUserEmails(
+  client: SupabaseClient,
+  userIds: string[],
+): Promise<Map<string, string>> {
+  const emails = new Map<string, string>();
+  for (let i = 0; i < userIds.length; i += 2000) {
+    const { data, error } = await client.rpc("admin_user_emails", {
+      p_user_ids: userIds.slice(i, i + 2000),
+    });
+    if (error) throw error;
+    for (const row of data as { user_id: string; email: string | null }[]) {
+      if (row.email) emails.set(row.user_id, row.email);
+    }
+  }
+  return emails;
+}
+
 // Full profile rows across all users. RLS (profiles_select_own_or_admin)
 // already restricts this to an active super_admin session — call with the
 // user-scoped client, not the admin client, so an ordinary user's call
