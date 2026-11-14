@@ -6,6 +6,7 @@ import { cn } from "cn";
 
 const TABS = [
   { href: "/admin", label: "סקירה" },
+  { href: "/admin/usage", label: "שימוש" },
   { href: "/admin/users", label: "משתמשים" },
   { href: "/admin/catalog", label: "קטלוג" },
   { href: "/admin/rooms", label: "חדרים" },

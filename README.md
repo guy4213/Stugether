@@ -57,15 +57,16 @@ Supabase Studio: http://localhost:54323
 
 ## סקריפטים
 
-| פקודה                          |                             |
-| ------------------------------ | --------------------------- |
-| `npm run dev`                  | שרת פיתוח                   |
-| `npm run build`                | build ל-production          |
-| `npm run lint`                 | ESLint, כולל כללי הגבולות   |
-| `npm run typecheck`            | TypeScript                  |
-| `npm run format`               | Prettier                    |
-| `npm run db:start` / `db:stop` | Supabase מקומי              |
-| `npm run db:reset`             | מריץ מחדש migrations + seed |
+| פקודה                                       |                                                                       |
+| ------------------------------------------- | --------------------------------------------------------------------- |
+| `npm run dev`                               | שרת פיתוח                                                             |
+| `npm run build`                             | build ל-production                                                    |
+| `npm run lint`                              | ESLint, כולל כללי הגבולות                                             |
+| `npm run typecheck`                         | TypeScript                                                            |
+| `npm run format`                            | Prettier                                                              |
+| `npm run db:start` / `db:stop`              | Supabase מקומי                                                        |
+| `npm run db:reset`                          | מריץ מחדש migrations + seed                                           |
+| `npm run admin:grant -- <email> [--revoke]` | הענקה / הסרה של Super Admin לחשבון קיים (service role מ-`.env.local`) |
 
 ## כללי ארכיטקטורה
 

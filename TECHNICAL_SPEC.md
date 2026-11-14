@@ -779,6 +779,7 @@ SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
 | `leave_room` · `remove_room_member`                  | authenticated                | עזיבה / הסרה ע"י owner, כולל העברת בעלות                                            |
 | `set_room_status` · `update_room`                    | authenticated                | owner או אדמין                                                                      |
 | `admin_room_stats` · `admin_global_stats`            | authenticated (בודקות אדמין) | מספרים בלבד, בלי תוכן הודעות                                                        |
+| `admin_usage_stats(p_days)`                          | authenticated (בודקת אדמין)  | מסך "שימוש": סדרה יומית + מובילים, 1-365 ימים, ספירות בלבד (20261111000001)         |
 | `complete_onboarding`                                | authenticated                | תשובות שאלון ההרשמה + רישום לקורסים + `onboarded_at`, טרנזקציה אחת (20261027000001) |
 
 **אין UPDATE ישיר** למשתמשים על `rooms`, `room_members`, `room_invitations`, `messages`. כל שינוי עובר ב-RPC.
