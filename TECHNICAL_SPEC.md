@@ -783,6 +783,7 @@ SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
 | `admin_usage_stats(p_days)`                          | authenticated (בודקת אדמין)  | מסך "שימוש": סדרה יומית + מובילים, 1-365 ימים, ספירות בלבד (20261111000001)                                            |
 | `admin_usage_heatmap(p_days)`                        | authenticated (בודקת אדמין)  | פעולות לפי יום בשבוע × שעה (שעון ישראל), ספירות בלבד (20261114000001)                                                  |
 | `admin_user_details(p_user_id)`                      | authenticated (בודקת אדמין)  | פופאפ פרטי משתמש: פרופיל, מייל מ-`auth.users`, ספירות פעילות, קורסים, חדרים. בלי תוכן ובלי שותפי שיחה (20261114000002) |
+| `admin_user_emails(p_user_ids)`                      | authenticated (בודקת אדמין)  | מיילים מ-`auth.users` לרשימת המשתמשים, עד 2000 מזהים לקריאה (20261114000003)                                           |
 | `complete_onboarding`                                | authenticated                | תשובות שאלון ההרשמה + רישום לקורסים + `onboarded_at`, טרנזקציה אחת (20261027000001)                                    |
 
 **אין UPDATE ישיר** למשתמשים על `rooms`, `room_members`, `room_invitations`, `messages`. כל שינוי עובר ב-RPC.
