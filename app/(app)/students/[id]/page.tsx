@@ -24,6 +24,8 @@ import { getFriendsOf, getMyFriendStates } from "@/lib/friends/queries";
 import { FriendButton } from "@/components/friends/friend-button";
 import { FriendsCard } from "@/components/friends/friends-card";
 import { MATCH_GRADIENT, matchLevel } from "@/lib/ui/tones";
+import { getBlockStateWith } from "@/lib/blocks/queries";
+import { BlockButton } from "@/components/blocks/block-button";
 
 // A student's profile as seen by another student: academic details, hobbies,
 // shared courses and why the two of them match.
@@ -33,12 +35,15 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
   const { id } = await params;
   if (id === user.id) redirect("/profile");
 
-  const [data, theirFriends, myStates] = await Promise.all([
+  const [data, theirFriends, myStates, blockState] = await Promise.all([
     getStudentProfileData(user.id, id),
     getFriendsOf(id, user.id),
     getMyFriendStates(user.id),
+    getBlockStateWith(id),
   ]);
-  if (!data) notFound();
+  // Blocked me: we don't see each other (client QA 14.11.2026).
+  if (!data || blockState === "blocked_me") notFound();
+  const blockedByMe = blockState === "blocked_by_me";
   const { student, match, details } = data;
   const reasons = (match?.breakdown ?? []).filter((b) => b.matched);
 
@@ -185,25 +190,43 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
           </section>
         )}
 
-        {/* Private chat with this student (SPEC §5.1) and the friend request. */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <MessageStudentButton studentId={student.id} studentName={student.full_name} />
-          <FriendButton
-            studentId={student.id}
-            studentName={student.full_name}
-            initial={myStates[student.id]}
-          />
-        </div>
+        {blockedByMe ? (
+          <div className="flex flex-col gap-3 rounded-[16px] border border-destructive/30 bg-destructive/5 p-4 sm:flex-row sm:items-center">
+            <p className="grow text-sm">
+              <b>חסמת את {student.full_name}.</b> אי אפשר לשלוח הודעות או בקשת חברות, ואתם לא
+              מופיעים זה לזה ברשימות.
+            </p>
+            <BlockButton studentId={student.id} studentName={student.full_name} blocked />
+          </div>
+        ) : (
+          <>
+            {/* Private chat with this student (SPEC §5.1) and the friend request. */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <MessageStudentButton studentId={student.id} studentName={student.full_name} />
+              <FriendButton
+                studentId={student.id}
+                studentName={student.full_name}
+                initial={myStates[student.id]}
+              />
+              <BlockButton
+                studentId={student.id}
+                studentName={student.full_name}
+                blocked={false}
+                className="ms-auto"
+              />
+            </div>
 
-        {/* #invite: a link anchor for the invitation dialog. */}
-        <div id="invite" className="scroll-mt-24">
-          <InviteStudentButton
-            inviteeId={student.id}
-            inviteeName={student.full_name}
-            sharedCourses={data.sharedCourses}
-            myCourses={data.myCourses}
-          />
-        </div>
+            {/* #invite: a link anchor for the invitation dialog. */}
+            <div id="invite" className="scroll-mt-24">
+              <InviteStudentButton
+                inviteeId={student.id}
+                inviteeName={student.full_name}
+                sharedCourses={data.sharedCourses}
+                myCourses={data.myCourses}
+              />
+            </div>
+          </>
+        )}
       </article>
 
       <FriendsCard

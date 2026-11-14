@@ -19,6 +19,7 @@ import { yearLabel } from "@/lib/ui/labels";
 import { isRoomLive } from "@/lib/stats/live";
 import { timed } from "@/lib/perf/timing";
 import { getDemoScenario } from "@/lib/demo/state";
+import { getHiddenUserIds } from "@/lib/blocks/queries";
 import { demoDashboard } from "@/lib/demo/fixtures";
 import type { StackPerson } from "@/components/ui/avatar-stack";
 
@@ -106,6 +107,8 @@ async function loadDashboardData(userId: string) {
     return listPublicProfiles(supabase, [...personIds]);
   });
   const pMyRooms = getCachedMyActiveRooms(userId);
+  // Blocked either way: not shown as a classmate or a match.
+  const pHidden = getHiddenUserIds();
   const pMyRoomIds = pMyRooms.then((rooms) => rooms.map((r) => r.id));
 
   const [
@@ -142,6 +145,7 @@ async function loadDashboardData(userId: string) {
     pMyRoomIds.then((ids) => listActiveMembersOfRooms(supabase, ids)),
   ]);
 
+  const hidden = await pHidden;
   const active = enrollments.filter((e) => e.status === "active");
   const upcomingEvents = events.filter((e) => e.due_at && new Date(e.due_at).getTime() > now);
   const profileById = new Map(people.map((p) => [p.id, p]));
@@ -160,7 +164,7 @@ async function loadDashboardData(userId: string) {
   const rosterCountByCourse = new Map<string, number>();
   for (const r of rosters) {
     rosterCountByCourse.set(r.course_id, (rosterCountByCourse.get(r.course_id) ?? 0) + 1);
-    if (r.user_id === userId) continue;
+    if (r.user_id === userId || hidden.has(r.user_id)) continue;
     classmatesByCourse.set(r.course_id, [
       ...(classmatesByCourse.get(r.course_id) ?? []),
       r.user_id,

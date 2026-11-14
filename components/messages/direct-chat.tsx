@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { LastSeen } from "@/components/ui/last-seen";
+import { BlockButton } from "@/components/blocks/block-button";
 import { ChatSearch, type ChatSearchHit } from "@/components/chat/chat-search";
 import { CHAT_BACKDROP } from "@/components/messages/messages-window";
 import { PartnerPanel } from "@/components/messages/partner-panel";
@@ -135,11 +136,14 @@ export function DirectChat({
   data,
   currentUserId,
   partner,
+  blockState = "none",
   className,
 }: {
   data: ConversationPageData;
   currentUserId: string;
   partner: ChatPartner | null;
+  /** A block between us (client QA 14.11.2026): the history stays, no new messages. */
+  blockState?: "none" | "blocked_by_me" | "blocked_me";
   className?: string;
 }) {
   const router = useRouter();
@@ -352,7 +356,8 @@ export function DirectChat({
         ? "read"
         : "sent"
       : null;
-  const canSend = data.otherActive && !!content.trim() && !isSending;
+  const canWrite = data.otherActive && blockState === "none";
+  const canSend = canWrite && !!content.trim() && !isSending;
   const coursesLine = sharedCoursesLine(partner?.sharedCourses.map((c) => c.name) ?? []);
 
   return (
@@ -440,6 +445,15 @@ export function DirectChat({
               </Link>
             </>
           )}
+          {data.otherActive && blockState !== "blocked_me" && (
+            <BlockButton
+              studentId={other.id}
+              studentName={other.fullName}
+              blocked={blockState === "blocked_by_me"}
+              compact
+              className={cn(ICON_BUTTON, "hover:text-destructive")}
+            />
+          )}
         </header>
         {searchOpen && (
           <ChatSearch
@@ -481,7 +495,7 @@ export function DirectChat({
               <p className="text-[15px] text-muted-foreground">
                 {coursesLine ?? "זו תחילת השיחה שלכם. מספיק משפט אחד כדי להתחיל."}
               </p>
-              {data.otherActive && (
+              {canWrite && (
                 <div className="mt-5 flex max-w-[560px] flex-wrap justify-center gap-2.5">
                   {STARTERS.map((text) => (
                     <button
@@ -595,7 +609,18 @@ export function DirectChat({
         </div>
 
         <div className="relative z-10 shrink-0 px-3 pt-1 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-8 sm:pb-6">
-          {data.otherActive ? (
+          {data.otherActive && blockState !== "none" ? (
+            <div className="relative mx-auto flex max-w-[720px] flex-col items-center gap-3 rounded-[20px] bg-white/80 px-5 py-4 text-center text-sm text-muted-foreground shadow-[0_0_0_1px_rgba(15,27,51,.06)] sm:flex-row sm:text-start">
+              <p className="grow">
+                {blockState === "blocked_by_me"
+                  ? `חסמת את ${other.fullName}. כדי לכתוב שוב צריך לבטל את החסימה.`
+                  : "אי אפשר לשלוח הודעות בשיחה הזו."}
+              </p>
+              {blockState === "blocked_by_me" && (
+                <BlockButton studentId={other.id} studentName={other.fullName} blocked />
+              )}
+            </div>
+          ) : data.otherActive ? (
             <div className="relative mx-auto flex min-h-[62px] max-w-[720px] items-end gap-2.5 rounded-[24px] bg-white py-2 ps-4 pe-[9px] shadow-[0_0_0_1px_rgba(15,27,51,.06),0_24px_48px_-24px_rgba(15,27,51,.45)] transition-shadow focus-within:shadow-[0_0_0_1.5px_var(--color-primary-line),0_24px_48px_-24px_rgba(15,27,51,.45)] sm:ps-[22px]">
               <Textarea
                 ref={inputRef}

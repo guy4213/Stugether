@@ -4,6 +4,7 @@ import { DirectChat } from "@/components/messages/direct-chat";
 import { MessagesWindow } from "@/components/messages/messages-window";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getChatPartner, getConversationPageData, getInbox } from "@/lib/messages/queries";
+import { getBlockStateWith } from "@/lib/blocks/queries";
 
 // One private chat. RLS returns nothing for a conversation that isn't mine,
 // which lands on 404 like a missing one.
@@ -18,7 +19,10 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
     getInbox(user.id),
   ]);
   if (!data) notFound();
-  const partner = data.otherActive ? await getChatPartner(user.id, data.other.id) : null;
+  const [partner, blockState] = await Promise.all([
+    data.otherActive ? getChatPartner(user.id, data.other.id) : null,
+    getBlockStateWith(data.other.id),
+  ]);
 
   return (
     <MessagesWindow mode="chat">
@@ -30,6 +34,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
         data={data}
         currentUserId={user.id}
         partner={partner}
+        blockState={blockState}
         className="h-full"
       />
     </MessagesWindow>

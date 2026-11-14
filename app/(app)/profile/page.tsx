@@ -13,14 +13,23 @@ import { getProfileFormData } from "@/lib/profile/queries";
 import { getFriendsOf } from "@/lib/friends/queries";
 import { FriendsCard } from "@/components/friends/friends-card";
 import { courseTheme } from "@/lib/ui/course-theme";
+import { getMyBlockedUsers } from "@/lib/blocks/queries";
+import { BlockedUsersCard } from "@/components/blocks/blocked-users-card";
 
 // "הגדרות פרופיל" per Profile.dc.html.
 export default async function ProfilePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [{ profile, institutions, faculties, departments, activeCourses, stats }, myFriends] =
-    await Promise.all([getProfileFormData(user.id), getFriendsOf(user.id, user.id)]);
+  const [
+    { profile, institutions, faculties, departments, activeCourses, stats },
+    myFriends,
+    blocked,
+  ] = await Promise.all([
+    getProfileFormData(user.id),
+    getFriendsOf(user.id, user.id),
+    getMyBlockedUsers(),
+  ]);
   if (!profile) redirect("/login");
 
   const institutionName = institutions.find((i) => i.id === profile.institution_id)?.name;
@@ -145,6 +154,8 @@ export default async function ProfilePage() {
               הוספת קורס
             </Link>
           </div>
+
+          <BlockedUsersCard people={blocked} />
 
           <form action={signOutAndRedirect}>
             <button

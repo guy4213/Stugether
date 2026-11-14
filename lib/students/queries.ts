@@ -29,6 +29,7 @@ import { isOnline } from "@/lib/ui/people";
 import { yearLabel } from "@/lib/ui/labels";
 import { timed } from "@/lib/perf/timing";
 import { getDemoScenario } from "@/lib/demo/state";
+import { getHiddenUserIds } from "@/lib/blocks/queries";
 import { demoStudentInputs } from "@/lib/demo/fixtures";
 
 export const STUDENTS_PAGE_SIZE = 32;
@@ -111,7 +112,13 @@ export async function getStudentsPageData(userId: string, filters: StudentFilter
     ? demoStudentInputs(demo)
     : await timed(
         "page.students",
-        loadInputs(userId, (supabase) => listDirectoryProfiles(supabase, userId)),
+        loadInputs(userId, async (supabase) => {
+          const [people, hidden] = await Promise.all([
+            listDirectoryProfiles(supabase, userId),
+            getHiddenUserIds(),
+          ]);
+          return people.filter((p) => !hidden.has(p.id));
+        }),
       );
   return shapeDirectory(inputs, filters);
 }

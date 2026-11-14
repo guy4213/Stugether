@@ -41,9 +41,14 @@ export async function startConversationAction(otherUserId: string): Promise<Acti
   try {
     conversationId = await openConversation(await createClient(), otherUserId);
   } catch (err) {
-    return errorCode(err).includes("NOT_ALLOWED")
-      ? { ok: false, error: "אפשר לשלוח הודעות רק לסטודנטים פעילים" }
-      : { ok: false, error: "לא ניתן לפתוח שיחה כרגע" };
+    const code = errorCode(err);
+    if (code.includes("BLOCKED")) {
+      return { ok: false, error: "לא ניתן לשלוח הודעות: יש חסימה ביניכם" };
+    }
+    if (code.includes("NOT_ALLOWED")) {
+      return { ok: false, error: "אפשר לשלוח הודעות רק לחשבונות פעילים" };
+    }
+    return { ok: false, error: "לא ניתן לפתוח שיחה כרגע" };
   }
   redirect(`/messages/${conversationId}`);
 }
@@ -67,6 +72,9 @@ export async function sendDirectMessageAction(
     const code = errorCode(err);
     if (code.includes("RATE_LIMITED")) {
       return { ok: false, error: "שלחת הרבה הודעות בדקה האחרונה. נסו שוב בעוד רגע" };
+    }
+    if (code.includes("BLOCKED")) {
+      return { ok: false, error: "לא ניתן לשלוח הודעות: יש חסימה ביניכם" };
     }
     if (code.includes("RECIPIENT_UNAVAILABLE")) {
       return { ok: false, error: "החשבון של הסטודנט/ית לא פעיל כרגע" };

@@ -16,6 +16,7 @@ import { summarizeTopics } from "@/lib/courses/topic-state";
 import { timed } from "@/lib/perf/timing";
 import { isOnline } from "@/lib/ui/people";
 import { getDemoScenario } from "@/lib/demo/state";
+import { getHiddenUserIds } from "@/lib/blocks/queries";
 import { demoCourseDetail } from "@/lib/demo/fixtures";
 
 // "Available" = connected to the platform right now (no manual toggle).
@@ -101,7 +102,9 @@ async function loadCourseDetailData(userId: string, courseId: string) {
 
   const topicSummary = summarizeTopics(topics, progress);
 
-  const others = roster.filter((p) => p.id !== userId);
+  // Blocked either way: not on the roster I see.
+  const hidden = await getHiddenUserIds();
+  const others = roster.filter((p) => p.id !== userId && !hidden.has(p.id));
   const members = others
     .map((p) => {
       const status: MemberStatus = isOnline(p.last_seen_at, now) ? "available" : "offline";
