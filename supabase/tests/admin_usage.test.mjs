@@ -143,3 +143,76 @@ test("role management: super_admin promotes and demotes; a student cannot", asyn
     );
   });
 });
+
+// 20261114000001_admin_usage_heatmap.sql — activity by weekday x hour.
+const HEATMAP = "select public.admin_usage_heatmap($1) as r";
+
+test("admin_usage_heatmap: a student gets NOT_ALLOWED", async () => {
+  await base.asUser(U.a1, async (tx) => {
+    await tx.expectError(HEATMAP, [30], "NOT_ALLOWED");
+  });
+});
+
+test("admin_usage_heatmap: cells add up to the usage totals", async () => {
+  await base.asUser(U.admin, async (tx) => {
+    for (const days of [7, 30, 365]) {
+      const cells = (await tx.one(HEATMAP, [days])).r;
+      const usage = (await tx.one(USAGE, [days])).r;
+      for (const c of cells) {
+        assert.ok(Number.isInteger(c.dow) && c.dow >= 0 && c.dow <= 6, `dow ${c.dow}`);
+        assert.ok(Number.isInteger(c.hour) && c.hour >= 0 && c.hour <= 23, `hour ${c.hour}`);
+        assert.ok(Number(c.n) > 0, "only non-empty cells");
+      }
+      const expected =
+        sum(usage.daily, "room_messages") +
+        sum(usage.daily, "direct_messages") +
+        sum(usage.daily, "ai_runs");
+      assert.equal(sum(cells, "n"), expected, `days=${days}`);
+      assert.ok(!JSON.stringify(cells).includes('"content"'));
+    }
+  });
+});
+
+// 20261114000002_admin_user_details.sql — the user details popup.
+const DETAILS = "select public.admin_user_details($1) as r";
+
+test("admin_user_details: a student gets NOT_ALLOWED", async () => {
+  await base.asUser(U.a1, async (tx) => {
+    await tx.expectError(DETAILS, [U.a2], "NOT_ALLOWED");
+  });
+});
+
+test("admin_user_details: metadata and counts, never content", async () => {
+  // Raw counts first: PGlite has one connection, so no base.* calls inside asUser.
+  const raw = await base.one(
+    `select
+       (select count(*)::int from public.messages
+         where sender_id = $1 and sender_type = 'user' and deleted_at is null) as room_messages,
+       (select count(*)::int from public.ai_runs where requested_by = $1) as ai_runs,
+       (select count(*)::int from public.enrollments where user_id = $1) as courses,
+       (select count(*)::int from public.room_members where user_id = $1) as rooms,
+       (select content from public.messages
+         where sender_id = $1 and sender_type = 'user' limit 1) as sample_content`,
+    [U.a3],
+  );
+
+  const [d, missing] = await base.asUser(U.admin, async (tx) => [
+    (await tx.one(DETAILS, [U.a3])).r,
+    (await tx.one(DETAILS, ["00000000-0000-0000-0000-0000000000ff"])).r,
+  ]);
+
+  assert.equal(d.id, U.a3);
+  assert.equal(d.role, "student");
+  assert.ok(d.email && d.email.includes("@"), "email from auth.users");
+  assert.equal(Number(d.stats.room_messages), raw.room_messages);
+  assert.equal(Number(d.stats.ai_runs), raw.ai_runs);
+  assert.ok(Number(d.stats.prompt_tokens) >= 850, "a3's seeded AI run");
+  assert.equal(d.courses.length, raw.courses);
+  assert.equal(d.rooms.length, raw.rooms);
+  assert.ok(d.rooms.every((r) => r.name && r.status && r.role));
+
+  const json = JSON.stringify(d);
+  assert.ok(!json.includes('"content"'), "no content key");
+  assert.ok(raw.sample_content && !json.includes(raw.sample_content), "no message text");
+  assert.equal(missing, null);
+});

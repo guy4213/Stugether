@@ -20,14 +20,18 @@ export function UsageBarChart({
   total,
   unit,
   data,
+  format = String,
 }: {
   title: string;
   total: string;
   unit: string;
   data: { day: string; value: number }[];
+  // Axis and tooltip formatting (e.g. currency); counts by default.
+  format?: (value: number) => string;
 }) {
   const n = data.length;
-  const max = Math.max(1, ...data.map((d) => d.value));
+  const peakValue = Math.max(0, ...data.map((d) => d.value));
+  const max = peakValue > 0 ? peakValue : 1;
   const slot = (PLOT_START - PLOT_END) / Math.max(n, 1);
   const gap = n > 45 ? 1 : 2;
   const barWidth = Math.max(slot - gap, 1);
@@ -47,7 +51,7 @@ export function UsageBarChart({
         viewBox={`0 0 ${W} ${H}`}
         className="h-auto w-full"
         role="img"
-        aria-label={`${title}: ${total}. שיא של ${data[peak]?.value ?? 0} ${unit} ב-${
+        aria-label={`${title}: ${total}. שיא של ${format(data[peak]?.value ?? 0)} ${unit} ב-${
           data[peak] ? dayLabel(data[peak].day) : ""
         }`}
       >
@@ -57,7 +61,7 @@ export function UsageBarChart({
         </g>
         <g className="fill-muted-foreground" fontSize="12" textAnchor="start">
           <text x={PLOT_START + 8} y={TOP + 4}>
-            {max}
+            {format(max)}
           </text>
           <text x={PLOT_START + 8} y={BOTTOM + 4}>
             0
@@ -70,7 +74,7 @@ export function UsageBarChart({
           const h = BOTTOM - top;
           return (
             <g key={d.day} className="group">
-              <title>{`${dayLabel(d.day)}: ${d.value} ${unit}`}</title>
+              <title>{`${dayLabel(d.day)}: ${format(d.value)} ${unit}`.trim()}</title>
               <rect x={slotX(i)} y={TOP} width={slot} height={BOTTOM - TOP} fill="transparent" />
               {h > 0 && (
                 <path

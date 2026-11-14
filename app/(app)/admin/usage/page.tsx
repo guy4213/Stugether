@@ -3,14 +3,17 @@ import {
   ActivityIcon,
   CoinsIcon,
   DoorOpenIcon,
+  DownloadIcon,
   MessageSquareIcon,
   SparklesIcon,
   UserPlusIcon,
 } from "lucide-react";
 import { cn } from "cn";
+import { CourseActivityBars } from "@/components/admin/course-activity-bars";
 import { StatTile } from "@/components/admin/stat-tile";
 import { UsageBarChart, dayLabel } from "@/components/admin/usage-bar-chart";
-import { USAGE_PERIODS, getAdminUsage, type UsagePeriod } from "@/lib/admin/queries";
+import { UsageHeatmap } from "@/components/admin/usage-heatmap";
+import { USAGE_PERIODS, getAdminUsage, parseUsagePeriod } from "@/lib/admin/queries";
 
 const nf = new Intl.NumberFormat("he-IL");
 const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
@@ -18,42 +21,60 @@ const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" 
 const TH = "px-4 py-2.5 text-start text-xs font-semibold text-muted-foreground";
 const TD = "px-4 py-2.5 tabular-nums";
 
-// "שימוש" (SPEC §4.9, CR 11.11.2026): how the product is used over 7/30/90
-// days — active users, signups, messages, rooms, AI runs and cost, per day and
-// per course / user. Counts only (admin_usage_stats), never message content.
+// Change vs the previous period of the same length, e.g. "+12% לעומת התקופה הקודמת".
+function versus(current: number, previous: number): string {
+  if (previous === 0) return current > 0 ? "חדש — לא היה בתקופה הקודמת" : "כמו בתקופה הקודמת";
+  const pct = Math.round(((current - previous) / previous) * 100);
+  if (pct === 0) return "כמו בתקופה הקודמת";
+  return `${pct > 0 ? "+" : "−"}${Math.abs(pct)}% לעומת התקופה הקודמת`;
+}
+
+const joinHints = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join(" · ");
+
+// "שימוש" (SPEC §4.9, CR 11.11.2026 + 14.11.2026): how the product is used
+// over 7/30/90 days — active users, signups, messages, rooms, AI runs and cost
+// vs the previous period, per day, per course / user and by weekday x hour,
+// plus an Excel export. Counts only, never message content.
 export default async function AdminUsagePage({
   searchParams,
 }: {
   searchParams: Promise<{ days?: string }>;
 }) {
   const params = await searchParams;
-  const requested = Number(params.days);
-  const days: UsagePeriod = (USAGE_PERIODS as readonly number[]).includes(requested)
-    ? (requested as UsagePeriod)
-    : 30;
+  const days = parseUsagePeriod(params.days);
   const usage = await getAdminUsage(days);
-  const { totals } = usage;
+  const { totals, previous } = usage;
 
   return (
     <div className="flex flex-col gap-5">
-      <nav aria-label="תקופה" className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-muted-foreground">תקופה:</span>
-        {USAGE_PERIODS.map((p) => (
-          <Link
-            key={p}
-            href={`/admin/usage?days=${p}`}
-            aria-current={p === days ? "page" : undefined}
-            className={cn(
-              "flex h-[34px] items-center rounded-[11px] border px-3.5 text-[13px]",
-              p === days
-                ? "border-brand bg-brand font-bold text-white"
-                : "border-border bg-white font-medium hover:bg-muted",
-            )}
-          >
-            {p} ימים
-          </Link>
-        ))}
-      </nav>
+      <div className="flex flex-wrap items-center gap-2">
+        <nav aria-label="תקופה" className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground">תקופה:</span>
+          {USAGE_PERIODS.map((p) => (
+            <Link
+              key={p}
+              href={`/admin/usage?days=${p}`}
+              aria-current={p === days ? "page" : undefined}
+              className={cn(
+                "flex h-[34px] items-center rounded-[11px] border px-3.5 text-[13px]",
+                p === days
+                  ? "border-brand bg-brand font-bold text-white"
+                  : "border-border bg-white font-medium hover:bg-muted",
+              )}
+            >
+              {p} ימים
+            </Link>
+          ))}
+        </nav>
+        <a
+          href={`/admin/usage/export?days=${days}`}
+          download
+          className="ms-auto flex h-[34px] items-center gap-1.5 rounded-[11px] border border-border bg-white px-3.5 text-[13px] font-semibold hover:bg-muted"
+        >
+          <DownloadIcon className="size-4" aria-hidden />
+          ייצוא ל-Excel
+        </a>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatTile
@@ -66,33 +87,44 @@ export default async function AdminUsagePage({
         <StatTile
           label="הצטרפו"
           value={nf.format(totals.signups)}
+          hint={versus(totals.signups, previous.signups)}
           icon={UserPlusIcon}
           tone="blue"
         />
         <StatTile
           label="חדרים חדשים"
           value={nf.format(totals.roomsCreated)}
+          hint={versus(totals.roomsCreated, previous.roomsCreated)}
           icon={DoorOpenIcon}
           tone="violet"
         />
         <StatTile
           label="הודעות בחדרים"
           value={nf.format(totals.roomMessages)}
-          hint={`${nf.format(totals.directMessages)} הודעות פרטיות`}
+          hint={joinHints(
+            versus(totals.roomMessages, previous.roomMessages),
+            `${nf.format(totals.directMessages)} פרטיות`,
+          )}
           icon={MessageSquareIcon}
           tone="sky"
         />
         <StatTile
           label="ריצות AI"
           value={nf.format(totals.aiRuns)}
-          hint={`${nf.format(totals.aiFailed)} נכשלו`}
+          hint={joinHints(
+            versus(totals.aiRuns, previous.aiRuns),
+            totals.aiFailed > 0 && `${nf.format(totals.aiFailed)} נכשלו`,
+          )}
           icon={SparklesIcon}
           tone="teal"
         />
         <StatTile
           label="עלות AI מוערכת"
           value={usd.format(totals.costUsd)}
-          hint={`${nf.format(totals.tokens)} טוקנים · הערכה לפי מחירון Gemini`}
+          hint={joinHints(
+            versus(totals.costUsd, previous.costUsd),
+            `${nf.format(totals.tokens)} טוקנים`,
+          )}
           icon={CoinsIcon}
           tone="warning"
         />
@@ -118,12 +150,29 @@ export default async function AdminUsagePage({
           data={usage.daily.map((d) => ({ day: d.day, value: d.aiRuns }))}
         />
         <UsageBarChart
+          title="עלות AI מוערכת ביום"
+          total={usd.format(totals.costUsd)}
+          unit=""
+          format={(v) => usd.format(v)}
+          data={usage.daily.map((d) => ({ day: d.day, value: d.costUsd }))}
+        />
+        <UsageBarChart
           title="הצטרפויות ביום"
           total={nf.format(totals.signups)}
           unit="משתמשים חדשים"
           data={usage.daily.map((d) => ({ day: d.day, value: d.signups }))}
         />
+        <CourseActivityBars courses={usage.topCourses} />
       </div>
+
+      {usage.heatmap ? (
+        <UsageHeatmap cells={usage.heatmap} days={days} />
+      ) : (
+        <p className="rounded-[22px] border border-dashed border-border px-5 py-4 text-sm text-muted-foreground">
+          מפת &quot;מתי לומדים&quot; עדיין לא זמינה: צריך להריץ את ה-migration{" "}
+          <code dir="ltr">20261114000001_admin_usage_heatmap</code>.
+        </p>
+      )}
 
       <TableCard title="קורסים מובילים" empty="אין פעילות בקורסים בתקופה">
         {usage.topCourses.length > 0 && (

@@ -1,5 +1,6 @@
 import { FilterForm, SELECT_CLASS } from "@/components/admin/filter-form";
 import { UserActiveToggle } from "@/components/admin/user-active-toggle";
+import { UserDetailsDialog } from "@/components/admin/user-details-dialog";
 import { UserRoleToggle } from "@/components/admin/user-role-toggle";
 import { Pill } from "@/components/ui/pill";
 import { PersonAvatar } from "@/components/ui/person-avatar";
@@ -87,19 +88,26 @@ export default async function AdminUsersPage({
                     : "flex flex-wrap items-center gap-3 px-5 py-3.5"
                 }
               >
-                <PersonAvatar id={u.id} name={u.fullName} className="size-10" />
-                <div className="flex min-w-0 grow basis-48 flex-col">
-                  <span className="flex items-center gap-2 font-semibold">
-                    <span className="truncate">{u.fullName}</span>
-                    {u.role === "super_admin" && <Pill tone="violet">אדמין</Pill>}
-                    {!u.isActive && <Pill tone="rose">מושבת/ת</Pill>}
+                <UserDetailsDialog userId={u.id} name={u.fullName}>
+                  <PersonAvatar
+                    id={u.id}
+                    name={u.fullName}
+                    avatarPath={u.avatarPath}
+                    className="size-10"
+                  />
+                  <span className="flex min-w-0 flex-col">
+                    <span className="flex items-center gap-2 font-semibold">
+                      <span className="truncate">{u.fullName}</span>
+                      {u.role === "super_admin" && <Pill tone="violet">אדמין</Pill>}
+                      {!u.isActive && <Pill tone="rose">מושבת/ת</Pill>}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {[u.institution, u.department, u.studyYear ? `שנה ${u.studyYear}` : null]
+                        .filter(Boolean)
+                        .join(" · ") || "לא השלים/ה פרופיל"}
+                    </span>
                   </span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {[u.institution, u.department, u.studyYear ? `שנה ${u.studyYear}` : null]
-                      .filter(Boolean)
-                      .join(" · ") || "לא השלים/ה פרופיל"}
-                  </span>
-                </div>
+                </UserDetailsDialog>
                 <span className="w-28 text-xs text-muted-foreground">
                   {u.lastSeenAt ? `נראה/תה ${relativeTimeHe(u.lastSeenAt)}` : "לא התחבר/ה"}
                 </span>
