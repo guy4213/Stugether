@@ -1,13 +1,16 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { ChevronDownIcon, SendIcon, SparklesIcon } from "lucide-react";
+import { ChevronDownIcon, SearchIcon, SendIcon, SparklesIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DELETE_WINDOW_MS, MessageBubble } from "@/components/rooms/message-bubble";
 import { deleteMessage, loadOlderMessages, markRoomReadAction } from "@/lib/rooms/actions";
+import { loadRoomMessagesFrom, searchRoomMessagesAction } from "@/lib/rooms/search-actions";
+import { ChatSearch, type ChatSearchHit } from "@/components/chat/chat-search";
+import { normalizeSearch } from "@/lib/ui/people";
 import type { Message } from "@/lib/repositories/messages";
 import type { RoomMember } from "@/lib/repositories/rooms";
 import { DEMO_AI_REPLY, DEMO_READ_ONLY_ERROR } from "@/lib/demo/constants";
@@ -138,6 +141,9 @@ export function ChatPanel({
   const [loadingOlder, startLoadingOlder] = useTransition();
   const [now, setNow] = useState(() => Date.now());
   const [showActions, setShowActions] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const lastHits = useRef(new Map<string, ChatSearchHit>());
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -218,6 +224,64 @@ export function ChatPanel({
         el.scrollTop = el.scrollHeight - prevHeight;
       });
     });
+  }
+
+  // "חיפוש בשיחה" (client QA 12.11.2026).
+  const senderName = (m: Message) =>
+    m.sender_type === "ai"
+      ? "העוזר"
+      : m.sender_type === "system"
+        ? "מערכת"
+        : m.sender_id === currentUserId
+          ? "את/ה"
+          : (membersById.get(m.sender_id ?? "")?.profile?.full_name ?? "סטודנט/ית");
+
+  async function searchMessages(q: string) {
+    let found: Message[];
+    if (demo) {
+      const n = normalizeSearch(q);
+      found = [...messages]
+        .reverse()
+        .filter((m) => !m.deleted_at && normalizeSearch(m.content).includes(n));
+    } else {
+      const r = await searchRoomMessagesAction(roomId, q);
+      if (!r.ok) return { ok: false, error: r.error };
+      found = r.hits ?? [];
+    }
+    const hits = found.map((m) => ({
+      id: m.id,
+      createdAt: m.created_at,
+      content: m.content,
+      sender: senderName(m),
+    }));
+    lastHits.current = new Map(hits.map((h) => [h.id, h]));
+    return { ok: true, hits };
+  }
+
+  async function jumpTo(id: string) {
+    if (mode === "ai") onModeChange("group");
+    const hit = lastHits.current.get(id);
+    const oldest = messages[0];
+    if (!messages.some((m) => m.id === id) && hit && oldest && !demo) {
+      const older = await loadRoomMessagesFrom(
+        roomId,
+        { createdAt: hit.createdAt, id: hit.id },
+        { createdAt: oldest.created_at, id: oldest.id },
+      );
+      stickToBottom.current = false;
+      setMessages((prev) => [...older.filter((o) => !prev.some((p) => p.id === o.id)), ...prev]);
+    }
+    stickToBottom.current = false;
+    setHighlightId(id);
+    // After the (possibly) prepended messages render.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() =>
+        scrollRef.current
+          ?.querySelector(`[data-message-id="${id}"]`)
+          ?.scrollIntoView({ block: "center", behavior: "smooth" }),
+      ),
+    );
+    setTimeout(() => setHighlightId((h) => (h === id ? null : h)), 2500);
   }
 
   async function send(askAi: boolean, text = content) {
@@ -332,6 +396,29 @@ export function ChatPanel({
         className,
       )}
     >
+      {isMember && !searchOpen && (
+        <div className={cn("flex justify-end px-4 sm:px-6", aiAvailable ? "-mb-14 pt-6" : "pt-3")}>
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            aria-label="חיפוש בשיחה"
+            title="חיפוש בשיחה"
+            className="relative z-10 flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+          >
+            <SearchIcon className="size-[18px]" aria-hidden />
+          </button>
+        </div>
+      )}
+      {searchOpen && (
+        <ChatSearch
+          search={searchMessages}
+          onPick={(id) => void jumpTo(id)}
+          onClose={() => {
+            setSearchOpen(false);
+            setHighlightId(null);
+          }}
+        />
+      )}
       {aiAvailable && (
         <div className="px-6 pt-6 pb-4">
           <div
@@ -411,22 +498,30 @@ export function ChatPanel({
                   </span>
                 </div>
               )}
-              <MessageBubble
-                message={message}
-                isOwn={isOwn}
-                sender={message.sender_id ? membersById.get(message.sender_id) : undefined}
-                showSender={!sameSenderAsPrev}
-                online={!!message.sender_id && online.has(message.sender_id)}
-                canDelete={
-                  isOwn &&
-                  canPost &&
-                  now - new Date(message.created_at).getTime() < DELETE_WINDOW_MS
-                }
-                onDelete={() => void handleDelete(message)}
-                canRetry={canPost && aiAvailable}
-                onRetry={() => void handleRetry(message)}
-                busy={busyId === message.id}
-              />
+              <div
+                data-message-id={message.id}
+                className={cn(
+                  "rounded-2xl transition-colors duration-700",
+                  highlightId === message.id && "bg-warning-soft ring-2 ring-warning/50",
+                )}
+              >
+                <MessageBubble
+                  message={message}
+                  isOwn={isOwn}
+                  sender={message.sender_id ? membersById.get(message.sender_id) : undefined}
+                  showSender={!sameSenderAsPrev}
+                  online={!!message.sender_id && online.has(message.sender_id)}
+                  canDelete={
+                    isOwn &&
+                    canPost &&
+                    now - new Date(message.created_at).getTime() < DELETE_WINDOW_MS
+                  }
+                  onDelete={() => void handleDelete(message)}
+                  canRetry={canPost && aiAvailable}
+                  onRetry={() => void handleRetry(message)}
+                  busy={busyId === message.id}
+                />
+              </div>
             </Fragment>
           );
         })}

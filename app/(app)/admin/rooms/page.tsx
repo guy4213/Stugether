@@ -1,13 +1,13 @@
-import { ArchiveRoomButton } from "@/components/admin/archive-room-button";
+import { CloseRoomButton } from "@/components/admin/close-room-button";
 import { FilterForm, SELECT_CLASS } from "@/components/admin/filter-form";
 import { Pill } from "@/components/ui/pill";
 import { getAdminRooms } from "@/lib/admin/queries";
 import { relativeTimeHe } from "@/lib/ui/format";
 
-const STATUS_LABEL = { active: "פעיל", archived: "מאורכב", closed: "סגור" } as const;
-const STATUSES = ["active", "archived", "closed"] as const;
+const STATUS_LABEL = { active: "פעיל", closed: "סגור" } as const;
+const STATUSES = ["active", "closed"] as const;
 
-// "חדרים" (SPEC §4.9): list, filter, metadata, archive. Never message
+// "חדרים" (SPEC §4.9): list, filter, metadata, close. Never message
 // content — counts come from admin_room_stats(), and the admin has no
 // messages SELECT policy at all.
 export default async function AdminRoomsPage({
@@ -68,15 +68,7 @@ export default async function AdminRoomsPage({
                       : "—"}
                   </td>
                   <td className="px-3 py-3">
-                    <Pill
-                      tone={
-                        room.status === "active"
-                          ? "success"
-                          : room.status === "archived"
-                            ? "warning"
-                            : "neutral"
-                      }
-                    >
+                    <Pill tone={room.status === "active" ? "success" : "neutral"}>
                       {STATUS_LABEL[room.status]}
                     </Pill>
                   </td>
@@ -87,7 +79,7 @@ export default async function AdminRoomsPage({
                   </td>
                   <td className="px-5 py-3 text-end">
                     {room.status === "active" && (
-                      <ArchiveRoomButton roomId={room.id} name={room.name} />
+                      <CloseRoomButton roomId={room.id} name={room.name} />
                     )}
                   </td>
                 </tr>

@@ -6,7 +6,7 @@ import { CreateRoomForm } from "@/components/courses/create-room-form";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getRoomsPageData, type RoomsView } from "@/lib/rooms/directory-queries";
 
-const VIEWS: RoomsView[] = ["all", "live", "mine"];
+const VIEWS: RoomsView[] = ["all", "live", "joinable", "mine"];
 
 // "חדרי לימוד" (Figma, Change Request 30.10.2026): my rooms and the open
 // rooms of my courses, the ones in session first.
@@ -49,7 +49,10 @@ export default async function RoomsPage({
         {empty ? (
           <p className="rounded-[22px] border-2 border-dashed border-switch-off bg-surface-2 p-8 text-center text-muted-foreground">
             {data.totals.all === 0 ? (
-              <>עוד אין חדרים בקורסים שלך. פתחו חדר והזמינו עד 3 חברים ללמוד יחד.</>
+              <>
+                עוד אין חדרים בקורסים שלך. פתחו חדר ותתחילו ללמוד, גם לבד עם העוזר. אפשר להזמין עד 3
+                חברים בכל שלב.
+              </>
             ) : (
               <>
                 לא נמצאו חדרים תואמים.{" "}

@@ -1,8 +1,10 @@
 import { cn } from "cn";
 import { getAvatarUrl } from "@/lib/storage";
-import { initials, personTone } from "@/lib/ui/people";
+import { personTone } from "@/lib/ui/people";
+import { defaultAvatarFor } from "@/lib/avatars/presets";
 
-// Initials avatar (photo when there is one), in the mockup's tinted style.
+// The student's photo, or their chosen ready-made avatar, or — if they have
+// neither — an automatic one picked by id (no initials, client QA 11.2026).
 // `ring` draws the blue→teal gradient ring used for "you" and available users.
 export function PersonAvatar({
   id,
@@ -27,12 +29,12 @@ export function PersonAvatar({
         ring && "border-2 border-white",
       )}
     >
-      {avatarPath ? (
-        // eslint-disable-next-line @next/next/no-img-element -- public storage URL, tiny avatar
-        <img src={getAvatarUrl(avatarPath)} alt="" className="size-full object-cover" />
-      ) : (
-        initials(name)
-      )}
+      {/* eslint-disable-next-line @next/next/no-img-element -- public storage URL, tiny avatar */}
+      <img
+        src={getAvatarUrl(avatarPath || defaultAvatarFor(id))}
+        alt=""
+        className="size-full object-cover"
+      />
     </span>
   );
 

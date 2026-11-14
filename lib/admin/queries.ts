@@ -94,10 +94,7 @@ export async function getAdminCatalog() {
   return listFullCatalog(supabase);
 }
 
-export async function getAdminRooms(filters: {
-  search?: string;
-  status?: "active" | "archived" | "closed";
-}) {
+export async function getAdminRooms(filters: { search?: string; status?: "active" | "closed" }) {
   await assertSuperAdmin();
   const supabase = await createClient();
   return listAllRooms(supabase, filters);

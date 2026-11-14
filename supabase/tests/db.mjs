@@ -29,6 +29,15 @@ async function loadPgcrypto() {
   }
 }
 
+async function loadPgTrgm() {
+  try {
+    const mod = await import("@electric-sql/pglite/contrib/pg_trgm");
+    return mod.pg_trgm ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Render a SQL error with the file name and the lines around the failing position. */
 export function formatSqlError(err, sql, label) {
   const out = [
@@ -164,7 +173,11 @@ export async function createDb(opts = {}) {
     opts.seedFile === undefined ? path.join(SUPABASE_DIR, "seed.sql") : opts.seedFile;
 
   const pgcrypto = await loadPgcrypto();
-  const db = new PGlite(pgcrypto ? { extensions: { pgcrypto } } : {});
+  // pg_trgm: the message search indexes (20261112000013_message_search.sql).
+  const pg_trgm = await loadPgTrgm();
+  const db = new PGlite({
+    extensions: { ...(pgcrypto ? { pgcrypto } : {}), ...(pg_trgm ? { pg_trgm } : {}) },
+  });
   await db.waitReady;
 
   const loaded = [];

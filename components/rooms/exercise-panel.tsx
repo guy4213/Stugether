@@ -100,6 +100,7 @@ export function ExercisePanel({
   canPost,
   board,
   onAskAi,
+  compact = false,
   className,
 }: {
   roomId: string;
@@ -116,6 +117,8 @@ export function ExercisePanel({
     clear: () => void;
   };
   onAskAi: (() => void) | null;
+  /** Narrow column (while a screen is shared): less padding around the content. */
+  compact?: boolean;
   className?: string;
 }) {
   const panelRef = useRef<HTMLElement>(null);
@@ -188,7 +191,12 @@ export function ExercisePanel({
         className,
       )}
     >
-      <header className="mx-4 flex flex-wrap items-center gap-3 border-b border-divider py-5 sm:mx-6">
+      <header
+        className={cn(
+          "mx-4 flex flex-wrap items-center gap-3 border-b border-divider",
+          compact ? "py-3" : "py-5 sm:mx-6",
+        )}
+      >
         <DropdownMenu dir="rtl">
           <DropdownMenuTrigger
             disabled={exercises.length === 0}
@@ -320,7 +328,10 @@ export function ExercisePanel({
 
         <div
           ref={scrollerRef}
-          className="relative min-h-0 flex-1 overflow-y-auto ps-6 pe-20 pt-8 pb-24 sm:ps-10 sm:pe-24"
+          className={cn(
+            "relative min-h-0 flex-1 overflow-y-auto",
+            compact ? "ps-4 pe-16 pt-5 pb-20" : "ps-6 pe-20 pt-8 pb-24 sm:ps-10 sm:pe-24",
+          )}
         >
           {exercise ? (
             <article className="flex flex-col gap-4">

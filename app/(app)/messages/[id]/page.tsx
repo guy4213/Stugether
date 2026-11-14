@@ -1,8 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { ConversationList } from "@/components/messages/conversation-list";
 import { DirectChat } from "@/components/messages/direct-chat";
+import { MessagesWindow } from "@/components/messages/messages-window";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getConversationPageData, getInbox } from "@/lib/messages/queries";
+import { getChatPartner, getConversationPageData, getInbox } from "@/lib/messages/queries";
 
 // One private chat. RLS returns nothing for a conversation that isn't mine,
 // which lands on 404 like a missing one.
@@ -17,12 +18,10 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
     getInbox(user.id),
   ]);
   if (!data) notFound();
+  const partner = data.otherActive ? await getChatPartner(user.id, data.other.id) : null;
 
   return (
-    <main
-      id="main-content"
-      className="mx-auto grid h-[calc(100dvh-73px)] min-h-[480px] w-full max-w-[1440px] gap-4 px-0 pt-0 sm:px-8 sm:pt-6 sm:pb-6 lg:min-h-[560px] lg:grid-cols-[360px_1fr] xl:px-12"
-    >
+    <MessagesWindow mode="chat">
       <h1 className="sr-only">שיחה עם {data.other.fullName}</h1>
       <ConversationList items={inbox} activeId={id} className="hidden lg:flex lg:h-full" />
       {/* key: another conversation remounts the chat and its channel. */}
@@ -30,8 +29,9 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
         key={id}
         data={data}
         currentUserId={user.id}
-        className="h-full max-sm:rounded-none"
+        partner={partner}
+        className="h-full"
       />
-    </main>
+    </MessagesWindow>
   );
 }

@@ -232,3 +232,64 @@ test("realtime: dm:<id> is open to the two participants only", async (t) => {
   assert.equal(own.write, false);
   assert.equal((await db.realtimeAccess(U.a1, `user:${U.a4}`)).read, false);
 });
+
+// 20261112000020_dm_read_receipts.sql — "נשלח / נקרא" (Change Request 12.11.2026).
+test("read receipts: participants see each other's read time; 'read' broadcast without content", async (t) => {
+  const db = await fresh(t);
+  const id = await open(db, U.a1, U.a4);
+  await send(db, U.a1, id, "סוד שלא אמור לדלוף");
+
+  await db.asUser(U.a4, (tx) => tx.query("select public.mark_conversation_read($1)", [id]), {
+    commit: true,
+  });
+
+  // The sender sees the other side's read row, next to their own (sending
+  // marks the sender read).
+  await db.asUser(U.a1, async (tx) => {
+    const rows = await tx.query(
+      `select user_id::text, last_read_at from public.conversation_reads
+        where conversation_id = $1 order by user_id`,
+      [id],
+    );
+    assert.deepEqual(
+      rows.rows.map((r) => r.user_id),
+      [U.a1, U.a4],
+    );
+    assert.ok(rows.rows[1].last_read_at);
+  });
+  // An outsider and the super admin see no read rows.
+  for (const who of [U.a2, U.admin]) {
+    await db.asUser(who, async (tx) => {
+      assert.equal((await tx.query("select 1 from public.conversation_reads")).rows.length, 0);
+    });
+  }
+  // Still no direct writes.
+  await db.asUser(U.a1, (tx) =>
+    tx.expectError(
+      "insert into public.conversation_reads (conversation_id, user_id, last_read_at) values ($1, $2, now())",
+      [id, U.a1],
+      "",
+    ),
+  );
+
+  // The broadcast on dm:<id>: who + when, never the message text.
+  const sent = await db.query(
+    "select payload from realtime.messages where topic = $1 and event = 'read'",
+    [`dm:${id}`],
+  );
+  assert.equal(sent.rows.length, 1);
+  assert.deepEqual(Object.keys(sent.rows[0].payload).sort(), ["last_read_at", "user_id"]);
+  assert.equal(sent.rows[0].payload.user_id, U.a4);
+  assert.ok(!JSON.stringify(sent.rows[0].payload).includes("סוד"));
+
+  // The unread counts still count only my own read row.
+  await db.asUser(U.a1, async (tx) => {
+    const badge = await tx.one("select public.count_unread_direct_messages() as n");
+    assert.equal(Number(badge.n), 0);
+  });
+  await send(db, U.a4, id, "תשובה");
+  await db.asUser(U.a1, async (tx) => {
+    const list = await tx.query("select unread_count from public.list_my_conversations()");
+    assert.equal(Number(list.rows[0].unread_count), 1);
+  });
+});

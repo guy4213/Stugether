@@ -46,7 +46,7 @@ export interface RoomStats {
 export interface AdminRoomListItem {
   id: string;
   name: string;
-  status: "active" | "archived" | "closed";
+  status: "active" | "closed";
   course: Pick<Course, "id" | "name" | "code"> | null;
   member_count: number;
   message_count: number;
@@ -295,7 +295,7 @@ export async function listFullCatalog(client: SupabaseClient): Promise<{
 // super_admin SELECT policy) and merges them in JS.
 export async function listAllRooms(
   client: SupabaseClient,
-  filters: { search?: string; status?: "active" | "archived" | "closed" } = {},
+  filters: { search?: string; status?: "active" | "closed" } = {},
 ): Promise<AdminRoomListItem[]> {
   let query = client.from("rooms").select("id, name, status, course:courses(id, name, code)");
   if (filters.search) query = query.ilike("name", `%${filters.search}%`);
@@ -313,7 +313,7 @@ export async function listAllRooms(
     rooms as unknown as {
       id: string;
       name: string;
-      status: "active" | "archived" | "closed";
+      status: "active" | "closed";
       course: Pick<Course, "id" | "name" | "code"> | null;
     }[]
   ).map((room) => {

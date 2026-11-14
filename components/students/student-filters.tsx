@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Loader2Icon, SearchIcon, SlidersHorizontalIcon } from "lucide-react";
+import { Loader2Icon, RotateCcwIcon, SearchIcon, SlidersHorizontalIcon } from "lucide-react";
 import { cn } from "cn";
 import {
   Select,
@@ -22,6 +22,16 @@ import {
 type Option = { id: string; name: string };
 
 const ALL = "all";
+const FILTER_KEYS = [
+  "q",
+  "courseId",
+  "track",
+  "institutionId",
+  "departmentId",
+  "year",
+  "online",
+  "times",
+];
 const YEARS = [1, 2, 3, 4];
 const TRACK_OPTIONS: Option[] = STUDY_TRACKS.map((t) => ({ id: t, name: TRACK_LABEL[t] }));
 
@@ -80,6 +90,13 @@ export function StudentFilters({
   const moreCount = ["institutionId", "departmentId", "year", "online"].filter((k) =>
     searchParams.get(k),
   ).length;
+  const anyFilter = FILTER_KEYS.some((k) => searchParams.get(k));
+
+  function resetFilters() {
+    sentQuery.current = "";
+    setQuery("");
+    navigate((p) => FILTER_KEYS.forEach((k) => p.delete(k)));
+  }
 
   function toggleTime(t: string) {
     const next = times.includes(t) ? times.filter((x) => x !== t) : [...times, t];
@@ -189,11 +206,22 @@ export function StudentFilters({
               )}
             </PopoverContent>
           </Popover>
+          {anyFilter && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="flex h-[52px] items-center gap-2 rounded-[12px] px-4 text-[15px] font-bold text-primary hover:bg-white/60"
+            >
+              <RotateCcwIcon className="size-[18px]" aria-hidden />
+              איפוס סינון
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      {/* The times sit right after the question, not at the far (left) end. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-8">
+        <div className="shrink-0">
           <h2 className="text-[22px] font-extrabold">מתי נוח לך ללמוד?</h2>
           <p className="text-[15px] text-foreground">בחרו את כל הזמנים שמתאימים לכם</p>
         </div>

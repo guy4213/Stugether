@@ -1,6 +1,13 @@
 "use client";
 
-import { useOptimistic, useTransition } from "react";
+import { useOptimistic, useSyncExternalStore, useTransition } from "react";
+import {
+  SOUND_CHANGED_EVENT,
+  isNotifySoundOn,
+  playNotifySound,
+  setNotifySoundOn,
+  unlockNotifySound,
+} from "@/lib/ui/notify-sound";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { updateNotificationPreference } from "@/lib/notifications/actions";
@@ -65,6 +72,45 @@ export function NotificationPreferences({ preferences }: { preferences: Prefs })
           />
         </div>
       ))}
+      <SoundRow />
+    </div>
+  );
+}
+
+function subscribeSound(onChange: () => void) {
+  window.addEventListener(SOUND_CHANGED_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(SOUND_CHANGED_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+// "צליל בהתראות" (client QA 12.11.2026): per device, so it lives in the
+// browser (lib/ui/notify-sound.ts), not in notification_preferences.
+function SoundRow() {
+  const on = useSyncExternalStore(subscribeSound, isNotifySoundOn, () => true);
+  return (
+    <div className="mt-3 flex items-center justify-between gap-3 border-t border-divider pt-3">
+      <div className="flex flex-col">
+        <span id="pref-sound" className="text-[15px] font-semibold">
+          צליל בהתראות
+        </span>
+        <span className="text-[13px] text-muted-foreground">
+          צליל קצר כשמגיעה התראה (במכשיר הזה)
+        </span>
+      </div>
+      <Switch
+        checked={on}
+        onCheckedChange={(v) => {
+          setNotifySoundOn(v);
+          if (v) {
+            unlockNotifySound()();
+            setTimeout(playNotifySound, 50);
+          }
+        }}
+        aria-labelledby="pref-sound"
+      />
     </div>
   );
 }

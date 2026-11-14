@@ -1,20 +1,16 @@
 import "server-only";
-import { getCachedMyActiveRooms, getCachedOwnProfile } from "@/lib/app/cached";
+import { getCachedMyActiveRooms } from "@/lib/app/cached";
 import { createClient } from "@/lib/supabase/server";
 import { listMyEnrollments } from "@/lib/repositories/enrollments";
-import { listMyMessageTimestamps } from "@/lib/repositories/messages";
-import { listDepartments } from "@/lib/repositories/catalog";
+import { listMyMessageRooms } from "@/lib/repositories/messages";
+import { listRoomCourseIds } from "@/lib/repositories/rooms";
 import { getDemoScenario } from "@/lib/demo/state";
 import { demoAnalytics } from "@/lib/demo/fixtures";
+import { rangeWeeks, type AnalyticsRange } from "@/lib/analytics/range";
 
 const WEEK_MS = 7 * 86_400_000;
 
-export type AnalyticsRange = "8w" | "semester";
-
-// "סמסטר" = ~20 weeks back (a semester plus exam period).
-export function parseAnalyticsRange(value: string | undefined): AnalyticsRange {
-  return value === "semester" ? "semester" : "8w";
-}
+export { parseAnalyticsRange, type AnalyticsRange } from "@/lib/analytics/range";
 
 export async function getAnalyticsData(
   userId: string,
@@ -28,18 +24,18 @@ export async function getAnalyticsData(
 export type AnalyticsData = Awaited<ReturnType<typeof loadAnalyticsData>>;
 
 async function loadAnalyticsData(userId: string, range: AnalyticsRange) {
-  const weeks = range === "semester" ? 20 : 8;
+  const weeks = rangeWeeks(range);
   const supabase = await createClient();
   const since = new Date(Date.now() - weeks * WEEK_MS);
-  const [enrollments, activeRooms, messageTimes, profile] = await Promise.all([
+  const [enrollments, activeRooms, myMessages] = await Promise.all([
     listMyEnrollments(supabase, userId),
     getCachedMyActiveRooms(userId),
-    listMyMessageTimestamps(supabase, userId, since.toISOString()),
-    getCachedOwnProfile(userId),
+    listMyMessageRooms(supabase, userId, since.toISOString()),
   ]);
-  const departments = profile?.institution_id
-    ? await listDepartments(supabase, profile.institution_id)
-    : [];
+  const messageTimes = myMessages.map((m) => m.created_at);
+  const roomCourse = await listRoomCourseIds(supabase, [
+    ...new Set(myMessages.map((m) => m.room_id)),
+  ]);
 
   const enrolled = enrollments.filter((e) => e.status === "active");
   const activeCourses = enrolled.filter((e) => !e.completed_at);
@@ -57,13 +53,17 @@ async function loadAnalyticsData(userId: string, range: AnalyticsRange) {
     };
   });
 
-  // Enrolled courses grouped by department (the mockup's subject donut).
-  const departmentName = new Map(departments.map((d) => [d.id, d.name]));
-  const bySubject = new Map<string, number>();
-  for (const e of enrolled) {
-    const name = (e.course.department_id && departmentName.get(e.course.department_id)) || "אחר";
-    bySubject.set(name, (bySubject.get(name) ?? 0) + 1);
+  // "פעילות לפי קורס" (client QA 12.11.2026, replaced the department donut):
+  // my messages in the range, per course of the room they were sent in.
+  const courseName = new Map(enrollments.map((e) => [e.course_id, e.course.name]));
+  const byCourse = new Map<string, number>();
+  for (const m of myMessages) {
+    const courseId = roomCourse.get(m.room_id);
+    if (courseId) byCourse.set(courseId, (byCourse.get(courseId) ?? 0) + 1);
   }
+  const courseActivity = [...byCourse.entries()]
+    .map(([id, messages]) => ({ id, name: courseName.get(id) ?? "קורס אחר", messages }))
+    .sort((a, b) => b.messages - a.messages);
 
   const roomsCreated = activeRooms.filter((r) => r.created_by === userId).length;
   const avgActiveProgress = activeCourses.length
@@ -95,7 +95,7 @@ async function loadAnalyticsData(userId: string, range: AnalyticsRange) {
     avgActiveProgress,
     weekly,
     courseProgress,
-    subjects: [...bySubject.entries()].map(([name, count]) => ({ name, count })),
+    courseActivity,
     achievements: [
       {
         title: "צעד ראשון",

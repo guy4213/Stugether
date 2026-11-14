@@ -19,7 +19,7 @@ async function fresh(t) {
   return db;
 }
 
-// R1 (active): a1 creator + a2 + a3. a4 is not a member. R2 is archived (a2 + a5).
+// R1 (active): a1 creator + a2 + a3. a4 is not a member. R2 is closed (a2 + a5).
 
 test("exercises: a member adds one, every member reads it, a non-member sees nothing", async (t) => {
   const db = await fresh(t);

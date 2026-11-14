@@ -16,6 +16,7 @@ const ALL = "all";
 const VIEWS = [
   { id: "all", label: "הכל" },
   { id: "live", label: "פעילים עכשיו" },
+  { id: "joinable", label: "פתוחים להצטרפות" },
   { id: "mine", label: "החדרים שלי" },
 ] as const;
 

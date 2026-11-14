@@ -27,6 +27,9 @@ type Handlers = {
   onExerciseInsert?: (row: RoomMessageRow) => void;
   onCallSignal?: (payload: Record<string, unknown>) => void;
   onWhiteboard?: (payload: Record<string, unknown>) => void;
+  // leave_room broadcasts { room_id } when the owner left and the room was
+  // deleted (20261112000003_owner_leave_deletes_room.sql).
+  onRoomDeleted?: () => void;
 };
 
 export type ChannelStatus = "connecting" | "subscribed" | "error" | "closed";
@@ -79,6 +82,9 @@ export function useRoomChannel(
         const id = (payload as { id?: unknown } | null)?.id;
         if (typeof id === "string") handlersRef.current.onMessageDeleted?.(id);
       })
+      .on("broadcast", { event: "room_deleted" }, () => {
+        handlersRef.current.onRoomDeleted?.();
+      })
       .on("broadcast", { event: "call" }, ({ payload }) => {
         if (payload && typeof payload === "object") handlersRef.current.onCallSignal?.(payload);
       })
@@ -125,6 +131,9 @@ export function useConversationChannel(
     onMessageInsert?: (row: DirectMessageRow) => void;
     onMessageUpdate?: (row: DirectMessageRow) => void;
     onMessageDeleted?: (messageId: string) => void;
+    // mark_conversation_read broadcasts { user_id, last_read_at } — who read
+    // and when, never content ("נקרא", Change Request 12.11.2026).
+    onRead?: (userId: string, lastReadAt: string) => void;
   },
   { enabled = true }: { enabled?: boolean } = {},
 ) {
@@ -158,6 +167,12 @@ export function useConversationChannel(
         const id = (payload as { id?: unknown } | null)?.id;
         if (typeof id === "string") handlersRef.current.onMessageDeleted?.(id);
       })
+      .on("broadcast", { event: "read" }, ({ payload }) => {
+        const p = payload as { user_id?: unknown; last_read_at?: unknown } | null;
+        if (typeof p?.user_id === "string" && typeof p.last_read_at === "string") {
+          handlersRef.current.onRead?.(p.user_id, p.last_read_at);
+        }
+      })
       .subscribe((s) => {
         if (s === "SUBSCRIBED") setStatus("subscribed");
         else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") setStatus("error");
@@ -181,24 +196,44 @@ export type NotificationRow = Record<string, unknown> & {
   body: string | null;
   conversation_id: string | null;
   room_id: string | null;
+  invitation_id?: string | null;
+  friendship_id?: string | null;
+  actor_id?: string | null;
 };
 
 // 'user:{userId}' (TECHNICAL_SPEC §5, owner only): every new notification row
 // for me, live — the toast and the nav badges. RLS on notifications limits
 // the stream to my own rows.
+//
+// Reliability (client QA 12.11.2026: "sometimes there is no indication"): a
+// channel that errors, times out or closes is rebuilt with backoff (1s → 30s),
+// the Realtime token follows the session's refreshes (a private channel
+// otherwise drops when the JWT expires), and `onReconnect` lets the caller
+// catch up on whatever arrived while it was down.
 export function useUserNotifications(
   userId: string | null,
   onInsert: (row: NotificationRow) => void,
+  onReconnect?: () => void,
 ) {
   const handlerRef = useRef(onInsert);
+  const reconnectRef = useRef(onReconnect);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     handlerRef.current = onInsert;
+    reconnectRef.current = onReconnect;
   });
 
   useEffect(() => {
     if (!userId) return;
     const supabase = createClient();
+    let disposed = false;
+    let retryTimer: number | null = null;
+    const { data: auth } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "TOKEN_REFRESHED" && session) {
+        void supabase.realtime.setAuth(session.access_token);
+      }
+    });
     const channel: RealtimeChannel = supabase.channel(`user:${userId}`, {
       config: { private: true },
     });
@@ -213,9 +248,23 @@ export function useUserNotifications(
         },
         (payload) => handlerRef.current(payload.new as NotificationRow),
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (disposed) return;
+        if (status === "SUBSCRIBED") {
+          if (attempt > 0) reconnectRef.current?.();
+          return;
+        }
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          if (retryTimer !== null) return;
+          const delay = Math.min(30_000, 1000 * 2 ** Math.min(attempt, 5));
+          retryTimer = window.setTimeout(() => setAttempt((a) => a + 1), delay);
+        }
+      });
     return () => {
+      disposed = true;
+      if (retryTimer !== null) window.clearTimeout(retryTimer);
+      auth.subscription.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [userId, attempt]);
 }

@@ -103,7 +103,8 @@ function Chip({
 const SORTS = [
   { value: "relevance", label: "רלוונטיות" },
   { value: "progress", label: "התקדמות" },
-  { value: "exam", label: "מבחן קרוב" },
+  { value: "students", label: "הכי הרבה סטודנטים" },
+  { value: "rooms", label: "חדרים פעילים" },
   { value: "az", label: "שם הקורס" },
 ];
 

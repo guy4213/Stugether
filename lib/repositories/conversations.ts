@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ilikeContains } from "@/lib/repositories/messages";
 
 // 1:1 chat between two students (SPEC §5.1, migration 20261107000001).
 // Reads are limited to the two participants by RLS; every write is an RPC.
@@ -88,6 +89,46 @@ export async function listDirectMessages(
   return data as DirectMessage[];
 }
 
+// "חיפוש בשיחה" in a private chat: same rules as searchRoomMessages.
+export async function searchDirectMessages(
+  client: SupabaseClient,
+  conversationId: string,
+  query: string,
+  limit = 30,
+): Promise<DirectMessage[]> {
+  const pattern = ilikeContains(query);
+  const { data, error } = await client
+    .from("direct_messages")
+    .select("*")
+    .eq("conversation_id", conversationId)
+    .is("deleted_at", null)
+    .ilike("content", pattern)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data as DirectMessage[];
+}
+
+export async function listDirectMessagesBetween(
+  client: SupabaseClient,
+  conversationId: string,
+  from: DirectMessageCursor,
+  until: DirectMessageCursor,
+  limit = 500,
+): Promise<DirectMessage[]> {
+  const { data, error } = await client
+    .from("direct_messages")
+    .select("*")
+    .eq("conversation_id", conversationId)
+    .gte("created_at", from.createdAt)
+    .or(`created_at.lt.${until.createdAt},and(created_at.eq.${until.createdAt},id.lt.${until.id})`)
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  return data as DirectMessage[];
+}
+
 // Wraps send_direct_message: the message, last_message_at, my read mark and
 // the recipient's in-site notification, in one transaction.
 export async function sendDirectMessage(
@@ -110,6 +151,23 @@ export async function markConversationRead(
     p_conversation_id: conversationId,
   });
   if (error) throw error;
+}
+
+// When a participant last read the conversation (null = never). RLS lets
+// either participant read both rows: "נקרא" under my last message.
+export async function getConversationReadAt(
+  client: SupabaseClient,
+  conversationId: string,
+  userId: string,
+): Promise<string | null> {
+  const { data, error } = await client
+    .from("conversation_reads")
+    .select("last_read_at")
+    .eq("conversation_id", conversationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as { last_read_at: string } | null)?.last_read_at ?? null;
 }
 
 // Own message, within 5 minutes.

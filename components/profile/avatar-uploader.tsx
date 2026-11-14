@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CameraIcon } from "lucide-react";
+import { CameraIcon, CheckIcon } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "cn";
 import { uploadAvatar, getAvatarUrl } from "@/lib/storage";
-import { updateAvatarPath } from "@/lib/profile/actions";
-import { initials } from "@/lib/ui/people";
+import { choosePresetAvatar, updateAvatarPath } from "@/lib/profile/actions";
+import { PRESET_AVATAR_PATHS, defaultAvatarFor } from "@/lib/avatars/presets";
 import { DEMO_READ_ONLY_ERROR } from "@/lib/demo/constants";
 
 // The file input is addressable by id so other controls (the completion
@@ -13,27 +14,42 @@ import { DEMO_READ_ONLY_ERROR } from "@/lib/demo/constants";
 export const AVATAR_INPUT_ID = "avatar-upload-input";
 
 // 132px avatar in a blue→teal ring with a camera button (Profile.dc.html).
+// No photo → the chosen ready-made avatar, or an automatic one (no initials).
+// `withPresets` adds the grid of ready-made avatars under it (client QA
+// 11.2026: "מתביישים? אפשר גם אווטאר").
 export function AvatarUploader({
   userId,
   fullName,
   avatarPath,
+  withPresets = false,
+  presetsOnly = false,
 }: {
   userId: string;
   fullName: string;
   avatarPath: string | null;
+  withPresets?: boolean;
+  /** Only the grid (the profile page shows the avatar itself in its cover). */
+  presetsOnly?: boolean;
 }) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(
-    avatarPath ? getAvatarUrl(avatarPath) : null,
-  );
+  const [current, setCurrent] = useState<string | null>(avatarPath);
+  // A save elsewhere on the page (the other uploader) re-renders us with the
+  // new path: take it over.
+  const [seenProp, setSeenProp] = useState(avatarPath);
+  if (avatarPath !== seenProp) {
+    setSeenProp(avatarPath);
+    setCurrent(avatarPath);
+  }
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const shown = localPreview ?? getAvatarUrl(current || defaultAvatarFor(userId));
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
 
-    const localPreview = URL.createObjectURL(file);
-    setPreviewUrl(localPreview);
+    const blobUrl = URL.createObjectURL(file);
+    setLocalPreview(blobUrl);
 
     startTransition(async () => {
       try {
@@ -43,7 +59,7 @@ export function AvatarUploader({
           toast.error(result.error ?? "העלאת התמונה נכשלה");
           return;
         }
-        setPreviewUrl(getAvatarUrl(path));
+        setCurrent(path);
         toast.success("תמונת הפרופיל עודכנה");
       } catch (err) {
         const message =
@@ -56,20 +72,31 @@ export function AvatarUploader({
                 : "העלאת התמונה נכשלה";
         toast.error(message);
       } finally {
-        URL.revokeObjectURL(localPreview);
+        setLocalPreview(null);
+        URL.revokeObjectURL(blobUrl);
       }
     });
   }
 
-  return (
+  function pickPreset(index: number) {
+    const previous = current;
+    setCurrent(PRESET_AVATAR_PATHS[index]);
+    startTransition(async () => {
+      const result = await choosePresetAvatar(index + 1);
+      if (!result.ok) {
+        setCurrent(previous);
+        toast.error(result.error ?? "עדכון האווטאר נכשל");
+        return;
+      }
+      toast.success("האווטאר נשמר");
+    });
+  }
+
+  const avatar = (
     <div className="relative size-[132px] shrink-0 rounded-full bg-brand-diag p-1 shadow-[0_14px_28px_-12px_rgba(37,99,235,.55)]">
-      <span className="flex size-full items-center justify-center overflow-hidden rounded-full border-5 border-white bg-primary-tint text-[40px] font-extrabold text-primary-strong">
-        {previewUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- public storage URL / local blob preview
-          <img src={previewUrl} alt={fullName} className="size-full object-cover" />
-        ) : (
-          initials(fullName)
-        )}
+      <span className="flex size-full items-center justify-center overflow-hidden rounded-full border-5 border-white bg-primary-tint">
+        {/* eslint-disable-next-line @next/next/no-img-element -- public storage URL / local blob preview */}
+        <img src={shown} alt={fullName} className="size-full object-cover" />
       </span>
       <label
         htmlFor={AVATAR_INPUT_ID}
@@ -87,6 +114,57 @@ export function AvatarUploader({
         disabled={isPending}
         onChange={handleFileChange}
       />
+    </div>
+  );
+
+  if (!withPresets && !presetsOnly) return avatar;
+
+  const grid = (
+    <fieldset className="flex w-full flex-col gap-2.5">
+      <legend
+        className={cn(
+          "mb-2.5 text-sm font-bold text-ink-2",
+          presetsOnly ? "text-start text-lg text-foreground" : "text-center",
+        )}
+      >
+        {presetsOnly ? "בחירת אווטאר" : "או בחרו אווטאר"}
+      </legend>
+      <div className="grid grid-cols-6 gap-2 sm:gap-2.5">
+        {PRESET_AVATAR_PATHS.map((path, i) => {
+          const selected = current === path;
+          return (
+            <button
+              key={path}
+              type="button"
+              disabled={isPending}
+              aria-pressed={selected}
+              aria-label={`אווטאר ${i + 1}`}
+              onClick={() => pickPreset(i)}
+              className={cn(
+                "relative aspect-square overflow-hidden rounded-full border-[3px] transition-[border-color,transform] hover:scale-105 disabled:opacity-60",
+                selected ? "border-primary" : "border-transparent",
+              )}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- bundled SVG */}
+              <img src={getAvatarUrl(path)} alt="" className="size-full" />
+              {selected && (
+                <span className="absolute inset-x-0 bottom-0 flex justify-center bg-primary/85 py-px text-white">
+                  <CheckIcon className="size-3" strokeWidth={3} aria-hidden />
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+
+  if (presetsOnly) return grid;
+
+  return (
+    <div className="flex w-full flex-col items-center gap-5">
+      {avatar}
+      {grid}
     </div>
   );
 }

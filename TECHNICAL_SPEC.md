@@ -234,7 +234,7 @@ rooms (
   created_by uuid FK NOT NULL,
   name text NOT NULL, topic text,
   status text NOT NULL DEFAULT 'active'
-         CHECK (status IN ('active','archived','closed')),
+         CHECK (status IN ('active','closed')),  -- 'archived' הוסר (20261112000014)
   ai_enabled boolean DEFAULT true,
   last_message_at timestamptz,
   created_at, archived_at
@@ -357,6 +357,7 @@ conversation_reads (
   last_read_at timestamptz DEFAULT now(),
   PRIMARY KEY (conversation_id, user_id)
 )
+-- RLS: both participants read both rows ("נקרא", 20261112000020); writes = RPC only
 
 push_subscriptions (
   id uuid PK, user_id uuid FK NOT NULL,
@@ -407,7 +408,7 @@ is_super_admin() -> boolean
 is_conversation_participant(p_id uuid) -> boolean   -- שלב 2
 ```
 
-**הפרדת קריאה מכתיבה היא החלטה מכוונת.** חדר `archived`/`closed` הוא **קריאה בלבד, לא היעלמות**. אילו `is_room_member` הייתה בודקת גם את `status`, ארכוב חדר היה מוחק בפועל את כל הלמידה מהמסך של הסטודנטים.
+**הפרדת קריאה מכתיבה היא החלטה מכוונת.** חדר `closed` הוא **קריאה בלבד, לא היעלמות** (הסטטוס `archived` בוטל ב-20261112000014). אילו `is_room_member` הייתה בודקת גם את `status`, ארכוב חדר היה מוחק בפועל את כל הלמידה מהמסך של הסטודנטים. (המחיקה היחידה של חדר היא כשהבעלים עוזב — `leave_room`, `20261112000003_owner_leave_deletes_room`: התראת `room_deleted` לשאר החברים, broadcast `room_deleted` בערוץ החדר, ו-`DELETE` שמנקה הכל ב-cascade. קבצי `room-files` נמחקים ב-Storage API מה-Server Action.)
 
 ### 4.3 Policies
 
@@ -426,7 +427,7 @@ is_conversation_participant(p_id uuid) -> boolean   -- שלב 2
 | `room_invitations`                         | SELECT          | מזמין OR מוזמן OR `is_room_member(room_id)`                                           |
 |                                            | INSERT          | `inviter_id = auth.uid()` AND `is_room_member(room_id)`                               |
 |                                            | UPDATE          | דרך RPC בלבד                                                                          |
-| **`messages`**                             | **SELECT**      | **`is_room_member(room_id)`** — כולל חדר מאורכב                                       |
+| **`messages`**                             | **SELECT**      | **`is_room_member(room_id)`** — כולל חדר סגור                                         |
 |                                            | **INSERT**      | **`can_post_in_room(room_id)` AND `sender_id = auth.uid()` AND `sender_type='user'`** |
 |                                            | **UPDATE**      | **אין policy למשתמשים.** service role בלבד                                            |
 |                                            | DELETE          | אין. מחיקה רכה דרך RPC                                                                |
@@ -451,11 +452,11 @@ Bucket `avatars`, policy לפי prefix: משתמש כותב רק תחת `{auth.u
 
 ## 5. Realtime
 
-| Channel                         | תוכן                                                                                      | הרשאה       |
-| ------------------------------- | ----------------------------------------------------------------------------------------- | ----------- |
-| `room:{roomId}`                 | Presence (מי מחובר) · postgres_changes על `messages` (INSERT/UPDATE) · Broadcast `typing` | חבר חדר     |
-| `user:{userId}`                 | הזמנה חדשה, עדכון unread — מזין את הדשבורד                                                | הבעלים בלבד |
-| `dm:{conversationId}` _(שלב 2)_ | postgres_changes + typing                                                                 | משתתף בשיחה |
+| Channel                         | תוכן                                                                                                                                               | הרשאה       |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `room:{roomId}`                 | Presence (מי מחובר) · postgres_changes על `messages` (INSERT/UPDATE) · Broadcast `typing`                                                          | חבר חדר     |
+| `user:{userId}`                 | הזמנה חדשה, עדכון unread — מזין את הדשבורד                                                                                                         | הבעלים בלבד |
+| `dm:{conversationId}` _(שלב 2)_ | postgres_changes על `direct_messages` · Broadcast `message_deleted` (id) · Broadcast `read` (`user_id`, `last_read_at`) מ-`mark_conversation_read` | משתתף בשיחה |
 
 - כל הערוצים **private**.
 - postgres_changes מספיק ל-MVP. אם יגיע עומס — מעבר ל-`realtime.broadcast_changes()` מטריגר, **בלי שינוי ב-UI**, כי ה-UI מדבר רק עם `useRoomChannel`.
@@ -706,7 +707,7 @@ SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
 | 2   | לא-חבר: `subscribe room:{id}`                        | נדחה              |
 | 3   | קליינט: `INSERT` עם `sender_type='ai'`               | נדחה              |
 | 4   | חבר שעזב (`left_at`): `SELECT messages`              | 0 שורות           |
-| 5   | **חבר בחדר `archived`: `SELECT messages`**           | **כל ההיסטוריה**  |
+| 5   | **חבר בחדר `closed`: `SELECT messages`**             | **כל ההיסטוריה**  |
 | 6   | **אותו חבר: `INSERT messages`**                      | **נדחה**          |
 | 7   | `UPDATE messages` ישיר                               | נדחה — אין policy |
 | 8   | `soft_delete_message` על הודעה של אחר / מלפני 10 דק׳ | נדחה              |
@@ -738,14 +739,14 @@ SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
 
 ### 12.1 קבצים
 
-| קובץ                                   | תוכן                                                                                             |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `20260913000001_catalog_and_users.sql` | קטלוג, `profiles`, `enrollments`, triggers של פרופיל                                             |
-| `20260913000002_rooms_messages_ai.sql` | חדרים, חברים, הזמנות, הודעות, `ai_runs`, `app_settings`                                          |
-| `20260913000003_helpers_and_rls.sql`   | helpers, RLS, `public_profiles`, Realtime Authorization, Storage, publication                    |
-| `20260913000004_rpcs.sql`              | כל ה-RPCs                                                                                        |
-| `seed.sql`                             | מוסד, 2 מחלקות, 5 קורסים, 5 סטודנטים, אדמין, חדר פעיל, חדר מאורכב, הזמנה ממתינה והזמנה שפג תוקפה |
-| `tests/`                               | `shim.sql` (תאימות Supabase ל-PGlite), `db.mjs`, 5 קבצי בדיקות                                   |
+| קובץ                                   | תוכן                                                                                           |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `20260913000001_catalog_and_users.sql` | קטלוג, `profiles`, `enrollments`, triggers של פרופיל                                           |
+| `20260913000002_rooms_messages_ai.sql` | חדרים, חברים, הזמנות, הודעות, `ai_runs`, `app_settings`                                        |
+| `20260913000003_helpers_and_rls.sql`   | helpers, RLS, `public_profiles`, Realtime Authorization, Storage, publication                  |
+| `20260913000004_rpcs.sql`              | כל ה-RPCs                                                                                      |
+| `seed.sql`                             | מוסד, 2 מחלקות, 5 קורסים, 5 סטודנטים, אדמין, חדר פעיל, חדר סגור, הזמנה ממתינה והזמנה שפג תוקפה |
+| `tests/`                               | `shim.sql` (תאימות Supabase ל-PGlite), `db.mjs`, 5 קבצי בדיקות                                 |
 
 ### 12.2 שינויים ותוספות מול הסעיפים הקודמים
 
@@ -753,7 +754,7 @@ SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | **פרופיל ציבורי**     | policy על `profiles` מחזירה רק את השורה שלך (או הכל לאדמין). סטודנטים אחרים נקראים דרך view `public_profiles` — שם, תמונה, מוסד, מחלקה, שנה, עיר, מסלול, סמסטר, תחביבים, last_seen_at | policy מחזירה שורה שלמה; אי אפשר להגביל עמודות ב-RLS                            |
 | **מי רואה פרופיל**    | כל סטודנט פעיל (`p.is_active AND role = student`), עצמי, ואדמין — מאז `20261013000003` (מסך סטודנטים). עד אז: `shares_course_with` או `shares_room_with`                              | מסך הסטודנטים ואחוז ההתאמה דורשים לראות את כל הסטודנטים; `bio` נשאר מחוץ ל-view |
-| `profiles.avatar_url` | CHECK: `NULL` או `<own id>/<file>` — נתיב Storage בלבד, לא URL                                                                                                                        | מונע הפניה לשרת חיצוני שכל חבר לכיתה יטען                                       |
+| `profiles.avatar_url` | CHECK: `NULL`, `<own id>/<file>` או `presets/avatar-NN.svg` (אווטאר מוכן, 20261112000002) — נתיב בלבד, לא URL                                                                         | מונע הפניה לשרת חיצוני שכל חבר לכיתה יטען                                       |
 | **`rooms`**           | עמודות `archived_by`, `archived_by_admin` (מתוחזקות ב-trigger)                                                                                                                        | בעל חדר לא יכול לבטל ארכוב שעשה אדמין                                           |
 | **הודעה מחוקה**       | גלויה רק לשולח. SELECT: `is_room_member AND (deleted_at IS NULL OR sender_id = auth.uid())`                                                                                           | תוכן שנמחק לא נשאר קריא לשאר החדר                                               |
 | **INSERT הודעה**      | דורש `created_at = now()`                                                                                                                                                             | אי אפשר לזייף סדר הודעות או unread. **הקליינט לא שולח `created_at`**            |
@@ -768,19 +769,19 @@ SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
 
 ### 12.4 RPCs
 
-| RPC                                                  | נגיש ל-                      | תפקיד                                                                               |
-| ---------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
-| `start_ai_run`                                       | **service_role בלבד**        | נעילה + placeholder, טרנזקציה אחת                                                   |
-| `accept_room_invitation`                             | authenticated                | נעילת חדר, תוקף, קיבולת                                                             |
-| `decline_room_invitation` · `revoke_room_invitation` | authenticated                | מוזמן / מזמין                                                                       |
-| `get_pending_invitations`                            | authenticated                | מסונן לפי `expires_at`                                                              |
-| `soft_delete_message`                                | authenticated                | הודעה עצמית, 5 דקות                                                                 |
-| `mark_room_read` · `get_unread_summary`              | authenticated                | unread                                                                              |
-| `leave_room` · `remove_room_member`                  | authenticated                | עזיבה / הסרה ע"י owner, כולל העברת בעלות                                            |
-| `set_room_status` · `update_room`                    | authenticated                | owner או אדמין                                                                      |
-| `admin_room_stats` · `admin_global_stats`            | authenticated (בודקות אדמין) | מספרים בלבד, בלי תוכן הודעות                                                        |
-| `admin_usage_stats(p_days)`                          | authenticated (בודקת אדמין)  | מסך "שימוש": סדרה יומית + מובילים, 1-365 ימים, ספירות בלבד (20261111000001)         |
-| `complete_onboarding`                                | authenticated                | תשובות שאלון ההרשמה + רישום לקורסים + `onboarded_at`, טרנזקציה אחת (20261027000001) |
+| RPC                                                  | נגיש ל-                      | תפקיד                                                                                |
+| ---------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------ |
+| `start_ai_run`                                       | **service_role בלבד**        | נעילה + placeholder, טרנזקציה אחת                                                    |
+| `accept_room_invitation`                             | authenticated                | נעילת חדר, תוקף, קיבולת                                                              |
+| `decline_room_invitation` · `revoke_room_invitation` | authenticated                | מוזמן / מזמין                                                                        |
+| `get_pending_invitations`                            | authenticated                | מסונן לפי `expires_at`                                                               |
+| `soft_delete_message`                                | authenticated                | הודעה עצמית, 5 דקות                                                                  |
+| `mark_room_read` · `get_unread_summary`              | authenticated                | unread                                                                               |
+| `leave_room` · `remove_room_member`                  | authenticated                | עזיבה / הסרה ע"י owner. owner שעוזב — החדר נמחק (מחזיר `{room_deleted, file_paths}`) |
+| `set_room_status` · `update_room`                    | authenticated                | owner או אדמין                                                                       |
+| `admin_room_stats` · `admin_global_stats`            | authenticated (בודקות אדמין) | מספרים בלבד, בלי תוכן הודעות                                                         |
+| `admin_usage_stats(p_days)`                          | authenticated (בודקת אדמין)  | מסך "שימוש": סדרה יומית + מובילים, 1-365 ימים, ספירות בלבד (20261111000001)          |
+| `complete_onboarding`                                | authenticated                | תשובות שאלון ההרשמה + רישום לקורסים + `onboarded_at`, טרנזקציה אחת (20261027000001)  |
 
 **אין UPDATE ישיר** למשתמשים על `rooms`, `room_members`, `room_invitations`, `messages`. כל שינוי עובר ב-RPC.
 

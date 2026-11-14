@@ -32,7 +32,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
           {/* Demo / regular mode toggle (lib/demo). */}
           <DemoSwitcher />
-          <Toaster dir="rtl" position="bottom-left" />
+          {/* Above the phone/tablet bottom tab bar (64px + safe area). */}
+          <Toaster
+            dir="rtl"
+            position="bottom-left"
+            mobileOffset={{ bottom: "calc(76px + env(safe-area-inset-bottom))" }}
+          />
         </DirectionProvider>
       </body>
     </html>

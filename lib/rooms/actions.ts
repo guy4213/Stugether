@@ -4,11 +4,10 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import {
-  createRoom,
   leaveRoom,
-  listMyActiveRooms,
   removeMember,
   setRoomStatus,
   updateRoom,
@@ -27,7 +26,7 @@ import {
   type Message,
   type MessageCursor,
 } from "@/lib/repositories/messages";
-import { getCourse } from "@/lib/repositories/catalog";
+import { removeRoomFiles } from "@/lib/storage/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { DEMO_READ_ONLY } from "@/lib/demo/constants";
 import { sendRoomInvitationEmails } from "@/lib/email/invitations";
@@ -129,67 +128,8 @@ export async function decideJoinRequestAction(
   return { ok: true };
 }
 
-// "הזמנה ללמידה": invite a classmate into my active room for this course, or
-// open a fresh room for it first when I don't own one yet.
-export async function inviteToStudy(
-  courseId: string,
-  inviteeId: string,
-  topicTitle?: string | null,
-): Promise<ActionResult> {
-  const user = await getCurrentUser();
-  if (user?.demo) return DEMO_READ_ONLY;
-  if (!user) return { ok: false, error: "יש להתחבר מחדש" };
-  const supabase = await createClient();
-
-  try {
-    const myRooms = await listMyActiveRooms(supabase, user.id);
-    const candidates = myRooms.filter(
-      (r) => r.course_id === courseId && r.status === "active" && r.created_by === user.id,
-    );
-    // My rooms for the course first; one that is full (RLS refuses the
-    // invite) is skipped, and a fresh room is opened when none has a seat.
-    let roomId: string | null = null;
-    for (const room of candidates) {
-      try {
-        await createInvitation(supabase, {
-          roomId: room.id,
-          inviterId: user.id,
-          inviteeUserId: inviteeId,
-        });
-        roomId = room.id;
-        break;
-      } catch (err) {
-        if (!errorCode(err).includes("row-level security")) throw err;
-      }
-    }
-    if (!roomId) {
-      const course = await getCourse(supabase, courseId);
-      const room = await createRoom(supabase, {
-        courseId,
-        name: `לימוד ${topicTitle || course?.name || "משותף"}`.slice(0, 100),
-        topic: topicTitle ?? null,
-        createdBy: user.id,
-      });
-      await createInvitation(supabase, {
-        roomId: room.id,
-        inviterId: user.id,
-        inviteeUserId: inviteeId,
-      });
-      roomId = room.id;
-    }
-    await emailInvitees(roomId, user.id, [inviteeId]);
-  } catch (err) {
-    const code = errorCode(err);
-    if (code.includes("23505")) return { ok: false, error: "כבר נשלחה הזמנה" };
-    if (code.includes("row-level security")) {
-      return { ok: false, error: "לא ניתן להזמין (החדר מלא או שהסטודנט/ית כבר בחדר)" };
-    }
-    return { ok: false, error: "לא ניתן לשלוח הזמנה" };
-  }
-  revalidatePath(`/courses/${courseId}`);
-  revalidatePath("/dashboard");
-  return { ok: true };
-}
+// "הזמנה ללמידה" from a student's card / profile / the course page lives in
+// lib/rooms/study-invite-actions.ts (a dialog with a preview, client QA 12.11.2026).
 
 // Invite 1-3 classmates into a room from the room's members panel (SPEC §4.5).
 // Every row is validated by the room_invitations INSERT policy
@@ -289,11 +229,14 @@ export async function leaveRoomAction(roomId: string): Promise<ActionResult> {
   if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
   const supabase = await createClient();
+  let result;
   try {
-    await leaveRoom(supabase, roomId);
+    result = await leaveRoom(supabase, roomId);
   } catch {
     return { ok: false, error: "לא ניתן לעזוב את החדר" };
   }
+  // The owner left: the room is gone (SPEC §8 #5), clean up its files too.
+  if (result.roomDeleted) await removeRoomFiles(roomId, result.filePaths);
   revalidatePath("/", "layout");
   redirect("/dashboard");
 }
@@ -313,12 +256,9 @@ export async function removeRoomMember(roomId: string, userId: string): Promise<
   return { ok: true };
 }
 
-// Owner (or super_admin): archive / close. Both are read-only; a closed room
-// never reopens (SPEC §3). set_room_status enforces the transitions.
-export async function setRoomStatusAction(
-  roomId: string,
-  status: "archived" | "closed",
-): Promise<ActionResult> {
+// Owner (or super_admin): close the room — read-only, never reopens (SPEC §3;
+// archiving was removed, client QA 12.11.2026). set_room_status enforces it.
+export async function setRoomStatusAction(roomId: string, status: "closed"): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (user?.demo) return DEMO_READ_ONLY;
   if (!user) return { ok: false, error: "יש להתחבר מחדש" };
@@ -343,6 +283,37 @@ export async function setRoomAiEnabled(roomId: string, aiEnabled: boolean): Prom
     return { ok: false, error: "רק יוצר/ת החדר יכול/ה לשנות את ההגדרה" };
   }
   revalidatePath(`/rooms/${roomId}`);
+  return { ok: true };
+}
+
+// "הגדרות החדר" (client QA 12.11.2026): the owner renames the room, edits its
+// topic, and opens / closes it to classmates. update_room enforces who.
+const RoomDetailsSchema = z.object({
+  name: z.string().trim().min(1, "שם החדר ריק").max(100, "שם ארוך מדי").optional(),
+  topic: z.string().max(500, "הנושא ארוך מדי").optional(),
+  isOpen: z.boolean().optional(),
+});
+
+export async function updateRoomDetailsAction(
+  roomId: string,
+  input: { name?: string; topic?: string; isOpen?: boolean },
+): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (user?.demo) return DEMO_READ_ONLY;
+  if (!user) return { ok: false, error: "יש להתחבר מחדש" };
+  const parsed = RoomDetailsSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "קלט לא תקין" };
+  const supabase = await createClient();
+  try {
+    await updateRoom(supabase, roomId, parsed.data);
+  } catch (err) {
+    if (errorCode(err).includes("ROOM_NOT_ACTIVE")) return { ok: false, error: "החדר סגור" };
+    return { ok: false, error: "רק יוצר/ת החדר יכול/ה לשנות את ההגדרות" };
+  }
+  revalidatePath(`/rooms/${roomId}`);
+  revalidatePath("/rooms");
+  revalidatePath("/dashboard");
   return { ok: true };
 }
 

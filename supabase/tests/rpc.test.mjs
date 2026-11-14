@@ -585,20 +585,23 @@ test("extra: room INSERT makes the creator an active 'owner' member atomically",
   });
 });
 
-test("extra: leave_room then messages are invisible (and ownership hands off)", async () => {
-  await base.asUser(U.a1, async (tx) => {
+// A member (not the owner) leaving: the room stays, ownership doesn't move.
+// The owner leaving deletes the room — owner_leave_deletes_room.test.mjs.
+test("extra: leave_room (member) then messages are invisible, the room stays", async () => {
+  await base.asUser(U.a2, async (tx) => {
     const beforeN = (
       await tx.one("select count(*)::int n from public.messages where room_id = $1", [ROOM.r1])
     ).n;
-    assert.equal(beforeN, 28);
-    await tx.query("select public.leave_room($1)", [ROOM.r1]);
+    assert.ok(beforeN > 0);
+    const res = await tx.one("select public.leave_room($1) r", [ROOM.r1]);
+    assert.deepEqual(res.r, { room_deleted: false });
     const afterN = (
       await tx.one("select count(*)::int n from public.messages where room_id = $1", [ROOM.r1])
     ).n;
     assert.equal(afterN, 0);
     await tx.expectError(
       "insert into public.messages (room_id, sender_id, sender_type, content) values ($1, $2, 'user', 'back?')",
-      [ROOM.r1, U.a1],
+      [ROOM.r1, U.a2],
       "row-level security",
     );
     await become(tx, "owner");
@@ -606,8 +609,10 @@ test("extra: leave_room then messages are invisible (and ownership hands off)", 
       "select user_id::text from public.room_members where room_id = $1 and role = 'owner' and left_at is null",
       [ROOM.r1],
     );
-    assert.equal(owners.rows.length, 1);
-    assert.notEqual(owners.rows[0].user_id, U.a1);
+    assert.deepEqual(
+      owners.rows.map((r) => r.user_id),
+      [U.a1],
+    );
   });
 });
 

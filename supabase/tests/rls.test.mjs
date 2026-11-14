@@ -112,9 +112,9 @@ test("RLS #4: member who left (left_at set) SELECT messages -> 0 rows", async ()
   });
 });
 
-test("RLS #5: member of ARCHIVED room SELECT messages -> full history", async () => {
+test("RLS #5: member of CLOSED room SELECT messages -> full history", async () => {
   const status = await db.one("select status from public.rooms where id = $1", [ROOM.r2]);
-  assert.equal(status.status, "archived");
+  assert.equal(status.status, "closed");
   const total = await db.one(
     "select count(*)::int n, array_agg(id::text order by id) ids from public.messages where room_id = $1",
     [ROOM.r2],
@@ -126,12 +126,12 @@ test("RLS #5: member of ARCHIVED room SELECT messages -> full history", async ()
         "select count(*)::int n, array_agg(id::text order by id) ids from public.messages where room_id = $1",
         [ROOM.r2],
       );
-      assert.deepEqual(r, total, `member ${uid} should see the full archived history`);
+      assert.deepEqual(r, total, `member ${uid} should see the full closed-room history`);
     });
   }
 });
 
-test("RLS #6: same member INSERT into archived room -> denied", async () => {
+test("RLS #6: same member INSERT into closed room -> denied", async () => {
   await db.asUser(U.a5, async (tx) => {
     await tx.expectError(
       `insert into public.messages (room_id, sender_id, sender_type, content)

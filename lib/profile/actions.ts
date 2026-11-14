@@ -7,6 +7,7 @@ import { updateOwnProfile } from "@/lib/repositories/profiles";
 import { getCurrentUser } from "@/lib/auth/session";
 import { DEMO_READ_ONLY } from "@/lib/demo/constants";
 import { ISRAELI_CITIES } from "@/lib/constants/cities";
+import { PRESET_AVATAR_COUNT, presetAvatarPath } from "@/lib/avatars/presets";
 import {
   HOBBIES,
   LEARNING_STYLES,
@@ -109,4 +110,14 @@ export async function updateAvatarPath(avatarPath: string): Promise<ProfileFormS
   // Layout-level: the sidebar shows the avatar and name on every page.
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+// "מתביישים? אפשר גם אווטאר": one of the ready-made avatars instead of a photo
+// (client QA 11.2026). Only the 12 bundled paths are accepted — the DB CHECK
+// (20261112000002_preset_avatars.sql) enforces the same.
+export async function choosePresetAvatar(n: number): Promise<ProfileFormState> {
+  if (!Number.isInteger(n) || n < 1 || n > PRESET_AVATAR_COUNT) {
+    return { ok: false, error: "אווטאר לא קיים" };
+  }
+  return updateAvatarPath(presetAvatarPath(n));
 }

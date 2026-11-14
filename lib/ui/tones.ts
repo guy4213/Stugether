@@ -41,3 +41,33 @@ export function hashString(text: string): number {
   for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
   return h;
 }
+
+// Match percent as a traffic light (client QA 11.2026): 80+ green,
+// 60-79 orange, below 60 red. One source for every match badge and ring.
+export type MatchLevel = "high" | "mid" | "low";
+
+export function matchLevel(percent: number): MatchLevel {
+  if (percent >= 80) return "high";
+  if (percent >= 60) return "mid";
+  return "low";
+}
+
+// Solid badge (white text).
+export const MATCH_SOLID: Record<MatchLevel, string> = {
+  high: "bg-linear-to-b from-[#22c55e] to-[#15803d]",
+  mid: "bg-linear-to-b from-[#fb923c] to-[#c2410c]",
+  low: "bg-linear-to-b from-[#f87171] to-[#b91c1c]",
+};
+
+// Soft badge (tinted background, dark text, matching border).
+export const MATCH_SOFT: Record<MatchLevel, string> = {
+  high: "border-success bg-success-soft text-success-ink",
+  mid: "border-warning bg-warning-soft text-warning-ink",
+  low: "border-rose bg-rose-soft text-rose-ink",
+};
+
+export const MATCH_GRADIENT: Record<MatchLevel, [string, string]> = {
+  high: ["#22c55e", "#15803d"],
+  mid: ["#fb923c", "#c2410c"],
+  low: ["#f87171", "#b91c1c"],
+};

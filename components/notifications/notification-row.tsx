@@ -11,6 +11,8 @@ import {
   MailIcon,
   MessageCircleIcon,
   StarIcon,
+  Trash2Icon,
+  UserCheckIcon,
   UserPlusIcon,
   UsersIcon,
   type LucideIcon,
@@ -25,6 +27,7 @@ import {
   markNotificationRead,
 } from "@/lib/notifications/actions";
 import { decideJoinRequestAction } from "@/lib/rooms/actions";
+import { respondFriendRequestAction } from "@/lib/friends/actions";
 import type { NotificationItem } from "@/lib/notifications/queries";
 import type { NotificationType } from "@/lib/repositories/notifications";
 
@@ -42,6 +45,9 @@ const TYPE_ICON: Record<NotificationType, { icon: LucideIcon; tile: string; fill
   room_join_decided: { icon: DoorOpenIcon, tile: "bg-success-soft text-success-ink" },
   session_proposed: { icon: CalendarClockIcon, tile: "bg-primary-tint text-primary" },
   direct_message: { icon: MessageCircleIcon, tile: "bg-primary-tint text-primary" },
+  room_deleted: { icon: Trash2Icon, tile: "bg-rose-soft text-rose" },
+  friend_request: { icon: UserPlusIcon, tile: "bg-violet-soft text-violet" },
+  friend_accepted: { icon: UserCheckIcon, tile: "bg-success-soft text-success-ink" },
   session_scheduled: {
     icon: CalendarCheckIcon,
     tile: "bg-brand-diag text-white shadow-[0_8px_16px_-8px_rgba(37,99,235,.6)]",
@@ -76,6 +82,22 @@ export function NotificationRow({ item, time }: { item: NotificationItem; time: 
         return;
       }
       if (accept && "roomId" in result && result.roomId) router.push(`/rooms/${result.roomId}`);
+    });
+  }
+
+  // "אישור" / "דחייה" of a friend request (client QA 11.2026).
+  function respondFriend(accept: boolean) {
+    const friendshipId = item.friendship_id;
+    if (!friendshipId) return;
+    startTransition(async () => {
+      const result = await respondFriendRequestAction(friendshipId, accept);
+      if (!result.ok) {
+        toast.error(result.error ?? "משהו השתבש");
+        router.refresh();
+        return;
+      }
+      toast.success(accept ? "אתם חברים עכשיו" : "הבקשה נדחתה");
+      router.refresh();
     });
   }
 
@@ -147,6 +169,34 @@ export function NotificationRow({ item, time }: { item: NotificationItem; time: 
             </Button>
           </>
         )}
+        {item.type === "friend_request" && unread && item.friendship_id && (
+          <>
+            <Button
+              variant="outline-primary"
+              size="chip"
+              disabled={pending}
+              onClick={() => respondFriend(true)}
+            >
+              אישור חברות
+            </Button>
+            <Button
+              variant="quiet"
+              size="chip"
+              disabled={pending}
+              onClick={() => respondFriend(false)}
+            >
+              דחייה
+            </Button>
+          </>
+        )}
+        {(item.type === "friend_accepted" || (item.type === "friend_request" && !unread)) &&
+          item.actor_id && (
+            <Button asChild variant="soft" size="chip">
+              <Link prefetch={false} href={`/students/${item.actor_id}`} onClick={markRead}>
+                לפרופיל
+              </Link>
+            </Button>
+          )}
         {item.action?.kind === "join_request" && (
           <>
             <Button

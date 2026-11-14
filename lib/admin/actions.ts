@@ -146,11 +146,12 @@ export async function updateCatalogItemAction(
 
 // --- rooms (metadata only) -----------------------------------------------------
 
-export async function archiveRoomAction(roomId: string): Promise<AdminActionResult> {
+// Moderation: close a room (read-only, final). Archiving was removed.
+export async function closeRoomAction(roomId: string): Promise<AdminActionResult> {
   return guarded(
     ["/admin/rooms", "/admin"],
-    (s) => setRoomStatus(s, roomId, "archived"),
-    "לא ניתן לארכב את החדר",
+    (s) => setRoomStatus(s, roomId, "closed"),
+    "לא ניתן לסגור את החדר",
   );
 }
 

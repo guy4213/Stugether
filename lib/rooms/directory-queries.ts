@@ -15,6 +15,7 @@ import {
 } from "@/lib/repositories/sessions";
 import { listPendingJoinRequests } from "@/lib/repositories/join-requests";
 import { isRoomLive } from "@/lib/stats/live";
+import { isOnline } from "@/lib/ui/people";
 import { getDemoScenario } from "@/lib/demo/state";
 import { demoRoomsInputs } from "@/lib/demo/fixtures";
 
@@ -22,7 +23,7 @@ const MAX_MEMBERS = 4;
 /** A session this close counts as "starting" on the card (Figma "מתחיל ב-18:00"). */
 const SOON_MS = 24 * 60 * 60 * 1000;
 
-export type RoomsView = "all" | "live" | "mine";
+export type RoomsView = "all" | "live" | "joinable" | "mine";
 
 export interface RoomsFilters {
   view?: RoomsView;
@@ -36,7 +37,13 @@ export interface RoomsInputs {
   courses: { id: string; name: string }[];
   myRooms: Room[];
   openRooms: OpenRoom[];
-  members: { room_id: string; user_id: string; full_name: string; avatar_url: string | null }[];
+  members: {
+    room_id: string;
+    user_id: string;
+    full_name: string;
+    avatar_url: string | null;
+    last_seen_at?: string | null;
+  }[];
   sessions: UpcomingSessionDetail[];
   requestedRoomIds: string[];
   watchedRoomIds: string[];
@@ -79,10 +86,11 @@ export async function getRoomsPageData(userId: string, filters: RoomsFilters) {
 
 /**
  * The card's state, in the Figma's words:
- *  live     "פעיל"             — a message in the last 30 minutes
+ *  live     "פעיל"             — a message in the last 30 minutes, or a member
+ *                                (not me) online now
  *  full     "החדר מלא"         — 4 members and I am not one of them
  *  upcoming "מתחיל ב-HH:MM"    — my room's next session is within a day
- *  waiting  "ממתין למשתתפים"  — only the creator is in
+ *  waiting  "לומד/ת לבד"       — only the creator is in (solo study is fine)
  *  open     no badge
  */
 export type RoomCardStatus = "live" | "full" | "upcoming" | "waiting" | "open";
@@ -106,6 +114,9 @@ function shapeRooms(inputs: RoomsInputs, filters: RoomsFilters) {
       avatarPath: m.avatar_url,
     }));
     const s = nextSession.get(r.id);
+    const onlineOthers = (membersByRoom.get(r.id) ?? []).filter(
+      (m) => m.user_id !== inputs.userId && isOnline(m.last_seen_at, now),
+    ).length;
     return {
       id: r.id,
       name: r.name,
@@ -115,7 +126,7 @@ function shapeRooms(inputs: RoomsInputs, filters: RoomsFilters) {
       isMember: true,
       requested: false,
       watching: false,
-      live: isRoomLive(r, now),
+      live: isRoomLive(r, now, onlineOthers),
       memberCount: people.length || 1,
       people,
       creatorName: null as string | null,
@@ -148,10 +159,11 @@ function shapeRooms(inputs: RoomsInputs, filters: RoomsFilters) {
       live: isRoomLive(
         { status: "active", last_message_at: r.last_message_at, created_at: r.created_at },
         now,
+        r.online_members,
       ),
       memberCount: r.member_count,
       // RLS shows a non-member only the creator (list_open_rooms).
-      people: [{ id: r.created_by, name: r.creator_name, avatarPath: null as string | null }],
+      people: [{ id: r.created_by, name: r.creator_name, avatarPath: r.creator_avatar ?? null }],
       creatorName: r.creator_name,
       lastActivityAt: r.last_message_at ?? r.created_at,
       session: null,
@@ -177,6 +189,7 @@ function shapeRooms(inputs: RoomsInputs, filters: RoomsFilters) {
     .filter((r) => {
       if (view === "live" && !r.live) return false;
       if (view === "mine" && !r.isMember) return false;
+      if (view === "joinable" && (r.isMember || r.memberCount >= MAX_MEMBERS)) return false;
       if (filters.courseId && r.courseId !== filters.courseId) return false;
       if (q) {
         const hay = [r.name, r.topic, r.courseName, ...r.people.map((p) => p.name)]

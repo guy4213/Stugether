@@ -5,6 +5,7 @@ import { StudentFilters } from "@/components/students/student-filters";
 import { Pagination } from "@/components/ui/pagination";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getStudentsPageData } from "@/lib/students/queries";
+import { getMyFriendStates } from "@/lib/friends/queries";
 import { parseCoursePage } from "@/lib/courses/queries";
 import {
   STUDY_TIMES,
@@ -39,6 +40,7 @@ export default async function StudentsPage({
   const studyTimes = (params.times ?? "")
     .split(",")
     .filter((t): t is StudyTime => (STUDY_TIMES as readonly string[]).includes(t));
+  const friendStates = getMyFriendStates(user.id);
   const data = await getStudentsPageData(user.id, {
     q: params.q,
     institutionId: params.institutionId,
@@ -50,6 +52,7 @@ export default async function StudentsPage({
     studyTimes,
     page: parseCoursePage(params.page),
   });
+  const friends = await friendStates;
   // Page links keep every filter; ?page is set by the link itself.
   const keep = { ...params, page: undefined };
 
@@ -94,7 +97,11 @@ export default async function StudentsPage({
           <ul className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
             {data.students.map((s) => (
               <li key={s.profile.id}>
-                <StudentCard student={s} myCourses={data.options.myCourses} />
+                <StudentCard
+                  student={s}
+                  myCourses={data.options.myCourses}
+                  friend={friends[s.profile.id]}
+                />
               </li>
             ))}
           </ul>

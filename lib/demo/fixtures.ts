@@ -42,7 +42,8 @@ import type {
   NotificationItem,
   NotificationsData,
 } from "@/lib/notifications/queries";
-import type { AnalyticsData, AnalyticsRange } from "@/lib/analytics/queries";
+import type { AnalyticsData } from "@/lib/analytics/queries";
+import { rangeWeeks, type AnalyticsRange } from "@/lib/analytics/range";
 import type { ProfileFormData } from "@/lib/profile/queries";
 import type { StackPerson } from "@/components/ui/avatar-stack";
 import type { LearningStyle, StudyTime, StudyTrack } from "@/lib/constants/profile-options";
@@ -576,6 +577,8 @@ function openRooms(scenario: DemoScenario, t: Clock): OpenRoom[] {
       is_member: false,
       last_message_at: t.ago(15 * MIN),
       created_at: t.ago(20 * MIN),
+      creator_avatar: null,
+      online_members: 1,
     },
   ];
 }
@@ -716,6 +719,9 @@ const CATEGORY: Record<NotificationType, NotificationCategory> = {
   session_proposed: "rooms",
   session_scheduled: "rooms",
   direct_message: "messages",
+  room_deleted: "rooms",
+  friend_request: "invitations",
+  friend_accepted: "invitations",
 };
 
 function notifications(scenario: DemoScenario, t: Clock): AppNotification[] {
@@ -908,7 +914,7 @@ function roomMessages(roomId: string, t: Clock): Message[] {
 // --- page builders -------------------------------------------------------------------
 
 function stack(p: PublicProfile | undefined): StackPerson | null {
-  return p ? { id: p.id, name: p.full_name } : null;
+  return p ? { id: p.id, name: p.full_name, avatarPath: p.avatar_url } : null;
 }
 
 function stackAll(ids: string[], byId: Map<string, PublicProfile>): StackPerson[] {
@@ -980,6 +986,7 @@ export function demoDashboard(scenario: DemoScenario): DashboardData {
       studentCount: studentCount(scenario, e.course_id),
       topicsTotal: topicSummary.total,
       topicsMastered: topicSummary.mastered,
+      currentTopic: topicSummary.current?.title ?? null,
       continueHref: continueHref(e.course_id),
     };
   });
@@ -1028,6 +1035,7 @@ export function demoDashboard(scenario: DemoScenario): DashboardData {
           : null,
         year: yearLabel(p.study_year),
         online: isOnline(p.last_seen_at, t.now),
+        lastSeenAt: p.last_seen_at,
         percent: match.percent,
         reasons: match.breakdown
           .filter((b) => b.matched)
@@ -1066,6 +1074,7 @@ export function demoDashboard(scenario: DemoScenario): DashboardData {
   return {
     firstName: ME.full_name.split(" ")[0],
     hero,
+    heroes: [hero],
     stats: {
       activeCourses: enrolled.length,
       courseBars: ordered.map((e) => e.progress_percent),
@@ -1444,7 +1453,7 @@ export function demoNotifications(
 
 export function demoAnalytics(scenario: DemoScenario, range: AnalyticsRange): AnalyticsData {
   const t = clock();
-  const weeks = range === "semester" ? 20 : 8;
+  const weeks = rangeWeeks(range);
   const since = t.now - weeks * 7 * DAY;
   const enrolled = enrollments(scenario, t);
   const pattern =
@@ -1459,11 +1468,16 @@ export function demoAnalytics(scenario: DemoScenario, range: AnalyticsRange): An
   }));
   const messagesSent = weekly.reduce((s, w) => s + w.count, 0);
   const rooms = myRooms(scenario, t);
-  const bySubject = new Map<string, number>();
-  for (const e of enrolled) {
-    const name = DEPARTMENTS_BY_ID.get(e.course.department_id ?? "")?.name ?? "אחר";
-    bySubject.set(name, (bySubject.get(name) ?? 0) + 1);
-  }
+  // Demo split of the range's messages over the courses (biggest first).
+  const shares = [0.4, 0.25, 0.2, 0.1, 0.05];
+  const courseActivity = enrolled
+    .slice(0, shares.length)
+    .map((e, i) => ({
+      id: e.course_id,
+      name: e.course.name,
+      messages: Math.round(messagesSent * shares[i]),
+    }))
+    .filter((c) => c.messages > 0);
   const avgActiveProgress = Math.round(
     enrolled.reduce((s, e) => s + e.progress_percent, 0) / enrolled.length,
   );
@@ -1486,7 +1500,7 @@ export function demoAnalytics(scenario: DemoScenario, range: AnalyticsRange): An
         progress: e.progress_percent,
         completed: false,
       })),
-    subjects: [...bySubject.entries()].map(([name, count]) => ({ name, count })),
+    courseActivity,
     achievements: [
       { title: "צעד ראשון", description: "הצטרפות לחדר ראשון", earned: rooms.length > 0 },
       {

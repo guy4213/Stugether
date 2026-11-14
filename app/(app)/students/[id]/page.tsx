@@ -14,11 +14,16 @@ import {
 } from "lucide-react";
 import { cn } from "cn";
 import { PersonAvatar } from "@/components/ui/person-avatar";
+import { LastSeen } from "@/components/ui/last-seen";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { InviteStudentButton } from "@/components/students/invite-student-button";
 import { MessageStudentButton } from "@/components/messages/message-student-button";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getStudentProfileData } from "@/lib/students/queries";
+import { getFriendsOf, getMyFriendStates } from "@/lib/friends/queries";
+import { FriendButton } from "@/components/friends/friend-button";
+import { FriendsCard } from "@/components/friends/friends-card";
+import { MATCH_GRADIENT, matchLevel } from "@/lib/ui/tones";
 
 // A student's profile as seen by another student: academic details, hobbies,
 // shared courses and why the two of them match.
@@ -28,7 +33,11 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
   const { id } = await params;
   if (id === user.id) redirect("/profile");
 
-  const data = await getStudentProfileData(user.id, id);
+  const [data, theirFriends, myStates] = await Promise.all([
+    getStudentProfileData(user.id, id),
+    getFriendsOf(id, user.id),
+    getMyFriendStates(user.id),
+  ]);
   if (!data) notFound();
   const { student, match, details } = data;
   const reasons = (match?.breakdown ?? []).filter((b) => b.matched);
@@ -72,18 +81,13 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
             <p className="truncate text-sm text-muted-foreground">
               {["סטודנט/ית", details.department, student.city].filter(Boolean).join(" · ")}
             </p>
-            {data.online ? (
-              <span className="flex items-center gap-1.5 text-[13px] font-semibold text-success-ink">
-                <span className="size-2 rounded-full bg-success" aria-hidden />
-                פנוי/ה ללמוד עכשיו
-              </span>
-            ) : (
-              <span className="text-[13px] text-muted-foreground">לא מחובר/ת כרגע</span>
-            )}
+            <LastSeen online={data.online} lastSeenAt={student.last_seen_at} />
           </div>
           {match && (
             <ProgressRing
               value={match.percent}
+              from={MATCH_GRADIENT[matchLevel(match.percent)][0]}
+              to={MATCH_GRADIENT[matchLevel(match.percent)][1]}
               size={92}
               stroke={9}
               label={`${match.percent}% התאמה`}
@@ -181,14 +185,17 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
           </section>
         )}
 
-        {/* Private chat with this student (SPEC §5.1). */}
-        <MessageStudentButton
-          studentId={student.id}
-          studentName={student.full_name}
-          className="self-start"
-        />
+        {/* Private chat with this student (SPEC §5.1) and the friend request. */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <MessageStudentButton studentId={student.id} studentName={student.full_name} />
+          <FriendButton
+            studentId={student.id}
+            studentName={student.full_name}
+            initial={myStates[student.id]}
+          />
+        </div>
 
-        {/* #invite: the "הזמנה לפי קורס" icon on a student card lands here. */}
+        {/* #invite: a link anchor for the invitation dialog. */}
         <div id="invite" className="scroll-mt-24">
           <InviteStudentButton
             inviteeId={student.id}
@@ -198,6 +205,12 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
           />
         </div>
       </article>
+
+      <FriendsCard
+        title={`החברים של ${student.full_name.split(" ")[0]}`}
+        friends={theirFriends.friends}
+        emptyText="עוד אין חברים ברשימה"
+      />
     </main>
   );
 }

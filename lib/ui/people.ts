@@ -33,3 +33,30 @@ export const ONLINE_WINDOW_MS = 5 * 60 * 1000;
 export function isOnline(lastSeenAt: string | null | undefined, now = Date.now()): boolean {
   return !!lastSeenAt && now - new Date(lastSeenAt).getTime() < ONLINE_WINDOW_MS;
 }
+
+// Search text, normalised: lowercase, no niqqud, no geresh / gershayim /
+// quotes, single spaces — "ג׳ני" matches "גני", "נֹעָה" matches "נעה".
+export function normalizeSearch(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[֑-ׇ]/g, "")
+    .replace(/["'׳״`]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Client-side filter for a student list already on screen (client QA
+// 11.2026: "חיפוש סטודנט בכל רשימת סטודנטים"). Every word of the query has to
+// appear in one of the fields.
+export function filterPeople<T>(
+  list: T[],
+  query: string,
+  fields: (item: T) => (string | null | undefined)[],
+): T[] {
+  const words = normalizeSearch(query).split(" ").filter(Boolean);
+  if (words.length === 0) return list;
+  return list.filter((item) => {
+    const hay = normalizeSearch(fields(item).filter(Boolean).join(" "));
+    return words.every((w) => hay.includes(w));
+  });
+}

@@ -7,7 +7,8 @@ export interface Room {
   created_by: string;
   name: string;
   topic: string | null;
-  status: "active" | "archived" | "closed";
+  // "archived" was removed (20261112000014): active or closed (final).
+  status: "active" | "closed";
   ai_enabled: boolean;
   is_open: boolean;
   last_message_at: string | null;
@@ -123,19 +124,20 @@ export async function listRoomMembers(
   return members.map((m) => ({ ...m, profile: profileById.get(m.user_id) ?? null }));
 }
 
-// Wraps update_room(p_room_id, p_name, p_topic, p_ai_enabled): owner of an
-// active room, or super_admin. Omitted fields leave that column unchanged;
-// an empty-after-trim topic clears it. Undefined fields are passed as NULL.
+// Wraps update_room(p_room_id, p_name, p_topic, p_ai_enabled, p_is_open):
+// owner of an active room, or super_admin. Omitted fields leave that column
+// unchanged; an empty-after-trim topic clears it. Undefined fields are NULL.
 export async function updateRoom(
   client: SupabaseClient,
   roomId: string,
-  input: { name?: string; topic?: string | null; aiEnabled?: boolean },
+  input: { name?: string; topic?: string | null; aiEnabled?: boolean; isOpen?: boolean },
 ): Promise<void> {
   const { error } = await client.rpc("update_room", {
     p_room_id: roomId,
     p_name: input.name ?? null,
     p_topic: input.topic ?? null,
     p_ai_enabled: input.aiEnabled ?? null,
+    p_is_open: input.isOpen ?? null,
   });
   if (error) throw error;
 }
@@ -144,7 +146,7 @@ export async function updateRoom(
 export async function setRoomStatus(
   client: SupabaseClient,
   roomId: string,
-  status: "active" | "archived" | "closed",
+  status: "active" | "closed",
 ): Promise<void> {
   const { error } = await client.rpc("set_room_status", {
     p_room_id: roomId,
@@ -153,10 +155,19 @@ export async function setRoomStatus(
   if (error) throw error;
 }
 
-// Wraps leave_room(p_room_id).
-export async function leaveRoom(client: SupabaseClient, roomId: string): Promise<void> {
-  const { error } = await client.rpc("leave_room", { p_room_id: roomId });
+export interface LeaveRoomResult {
+  /** The owner left: the room and all its content were deleted. */
+  roomDeleted: boolean;
+  /** Storage paths ('room-files' bucket) of the deleted room's exercises. */
+  filePaths: string[];
+}
+
+// Wraps leave_room(p_room_id) (20261112000003_owner_leave_deletes_room.sql).
+export async function leaveRoom(client: SupabaseClient, roomId: string): Promise<LeaveRoomResult> {
+  const { data, error } = await client.rpc("leave_room", { p_room_id: roomId });
   if (error) throw error;
+  const result = (data ?? {}) as { room_deleted?: boolean; file_paths?: string[] | null };
+  return { roomDeleted: result.room_deleted === true, filePaths: result.file_paths ?? [] };
 }
 
 // Wraps remove_room_member(p_room_id, p_user_id): owner only.
@@ -183,6 +194,9 @@ export interface OpenRoom {
   is_member: boolean;
   last_message_at: string | null;
   created_at: string;
+  creator_avatar: string | null;
+  /** Active members seen in the last 5 minutes, the caller excluded. */
+  online_members: number;
 }
 
 // Open rooms of courses the caller is enrolled in. Wraps list_open_rooms():
@@ -194,7 +208,11 @@ export async function listOpenRooms(
   if (courseIds.length === 0) return [];
   const { data, error } = await client.rpc("list_open_rooms", { p_course_ids: courseIds });
   if (error) throw error;
-  return (data as OpenRoom[]).map((r) => ({ ...r, member_count: Number(r.member_count) }));
+  return (data as OpenRoom[]).map((r) => ({
+    ...r,
+    member_count: Number(r.member_count),
+    online_members: Number(r.online_members ?? 0),
+  }));
 }
 
 // Active members of several rooms the caller belongs to (room_members RLS
@@ -202,7 +220,15 @@ export async function listOpenRooms(
 export async function listActiveMembersOfRooms(
   client: SupabaseClient,
   roomIds: string[],
-): Promise<{ room_id: string; user_id: string; full_name: string; avatar_url: string | null }[]> {
+): Promise<
+  {
+    room_id: string;
+    user_id: string;
+    full_name: string;
+    avatar_url: string | null;
+    last_seen_at: string | null;
+  }[]
+> {
   if (roomIds.length === 0) return [];
   const { data, error } = await client
     .from("room_members")
@@ -217,6 +243,7 @@ export async function listActiveMembersOfRooms(
     ...r,
     full_name: byId.get(r.user_id)?.full_name ?? "סטודנט/ית",
     avatar_url: byId.get(r.user_id)?.avatar_url ?? null,
+    last_seen_at: byId.get(r.user_id)?.last_seen_at ?? null,
   }));
 }
 
@@ -234,4 +261,16 @@ export async function watchRoomSeat(
 ): Promise<void> {
   const { error } = await client.rpc("watch_room_seat", { p_room_id: roomId, p_watch: watch });
   if (error) throw error;
+}
+
+// room id -> course id, for rooms the caller can see (members, read-only
+// rooms included). The progress tab groups my messages by course with it.
+export async function listRoomCourseIds(
+  client: SupabaseClient,
+  roomIds: string[],
+): Promise<Map<string, string>> {
+  if (roomIds.length === 0) return new Map();
+  const { data, error } = await client.from("rooms").select("id, course_id").in("id", roomIds);
+  if (error) throw error;
+  return new Map((data as { id: string; course_id: string }[]).map((r) => [r.id, r.course_id]));
 }

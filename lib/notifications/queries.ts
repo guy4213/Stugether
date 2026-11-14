@@ -84,7 +84,13 @@ async function loadNotificationsData(userId: string, category: NotificationCateg
   const joinable = new Map(
     openRooms
       .filter((r) => !r.is_member && r.member_count < 4)
-      .map((r) => [r.room_id, isRoomLive({ status: "active", ...r })] as const),
+      .map(
+        (r) =>
+          [
+            r.room_id,
+            isRoomLive({ status: "active", ...r }, Date.now(), r.online_members),
+          ] as const,
+      ),
   );
   // Rooms I already asked to join (a room in session waits for its owner).
   const myRequestRoomIds = new Set(

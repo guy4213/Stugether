@@ -3,7 +3,7 @@ import { ArrowLeftIcon, UsersIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LiveDot } from "@/components/ui/live-dot";
 import { Pill } from "@/components/ui/pill";
-import { RowMenu } from "@/components/dashboard/row-menu";
+import { DashboardCourseMenu } from "@/components/dashboard/course-menu";
 import type { CourseBadge, DashboardCourse } from "@/lib/dashboard/queries";
 
 function Badge({ badge, completed }: { badge: CourseBadge; completed: boolean }) {
@@ -37,21 +37,22 @@ export function MyCourseCard({ course }: { course: DashboardCourse }) {
     <article className="flex h-full flex-col gap-4 rounded-[20px] border border-border bg-card p-5 shadow-card-sm">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col">
-          <h3 className="truncate text-lg font-extrabold">
+          <h3 className="text-lg leading-snug font-extrabold break-words">
             <Link prefetch={false} href={`/courses/${course.id}`} className="hover:text-primary">
               {course.name}
             </Link>
           </h3>
           {meta && <span className="text-xs text-muted-foreground">{meta}</span>}
+          {course.currentTopic && !course.completed && (
+            <span className="mt-1 line-clamp-2 text-xs text-ink-2">
+              <span className="font-semibold">נושא נוכחי:</span> {course.currentTopic}
+            </span>
+          )}
         </div>
-        <RowMenu
-          orientation="horizontal"
-          label={`אפשרויות לקורס ${course.name}`}
-          className="border border-border"
-          items={[
-            { label: "המשך ללמוד", href: course.continueHref },
-            { label: "פרטי הקורס", href: `/courses/${course.id}` },
-          ]}
+        <DashboardCourseMenu
+          courseId={course.id}
+          courseName={course.name}
+          continueHref={course.continueHref}
         />
       </div>
 

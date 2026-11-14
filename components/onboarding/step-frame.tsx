@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 
 // One wizard screen: a friendly question, the answers, and the continue
@@ -15,7 +15,7 @@ export function StepFrame({
   footer,
 }: {
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   focusHeading?: boolean;
   children: React.ReactNode;
   footer?: React.ReactNode;
@@ -34,7 +34,7 @@ export function StepFrame({
       >
         {title}
       </h1>
-      {subtitle && <p className="mt-2 text-[15px] text-muted-foreground">{subtitle}</p>}
+      {subtitle && <div className="mt-2 text-[15px] text-muted-foreground">{subtitle}</div>}
       <div className="mt-6 flex flex-col gap-3">{children}</div>
       {footer && (
         // Sticky on small screens: long lists (courses) keep the button in reach.

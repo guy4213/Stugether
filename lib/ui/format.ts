@@ -106,3 +106,31 @@ export function israelLocalToIso(value: string): string {
   const guess = wall - offsetAt(wall);
   return new Date(wall - offsetAt(guess)).toISOString();
 }
+
+// "Last seen" of a student (client QA 11.2026): "מחובר/ת עכשיו" inside the
+// online window, else "התחבר/ה לפני שעתיים" / "...לפני יום" — whole units,
+// rounded down (logged in yesterday 12:00, now 12:00 → "לפני יום").
+const ONLINE_MS = 5 * 60_000;
+
+function agoHe(n: number, one: string, two: string, many: string): string {
+  if (n === 1) return one;
+  if (n === 2) return two;
+  return `${n} ${many}`;
+}
+
+export function lastSeenHe(iso: string | null | undefined, now = Date.now()): string {
+  if (!iso) return "עוד לא התחבר/ה";
+  const diff = Math.max(0, now - new Date(iso).getTime());
+  if (diff < ONLINE_MS) return "מחובר/ת עכשיו";
+  const minutes = Math.floor(diff / 60_000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  let ago: string;
+  if (minutes < 60) ago = agoHe(minutes, "דקה", "2 דקות", "דקות");
+  else if (hours < 24) ago = agoHe(hours, "שעה", "שעתיים", "שעות");
+  else if (days < 7) ago = agoHe(days, "יום", "יומיים", "ימים");
+  else if (days < 30) ago = agoHe(Math.floor(days / 7), "שבוע", "שבועיים", "שבועות");
+  else if (days < 365) ago = agoHe(Math.floor(days / 30), "חודש", "חודשיים", "חודשים");
+  else return "התחבר/ה לפני יותר משנה";
+  return `התחבר/ה לפני ${ago}`;
+}

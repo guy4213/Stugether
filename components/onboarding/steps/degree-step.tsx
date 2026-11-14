@@ -34,7 +34,7 @@ export function DegreeStep({
 }) {
   return (
     <StepFrame
-      title="איפה את/ה בתואר?"
+      title="באיזה שלב את/ה בתואר?"
       subtitle="כדי שנציע לך את הקורסים של הסמסטר הזה"
       footer={
         <ContinueButton disabled={!year || !semester || !track || pending} onClick={onContinue}>

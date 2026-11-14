@@ -10,6 +10,8 @@ import { ProfileCompletion } from "@/components/profile/profile-completion";
 import { getCurrentUser } from "@/lib/auth/session";
 import { signOutAndRedirect } from "@/lib/auth/session-actions";
 import { getProfileFormData } from "@/lib/profile/queries";
+import { getFriendsOf } from "@/lib/friends/queries";
+import { FriendsCard } from "@/components/friends/friends-card";
 import { courseTheme } from "@/lib/ui/course-theme";
 
 // "הגדרות פרופיל" per Profile.dc.html.
@@ -17,8 +19,8 @@ export default async function ProfilePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const { profile, institutions, faculties, departments, activeCourses, stats } =
-    await getProfileFormData(user.id);
+  const [{ profile, institutions, faculties, departments, activeCourses, stats }, myFriends] =
+    await Promise.all([getProfileFormData(user.id), getFriendsOf(user.id, user.id)]);
   if (!profile) redirect("/login");
 
   const institutionName = institutions.find((i) => i.id === profile.institution_id)?.name;
@@ -73,7 +75,7 @@ export default async function ProfilePage() {
           </div>
           <dl className="flex gap-2.5 pb-1.5">
             <ProfileStat label="קורסים" value={stats.courses} />
-            <ProfileStat label="שותפים" value={stats.partners} />
+            <ProfileStat label="חברים" value={myFriends.friends.length} />
             <ProfileStat label="ימי רצף" value={stats.streak} warm />
           </dl>
         </div>
@@ -93,6 +95,22 @@ export default async function ProfilePage() {
 
         <aside className="flex w-full shrink-0 flex-col gap-4 xl:w-[380px]">
           <ProfileCompletion items={completion} />
+
+          <FriendsCard
+            title="החברים שלי"
+            friends={myFriends.friends}
+            incoming={myFriends.incoming}
+            emptyText="עוד אין לך חברים. הוסיפו חברים מכרטיסיות הסטודנטים."
+          />
+
+          <div className="rounded-[22px] border border-border bg-card p-6">
+            <AvatarUploader
+              userId={user.id}
+              fullName={profile.full_name}
+              avatarPath={profile.avatar_url}
+              presetsOnly
+            />
+          </div>
 
           <div className="flex flex-col gap-3.5 rounded-[22px] border border-border bg-card p-6">
             <h2 className="text-lg font-bold">הקורסים שלי</h2>

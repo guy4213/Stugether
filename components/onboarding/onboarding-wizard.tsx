@@ -173,7 +173,11 @@ export function OnboardingWizard({
 
   // One faculty (or none) = nothing to ask: its departments are listed directly.
   const hasFacultyStep = faculties.length > 1;
-  const flow = FLOW.filter((s) => s !== "faculty" || hasFacultyStep);
+  // One institution (H.I.T only, client QA 12.11.2026) = chosen automatically.
+  const onlyInstitution = data.institutions.length === 1 ? data.institutions[0] : null;
+  const flow = FLOW.filter(
+    (s) => (s !== "faculty" || hasFacultyStep) && (s !== "institution" || !onlyInstitution),
+  );
   const index = flow.indexOf(step);
   const questions = flow.length - 1; // "done" is not a question
 
@@ -305,7 +309,8 @@ export function OnboardingWizard({
             onChange={(fullName) => patch({ fullName })}
             onContinue={() => {
               patch({ fullName: answers.fullName.trim() });
-              go("institution");
+              if (onlyInstitution) void chooseInstitution(onlyInstitution.id);
+              else go("institution");
             }}
           />
         );
