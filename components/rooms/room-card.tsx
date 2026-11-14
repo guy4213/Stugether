@@ -42,9 +42,9 @@ function StatusPill({ room }: { room: RoomCardData }) {
       );
     case "waiting":
       return (
-        <span className={cn(base, "bg-warning-soft text-warning-ink")}>
-          <span className="size-1.5 rounded-full bg-warning" aria-hidden />
-          ממתין למשתתפים
+        <span className={cn(base, "bg-primary-tint text-primary-strong")}>
+          <span className="size-1.5 rounded-full bg-primary" aria-hidden />
+          {room.isMember ? "לומד/ת לבד · אפשר להזמין" : "לומד/ת לבד · אפשר להצטרף"}
         </span>
       );
     default:
@@ -166,13 +166,16 @@ export function RoomCard({ room }: { room: RoomCardData }) {
         room.status === "full" && "border-[1.5px] border-muted-foreground/60",
       )}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-start justify-between gap-3">
         {room.courseName && (
-          <span className="truncate rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-primary-strong">
+          // The course is the first thing people scan for (client QA 11.2026).
+          <p className="line-clamp-2 min-w-0 text-lg leading-snug font-extrabold text-primary-strong">
             {room.courseName}
-          </span>
+          </p>
         )}
-        <StatusPill room={room} />
+        <span className="ms-auto shrink-0">
+          <StatusPill room={room} />
+        </span>
       </div>
 
       <p className="mt-6 text-[11px] text-muted-foreground">נושא המפגש</p>

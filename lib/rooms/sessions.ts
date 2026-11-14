@@ -20,7 +20,7 @@ export interface SessionView {
 
 export interface RoomSessions {
   current: SessionView | null;
-  /** A session with this group ended (or the room is archived): plan another. */
+  /** A session with this group ended: plan another. */
   studyAgain: boolean;
 }
 
@@ -73,6 +73,6 @@ export function shapeRoomSessions(
 
   return {
     current,
-    studyAgain: !current && (ended || ctx.roomStatus === "archived"),
+    studyAgain: !current && ended,
   };
 }

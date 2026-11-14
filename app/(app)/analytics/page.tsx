@@ -18,7 +18,7 @@ import { cn } from "cn";
 import { IconTile } from "@/components/ui/icon-tile";
 import { ActivityChart } from "@/components/analytics/activity-chart";
 import { ShareButton } from "@/components/analytics/share-button";
-import { SubjectDonut } from "@/components/analytics/subject-donut";
+import { CourseActivityChart } from "@/components/analytics/course-activity-chart";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getAnalyticsData, parseAnalyticsRange } from "@/lib/analytics/queries";
 import { courseTheme } from "@/lib/ui/course-theme";
@@ -91,7 +91,18 @@ export default async function AnalyticsPage({
             {data.range === "semester" ? "בסמסטר האחרון" : `ב-${data.weeks} השבועות האחרונים`}
           </span>
         </div>
-        <ShareButton completedCount={data.completedCourses.length} />
+        <ShareButton
+          stats={{
+            activeCourses: data.activeCourses.length,
+            completedCourses: data.completedCourses.length,
+            avgProgress: data.avgActiveProgress,
+            messages: data.messagesSent,
+            weeks: data.weeks,
+            courses: data.courseProgress
+              .filter((c) => !c.completed)
+              .map((c) => ({ name: c.name, progress: c.progress })),
+          }}
+        />
       </div>
 
       {/* KPIs */}
@@ -184,6 +195,9 @@ export default async function AnalyticsPage({
               <span className="text-[13px] text-muted-foreground">הודעות לפי שבוע</span>
             </div>
             <nav aria-label="טווח זמן" className="flex gap-1 rounded-xl bg-muted p-1">
+              <RangeLink href="/analytics?range=4w" active={data.range === "4w"}>
+                4 שבועות
+              </RangeLink>
               <RangeLink href="/analytics" active={data.range === "8w"}>
                 8 שבועות
               </RangeLink>
@@ -295,8 +309,8 @@ export default async function AnalyticsPage({
         </div>
 
         <div className="flex w-full shrink-0 flex-col gap-3.5 rounded-[22px] border border-border bg-card px-5 py-6 sm:px-[26px] xl:w-[520px]">
-          <h2 className="text-[19px] font-bold">פילוח לפי מחלקה</h2>
-          <SubjectDonut subjects={data.subjects} />
+          <h2 className="text-[19px] font-bold">פעילות לפי קורס</h2>
+          <CourseActivityChart courses={data.courseActivity} weeks={data.weeks} />
         </div>
       </section>
     </main>

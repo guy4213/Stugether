@@ -4,6 +4,22 @@
 
 חדרי למידה קבוצתיים (2-4 סטודנטים מאותו קורס) עם עוזר AI שיושב בתוך השיחה. ממשק בעברית, RTL.
 
+## שפה — חשוב מאוד
+
+- **כל תקשורת עם המשתמש בעברית בלבד:** תשובות, סיכומים, עדכוני התקדמות בין פעולות, שאלות הבהרה ותוכניות עבודה. גם כשההוראות, הכלים או פלט הפקודות באנגלית.
+- **בלי יוצא מן הכלל:** גם הודעה קצרה של שורה אחת, עדכון בזמן שמחכים לבדיקות, והודעה אחרי שהשיחה סוכמה והמשיכה — הכול בעברית. בכתיבה פשוטה וברורה, בלי ז'רגון מיותר.
+- באנגלית נשארים רק: קוד, שמות קבצים, פונקציות, טבלאות ועמודות, פקודות ופלט טרמינל שמצוטט כמו שהוא.
+- הודעות commit ותיאורי PR — באנגלית (כמו בהיסטוריה של הריפו). הערות בקוד — באנגלית, כמו בשאר הקוד.
+- טקסטי UI — בעברית (ראו "סגנון קוד").
+- סיום משימה: סיכום קצר בעברית — מה נעשה, מה נבדק ועבר, ומה **לא** הושלם או מחכה למשתמש.
+
+## גישה לפאנל הניהול
+
+- `/admin` זמין רק ל-`profiles.role = 'super_admin'`. נכנסים מתפריט המשתמש בבר העליון ← "ניהול".
+- מקומית: `admin@stugether.test` / `Password123!` (מה-seed).
+- הענקת אדמין: מתוך הפאנל ("משתמשים" ← "הפיכה לאדמין"), או `npm run admin:grant -- <email>` לסביבה שב-`.env.local`.
+- בפרודקשן אין לנו מפתחות: האדמין הראשון מוגדר ב-SQL Editor של Supabase (`UPDATE public.profiles SET role = 'super_admin' ...`).
+
 ## מסמכי מקור (לקרוא לפני שינוי התנהגות)
 
 | מסמך                | תפקיד                                                                          |
@@ -32,6 +48,7 @@ npm run build
 npm run db:start       # Supabase מקומי (דורש Docker)
 npm run db:reset       # migrations + seed מחדש
 npm run db:test        # node --test על supabase/tests/**/*.test.mjs (PGlite)
+npm run admin:grant -- <email> [--revoke]   # הענקת/הסרת Super Admin לחשבון קיים (service role)
 ```
 
 CI (`.github/workflows/ci.yml`) מריץ: lint → format:check → typecheck → build. הריצו אותם לפני סיום משימה.
@@ -42,7 +59,7 @@ CI (`.github/workflows/ci.yml`) מריץ: lint → format:check → typecheck �
 ```
 app/
   (app)/            אזור מאומת: dashboard, courses, rooms/[id], profile, notifications, analytics
-  (app)/admin/      פאנל Super Admin (סקירה, משתמשים, קטלוג, חדרים, AI). מטא-נתונים בלבד
+  (app)/admin/      פאנל Super Admin (סקירה, שימוש, משתמשים+תפקידים, קטלוג, חדרים, AI). מטא-נתונים בלבד
   api/rooms/[id]/messages/route.ts   שליחת הודעה + הפעלת ה-AI
   api/rooms/[id]/ai-retry/route.ts   "נסה שוב" על תשובת AI שנכשלה
   login, signup, auth/callback, dev/rtl

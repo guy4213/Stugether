@@ -81,11 +81,18 @@ test("qa: join_open_room cannot be called directly to skip the approval", async 
   assert.equal(await isMember(db, U.a4), false);
 });
 
-test("qa: after the creator leaves, the new owner decides; the creator does not", async (t) => {
+// Ownership moves only when the owner is deactivated (the owner leaving
+// deletes the room — 20261112000003). Reactivation doesn't restore it, so the
+// creator (rooms.created_by) is back but no longer the owner.
+test("qa: after the creator loses ownership, the new owner decides; the creator does not", async (t) => {
   const db = await liveRoom(t);
-  await db.asUser(U.a1, (tx) => tx.query("select public.leave_room($1)", [ROOM.r1]), {
-    commit: true,
-  });
+  await db.asOwner(
+    async (tx) => {
+      await tx.query("update public.profiles set is_active = false where id = $1", [U.a1]);
+      await tx.query("update public.profiles set is_active = true where id = $1", [U.a1]);
+    },
+    { commit: true },
+  );
   const owner = await db.one(
     "select user_id::text from public.room_members where room_id = $1 and role = 'owner' and left_at is null",
     [ROOM.r1],
@@ -161,7 +168,7 @@ test("qa: approval re-checks enrollment; a declined requester waits before askin
   );
 });
 
-test("qa: archiving a room cancels its pending requests and open sessions", async (t) => {
+test("qa: closing a room cancels its pending requests and open sessions", async (t) => {
   const db = await liveRoom(t);
   await request(db, U.a4);
   const req = await pendingId(db, U.a4);
@@ -169,7 +176,7 @@ test("qa: archiving a room cancels its pending requests and open sessions", asyn
 
   await db.asUser(
     U.a1,
-    (tx) => tx.query("select public.set_room_status($1, 'archived')", [ROOM.r1]),
+    (tx) => tx.query("select public.set_room_status($1, 'closed')", [ROOM.r1]),
     {
       commit: true,
     },
@@ -184,22 +191,6 @@ test("qa: archiving a room cancels its pending requests and open sessions", asyn
   assert.deepEqual(
     [after.req, after.req_notes, after.session, after.session_notes],
     ["cancelled", 0, "cancelled", 0],
-  );
-
-  // Back to active: the old request cannot be approved.
-  await db.asUser(
-    U.a1,
-    (tx) => tx.query("select public.set_room_status($1, 'active')", [ROOM.r1]),
-    {
-      commit: true,
-    },
-  );
-  await db.asUser(U.a1, (tx) =>
-    tx.expectError(
-      "select public.decide_room_join_request($1, true)",
-      [req],
-      "REQUEST_NOT_PENDING",
-    ),
   );
 });
 
@@ -276,7 +267,7 @@ test("qa: sessions — NULL times, votes on past times, RSVP in a read-only room
   await db.asOwner(
     async (tx) => {
       await tx.exec("alter table public.rooms disable trigger rooms_release_on_read_only");
-      await tx.query("update public.rooms set status = 'archived' where id = $1", [ROOM.r1]);
+      await tx.query("update public.rooms set status = 'closed' where id = $1", [ROOM.r1]);
     },
     { commit: true },
   );

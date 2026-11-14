@@ -20,18 +20,27 @@ import type { CourseTest } from "@/lib/repositories/tests";
 // "קורסים" per the Figma (Change Request 07.11.2026): "הקורסים שלי" and
 // "כל הקורסים" as course cards with progress, classmates and a status badge.
 
-export type CourseSort = "relevance" | "progress" | "exam" | "az" | "semester";
+// "מבחן קרוב" was dropped (client QA 11.2026): exam dates exist only when a
+// student adds them, so the sort looked broken. Replaced by two counts we have.
+export type CourseSort = "relevance" | "progress" | "students" | "rooms" | "az" | "semester";
 export type CourseView = "all" | "mine" | "favorites";
 
 // Within one department the default is the degree's study plan (by year and
 // semester); across departments it is relevance (activity).
 export function parseCourseSort(value: string | undefined, departmentId?: string): CourseSort {
-  if (value === "relevance" || value === "progress" || value === "exam" || value === "az") {
+  if (
+    value === "relevance" ||
+    value === "progress" ||
+    value === "students" ||
+    value === "rooms" ||
+    value === "az"
+  ) {
     return value;
   }
   if (value === "semester" && departmentId) return "semester";
-  // Older links: ?sort=popular / ?sort=rooms.
-  if (value === "popular" || value === "rooms") return "relevance";
+  // Older links: ?sort=popular, ?sort=exam.
+  if (value === "popular") return "students";
+  if (value === "exam") return "relevance";
   return departmentId ? "semester" : "relevance";
 }
 
@@ -278,8 +287,18 @@ export function shapeCoursesPage(inputs: CoursesInputs, filters: CourseFilters) 
           activity(b.id) - activity(a.id) ||
           byName(a, b)
         );
-      case "exam":
-        return a.examSortKey - b.examSortKey || activity(b.id) - activity(a.id) || byName(a, b);
+      case "students":
+        return (
+          (inputs.studentCounts[b.id] ?? 0) - (inputs.studentCounts[a.id] ?? 0) ||
+          activity(b.id) - activity(a.id) ||
+          byName(a, b)
+        );
+      case "rooms":
+        return (
+          (inputs.roomCounts[b.id] ?? 0) - (inputs.roomCounts[a.id] ?? 0) ||
+          activity(b.id) - activity(a.id) ||
+          byName(a, b)
+        );
       default:
         return activity(b.id) - activity(a.id) || byName(a, b);
     }

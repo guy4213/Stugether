@@ -21,6 +21,7 @@ import { getCourseDetailData, type CourseDetailData } from "@/lib/courses/detail
 import { courseTheme } from "@/lib/ui/course-theme";
 import { EVENT_KIND_LABEL, NEXT_EVENT_LABEL, semesterLabel, yearLabel } from "@/lib/ui/labels";
 import { shortDateHe, timeHe, weekdayHe, weekdayLetterHe } from "@/lib/ui/format";
+import { MATCH_SOFT, matchLevel } from "@/lib/ui/tones";
 
 const TABS = [
   { id: "overview", label: "סקירה" },
@@ -384,13 +385,19 @@ function Overview({
                     </span>
                   </div>
                   {a.matchPercent !== null && (
-                    <span className="rounded-full bg-primary-soft px-2.5 py-1 text-xs font-bold text-primary-strong">
+                    <span
+                      className={cn(
+                        "rounded-full border px-2.5 py-1 text-xs font-bold",
+                        MATCH_SOFT[matchLevel(a.matchPercent)],
+                      )}
+                    >
                       {a.matchPercent}% התאמה
                     </span>
                   )}
                 </div>
                 <InviteToStudyButton
                   courseId={course.id}
+                  courseName={course.name}
                   inviteeId={a.profile.id}
                   inviteeName={a.profile.full_name}
                   topicTitle={data.topics.current?.title ?? null}

@@ -47,7 +47,9 @@ export function DemoSwitcher() {
       disabled={pending}
       title={on ? "לחצו למעבר למצב רגיל" : "לחצו למעבר למצב דמו"}
       className={cn(
-        "fixed start-4 bottom-4 z-50 flex h-11 items-center gap-2 rounded-full px-4 text-sm font-bold shadow-[0_10px_24px_-10px_rgba(15,27,51,.55)] transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-70",
+        // A private chat keeps its message box at the bottom on phones: step aside.
+        pathname.startsWith("/messages/") && "max-lg:hidden",
+        "fixed start-4 bottom-4 z-50 flex h-11 items-center gap-2 rounded-full px-4 text-sm font-bold shadow-[0_10px_24px_-10px_rgba(15,27,51,.55)] transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-70 max-lg:bottom-[calc(76px+env(safe-area-inset-bottom))]",
         on
           ? "bg-violet text-white hover:brightness-110"
           : "border border-border bg-white text-foreground hover:bg-surface-2",

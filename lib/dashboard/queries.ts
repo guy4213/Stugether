@@ -41,6 +41,8 @@ export interface DashboardCourse {
   studentCount: number;
   topicsTotal: number;
   topicsMastered: number;
+  /** The topic in progress (or the first not yet mastered). */
+  currentTopic: string | null;
   continueHref: string;
 }
 
@@ -52,12 +54,13 @@ export interface DashboardPartner {
   departmentName: string | null;
   year: string | null;
   online: boolean;
+  lastSeenAt: string | null;
   percent: number;
   reasons: string[];
   sharedCourses: { id: string; name: string }[];
 }
 
-const PARTNERS_SHOWN = 4;
+const PARTNERS_SHOWN = 12;
 
 export interface ActivityItem {
   id: string;
@@ -142,7 +145,9 @@ async function loadDashboardData(userId: string) {
   const active = enrollments.filter((e) => e.status === "active");
   const upcomingEvents = events.filter((e) => e.due_at && new Date(e.due_at).getTime() > now);
   const profileById = new Map(people.map((p) => [p.id, p]));
-  const personById = new Map(people.map((p) => [p.id, { id: p.id, name: p.full_name }]));
+  const personById = new Map(
+    people.map((p) => [p.id, { id: p.id, name: p.full_name, avatarPath: p.avatar_url }]),
+  );
   const person = (id: string): StackPerson | null => personById.get(id) ?? null;
   const toPeople = (ids: string[]) => ids.map(person).filter((p): p is StackPerson => p !== null);
 
@@ -218,13 +223,13 @@ async function loadDashboardData(userId: string) {
       studentCount: Math.max(1, rosterCountByCourse.get(e.course_id) ?? 0),
       topicsTotal: topicSummary.total,
       topicsMastered: topicSummary.mastered,
+      currentTopic: topicSummary.current?.title ?? null,
       continueHref: continueHref(e.course_id),
     };
   });
 
-  // --- hero: the course to continue ---------------------------------------------
-  const heroEnrollment = orderedCourses.find((e) => e.progress_percent < 100) ?? null;
-  let hero: {
+  // --- heroes: "ההתקדמות שלי", one slide per unfinished course ----------------------
+  type Hero = {
     courseId: string;
     name: string;
     code: string | null;
@@ -238,25 +243,28 @@ async function loadDashboardData(userId: string) {
     continueHref: string;
     myRoomId: string | null;
     openRoomId: string | null;
-  } | null = null;
-  if (heroEnrollment) {
-    const summary = summarizeTopics(topicsByCourse.get(heroEnrollment.course_id) ?? [], progress);
-    hero = {
-      courseId: heroEnrollment.course_id,
-      name: heroEnrollment.course.name,
-      code: heroEnrollment.course.code,
-      progress: heroEnrollment.progress_percent,
-      topics: summary.topics,
-      total: summary.total,
-      mastered: summary.mastered,
-      currentTopic: summary.current?.title ?? null,
-      currentIndex: summary.currentIndex,
-      availableNow: toPeople(availableByCourse.get(heroEnrollment.course_id) ?? []),
-      continueHref: continueHref(heroEnrollment.course_id),
-      myRoomId: myRoomByCourse.get(heroEnrollment.course_id)?.id ?? null,
-      openRoomId: openRoomByCourse.get(heroEnrollment.course_id)?.room_id ?? null,
-    };
-  }
+  };
+  const heroes: Hero[] = orderedCourses
+    .filter((e) => e.progress_percent < 100)
+    .map((heroEnrollment) => {
+      const summary = summarizeTopics(topicsByCourse.get(heroEnrollment.course_id) ?? [], progress);
+      return {
+        courseId: heroEnrollment.course_id,
+        name: heroEnrollment.course.name,
+        code: heroEnrollment.course.code,
+        progress: heroEnrollment.progress_percent,
+        topics: summary.topics,
+        total: summary.total,
+        mastered: summary.mastered,
+        currentTopic: summary.current?.title ?? null,
+        currentIndex: summary.currentIndex,
+        availableNow: toPeople(availableByCourse.get(heroEnrollment.course_id) ?? []),
+        continueHref: continueHref(heroEnrollment.course_id),
+        myRoomId: myRoomByCourse.get(heroEnrollment.course_id)?.id ?? null,
+        openRoomId: openRoomByCourse.get(heroEnrollment.course_id)?.room_id ?? null,
+      };
+    });
+  const hero: Hero | null = heroes[0] ?? null;
 
   // --- stats strip ----------------------------------------------------------------
   const partnerIds = [...new Set(rosters.map((r) => r.user_id).filter((id) => id !== userId))];
@@ -298,6 +306,7 @@ async function loadDashboardData(userId: string) {
               : null,
             year: yearLabel(p.study_year),
             online: isOnline(p.last_seen_at, now),
+            lastSeenAt: p.last_seen_at,
             percent: match.percent,
             reasons: match.breakdown
               .filter((b) => b.matched)
@@ -352,11 +361,15 @@ async function loadDashboardData(userId: string) {
   for (const s of upcomingSessions)
     if (!nextSessionByRoom.has(s.room_id)) nextSessionByRoom.set(s.room_id, s.starts_at);
   const membersByRoom = new Map<string, RoomPerson[]>();
+  const onlineOthersByRoom = new Map<string, number>();
   for (const m of roomMembers) {
     membersByRoom.set(m.room_id, [
       ...(membersByRoom.get(m.room_id) ?? []),
       { id: m.user_id, name: m.full_name, avatarPath: m.avatar_url },
     ]);
+    if (m.user_id !== userId && isOnline(m.last_seen_at, now)) {
+      onlineOthersByRoom.set(m.room_id, (onlineOthersByRoom.get(m.room_id) ?? 0) + 1);
+    }
   }
   const courseNameById = new Map(enrollments.map((e) => [e.course_id, e.course.name]));
   const rooms = myRooms
@@ -369,6 +382,7 @@ async function loadDashboardData(userId: string) {
         nextSessionAt: nextSessionByRoom.get(r.id) ?? null,
         people: membersByRoom.get(r.id) ?? [],
         now,
+        onlineOthers: onlineOthersByRoom.get(r.id) ?? 0,
       }),
     )
     .sort((a, b) => (b.lastMessageAt ?? "").localeCompare(a.lastMessageAt ?? ""));
@@ -387,6 +401,7 @@ async function loadDashboardData(userId: string) {
   return {
     firstName: profile?.full_name.split(/\s+/)[0] ?? "",
     hero,
+    heroes,
     stats,
     myCourses,
     partners,

@@ -148,6 +148,7 @@ async function loadCourseDetailData(userId: string, courseId: string) {
       live: isRoomLive(
         { status: "active", last_message_at: r.last_message_at, created_at: r.created_at },
         now,
+        r.online_members,
       ),
       requested: requestedRoomIds.has(r.room_id),
     }));

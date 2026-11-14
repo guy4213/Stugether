@@ -1,12 +1,16 @@
 import Link from "next/link";
+import { PlusIcon } from "lucide-react";
 import { MyCourseCard } from "@/components/dashboard/course-cards";
 import { ActivityRail } from "@/components/dashboard/activity-rail";
 import { RoomsPanel } from "@/components/dashboard/rooms-panel";
 import { PartnersSection } from "@/components/dashboard/partners-section";
 import { SectionHeader } from "@/components/dashboard/section-header";
-import { InfoTiles, ProgressCard } from "@/components/dashboard/side-cards";
+import { InfoTiles } from "@/components/dashboard/side-cards";
+import { ProgressCard } from "@/components/dashboard/progress-card";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getDashboardData } from "@/lib/dashboard/queries";
+import { getMyFriendStates } from "@/lib/friends/queries";
+import { getCourseActivity } from "@/lib/activity/queries";
 
 // Dashboard (redesign 07.11.2026): three rows, each a main block with a side
 // block next to it — partners | my progress, study rooms | recent activity,
@@ -15,8 +19,12 @@ export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) return null; // guarded by app/(app)/layout.tsx
 
-  const data = await getDashboardData(user.id);
-  const myCourses = data.myCourses.slice(0, 3);
+  const [data, friends, activity] = await Promise.all([
+    getDashboardData(user.id),
+    getMyFriendStates(user.id),
+    getCourseActivity(user.id, { limit: 4 }),
+  ]);
+  const myCourses = data.myCourses;
 
   return (
     <main
@@ -33,20 +41,34 @@ export default async function DashboardPage() {
       </h1>
 
       <div className="grid grid-cols-1 gap-x-6 gap-y-8 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <PartnersSection partners={data.partners} hasCourses={data.myCourses.length > 0} />
-        <ProgressCard hero={data.hero} stats={data.stats} />
+        <PartnersSection
+          partners={data.partners}
+          hasCourses={data.myCourses.length > 0}
+          friends={friends}
+        />
+        <ProgressCard heroes={data.heroes} stats={data.stats} />
 
         <RoomsPanel
           rooms={data.rooms}
           invitations={data.pendingInvitations}
           courses={data.roomCourses}
         />
-        <ActivityRail activity={data.activity} nextEvent={data.nextEvent} />
+        <ActivityRail items={activity} nextEvent={data.nextEvent} />
 
         <section aria-labelledby="my-courses" className="flex min-w-0 flex-col gap-3.5">
           <SectionHeader
             id="my-courses"
             title="הקורסים שלי"
+            actions={
+              <Link
+                href="/courses#all-courses"
+                aria-label="הוספת קורסים"
+                title="הוספת קורסים"
+                className="flex size-9 items-center justify-center rounded-[10px] border border-primary-line bg-white text-primary transition-colors hover:bg-primary-soft"
+              >
+                <PlusIcon className="size-[18px]" strokeWidth={2.6} aria-hidden />
+              </Link>
+            }
             link={{ href: "/courses", label: "כל הקורסים" }}
           />
           {myCourses.length === 0 ? (
@@ -57,9 +79,13 @@ export default async function DashboardPage() {
               </Link>
             </div>
           ) : (
-            <ul className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            // Every course, scrolling sideways (it used to show only 3).
+            <ul
+              aria-label="גללו לצדדים כדי לראות את כל הקורסים"
+              className="-mx-4 flex flex-1 snap-x snap-mandatory [scrollbar-width:thin] gap-4 overflow-x-auto overscroll-x-contain px-4 pb-2 sm:-mx-1 sm:px-1"
+            >
               {myCourses.map((course) => (
-                <li key={course.id}>
+                <li key={course.id} className="w-[280px] shrink-0 snap-start sm:w-[300px]">
                   <MyCourseCard course={course} />
                 </li>
               ))}

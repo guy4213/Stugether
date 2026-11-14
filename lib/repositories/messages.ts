@@ -97,6 +97,72 @@ export async function listMyMessageTimestamps(
   return (data as { created_at: string }[]).map((row) => row.created_at);
 }
 
+// ILIKE pattern of a literal search text: %, _ and the backslash are escaped.
+export function ilikeContains(text: string): string {
+  return `%${text.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+}
+
+// "חיפוש בשיחה" (client QA 12.11.2026): messages of one room containing the
+// text, newest first. RLS limits it to the caller's rooms (and never returns
+// someone else's deleted message); deleted ones are skipped here as well.
+export async function searchRoomMessages(
+  client: SupabaseClient,
+  roomId: string,
+  query: string,
+  limit = 30,
+): Promise<Message[]> {
+  const { data, error } = await client
+    .from("messages")
+    .select("*")
+    .eq("room_id", roomId)
+    .is("deleted_at", null)
+    .ilike("content", ilikeContains(query))
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data as Message[];
+}
+
+// Every message from `from` (inclusive) up to `until` (exclusive), oldest
+// first: what a search result needs loaded above the messages on screen.
+export async function listRoomMessagesBetween(
+  client: SupabaseClient,
+  roomId: string,
+  from: MessageCursor,
+  until: MessageCursor,
+  limit = 500,
+): Promise<Message[]> {
+  const { data, error } = await client
+    .from("messages")
+    .select("*")
+    .eq("room_id", roomId)
+    .gte("created_at", from.createdAt)
+    .or(`created_at.lt.${until.createdAt},and(created_at.eq.${until.createdAt},id.lt.${until.id})`)
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  return data as Message[];
+}
+
+// My messages since a date with their room — "פעילות לפי קורס" on the
+// progress tab counts them per course (client QA 12.11.2026).
+export async function listMyMessageRooms(
+  client: SupabaseClient,
+  userId: string,
+  sinceIso: string,
+): Promise<{ created_at: string; room_id: string }[]> {
+  const { data, error } = await client
+    .from("messages")
+    .select("created_at, room_id")
+    .eq("sender_id", userId)
+    .eq("sender_type", "user")
+    .gte("created_at", sinceIso)
+    .order("created_at");
+  if (error) throw error;
+  return data as { created_at: string; room_id: string }[];
+}
+
 // Wraps soft_delete_message(p_message_id): own message, within 5 minutes.
 export async function softDeleteMessage(client: SupabaseClient, messageId: string): Promise<void> {
   const { error } = await client.rpc("soft_delete_message", { p_message_id: messageId });

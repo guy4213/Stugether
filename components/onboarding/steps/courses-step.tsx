@@ -63,7 +63,7 @@ export function CoursesStep({
 
   const subtitle =
     recommended.length > 0
-      ? `בחרנו לך ${recommended.length === 1 ? "קורס אחד" : `${recommended.length} קורסים`} של ${yearLabel(year)} · ${SEMESTER_LABEL[semester ?? 1]}. אפשר להוסיף ולהוריד`
+      ? `הוספנו את כל הקורסים הרלוונטיים לך ל${yearLabel(year)}, ${SEMESTER_LABEL[semester ?? 1]}. אפשר להוסיף ולהוריד.`
       : "סמנו את הקורסים שאתם לומדים עכשיו. אפשר לשנות גם אחר כך";
 
   return (
@@ -105,7 +105,7 @@ export function CoursesStep({
 
           <section aria-labelledby="all-courses" className="mt-3 flex flex-col gap-2.5">
             <h2 id="all-courses" className="text-sm font-bold text-ink-2">
-              {recommended.length > 0 ? "עוד קורסים במחלקה" : "כל הקורסים במחלקה"}
+              {recommended.length > 0 ? "עוד קורסים שניתן להוסיף" : "כל הקורסים במחלקה"}
             </h2>
             <div className="relative">
               <SearchIcon

@@ -18,7 +18,9 @@ import {
 import { toast } from "sonner";
 import { cn } from "cn";
 import { PersonAvatar } from "@/components/ui/person-avatar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CreateRoomForm } from "@/components/courses/create-room-form";
+import { QuickEnrollButton } from "@/components/courses/quick-enroll-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,39 +57,50 @@ function Badge({ card }: { card: Card }) {
   return null;
 }
 
-// "שותפים ללמידה": classmates of my course, on hover / focus (`group-focus`,
-// not focus-visible: a tap focuses it on a tablet, which has no hover).
+// "שותפים ללמידה": classmates of my course. A popover that opens on tap
+// (tablets have no hover — client QA 11.2026) and on mouse hover.
 function Students({ card }: { card: Card }) {
+  const [open, setOpen] = useState(false);
   const text = card.students === 1 ? "סטודנט אחד בקורס" : `${card.students} סטודנטים בקורס`;
-  const hasTooltip = card.partners.length > 0;
-  return (
-    <div
-      tabIndex={hasTooltip ? 0 : undefined}
-      className="group relative flex items-center gap-1.5 rounded-md text-[13px] text-[#737885] outline-none focus-visible:ring-2 focus-visible:ring-primary-line"
-    >
+  const label = (
+    <>
       <UsersIcon className="size-[15px]" strokeWidth={1.8} aria-hidden />
       {text}
-      {hasTooltip && (
-        <div
-          role="tooltip"
-          className="invisible absolute bottom-[calc(100%+10px)] left-1/2 z-10 w-max min-w-[120px] -translate-x-1/2 translate-y-1 rounded-[10px] bg-[#1c1f26] px-3 pt-2 pb-2.5 text-center opacity-0 shadow-[0_4px_12px_rgba(0,0,0,.18)] transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus:visible group-focus:translate-y-0 group-focus:opacity-100 after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-6 after:border-transparent after:border-t-[#1c1f26]"
-        >
-          <p className="text-[10px] font-semibold whitespace-nowrap text-white">שותפים ללמידה</p>
-          <div className="mt-[7px] flex justify-center gap-1.5">
-            {card.partners.map((p) => (
+    </>
+  );
+  if (card.partners.length === 0) {
+    return <div className="flex items-center gap-1.5 text-[13px] text-[#737885]">{label}</div>;
+  }
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        onPointerEnter={(e) => e.pointerType === "mouse" && setOpen(true)}
+        onPointerLeave={(e) => e.pointerType === "mouse" && setOpen(false)}
+        className="-mx-1 flex min-h-8 items-center gap-1.5 rounded-md px-1 text-[13px] text-[#737885] underline decoration-dotted underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-primary-line"
+      >
+        {label}
+      </PopoverTrigger>
+      <PopoverContent
+        side="top"
+        className="w-max max-w-64 gap-2 rounded-[12px] bg-[#1c1f26] px-3 py-2.5 text-white ring-0"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <p className="text-[11px] font-semibold">שותפים ללמידה בקורס</p>
+        <ul className="flex flex-col gap-1.5">
+          {card.partners.map((p) => (
+            <li key={p.id} className="flex items-center gap-2 text-[13px]">
               <PersonAvatar
-                key={p.id}
                 id={p.id}
                 name={p.name}
                 avatarPath={p.avatarPath}
-                className="size-5 text-[9px] ring-[1.5px] ring-[#1c1f26]"
+                className="size-6 text-[9px] ring-[1.5px] ring-[#1c1f26]"
               />
-            ))}
-          </div>
-          <span className="sr-only">: {card.partners.map((p) => p.name).join(", ")}</span>
-        </div>
-      )}
-    </div>
+              {p.name}
+            </li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -185,17 +198,34 @@ export function CourseCard({ card }: { card: Card }) {
   const done = card.completed;
 
   return (
-    <article className="relative flex flex-col gap-[18px] rounded-[23px] bg-white p-6 shadow-[0_1.9px_9.6px_rgba(161,161,161,.25)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(120,140,170,.22)]">
+    <article className="relative flex h-full flex-col gap-[18px] rounded-[23px] bg-white p-6 shadow-[0_1.9px_9.6px_rgba(161,161,161,.25)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(120,140,170,.22)]">
       <div className="flex min-h-[53px] items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-[22px] leading-tight font-bold">
+          <h3 className="text-[22px] leading-tight font-bold break-words">
             <Link href={`/courses/${card.id}`} className="hover:text-primary">
               {card.name}
             </Link>
           </h3>
           {sub && <p className="mt-0.5 text-[13px] whitespace-pre">{sub}</p>}
         </div>
-        <CardMenu card={card} onOpenRoom={() => setRoomOpen(true)} />
+        <div className="flex shrink-0 items-center gap-1.5">
+          {card.enrolled ? (
+            <span
+              className="flex size-8 items-center justify-center rounded-[9px] bg-success-soft text-success-ink"
+              title="בקורסים שלי"
+            >
+              <CheckIcon className="size-[18px]" strokeWidth={2.6} aria-hidden />
+              <span className="sr-only">הקורס נמצא בקורסים שלי</span>
+            </span>
+          ) : (
+            <QuickEnrollButton
+              courseId={card.id}
+              courseName={card.name}
+              className="size-8 rounded-[9px] [&_svg]:size-[18px]"
+            />
+          )}
+          <CardMenu card={card} onOpenRoom={() => setRoomOpen(true)} />
+        </div>
       </div>
 
       {p ? (
@@ -244,7 +274,7 @@ export function CourseCard({ card }: { card: Card }) {
 
       <Link
         href={`/courses/${card.id}`}
-        className="flex h-11 w-full items-center justify-center gap-2 rounded-full border-[1.5px] border-primary bg-white text-[15px] font-semibold text-primary transition-colors hover:bg-primary hover:text-white"
+        className="mt-auto flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-full border-[1.5px] border-primary bg-white text-[15px] font-semibold text-primary transition-colors hover:bg-primary hover:text-white"
       >
         {done ? "חזרה לחומרים" : "כניסה לקורס"}
         <ArrowLeftIcon className="size-[15px]" strokeWidth={2.2} aria-hidden />

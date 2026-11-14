@@ -172,7 +172,7 @@ INSERT INTO public.enrollments (user_id, course_id, status) VALUES
   ('00000000-0000-0000-0000-0000000000a5', '00000000-0000-0000-0003-000000000002', 'active'),
   -- CS-305
   ('00000000-0000-0000-0000-0000000000a4', '00000000-0000-0000-0003-000000000003', 'active'),
-  -- MATH-110 (archived room)
+  -- MATH-110 (closed room)
   ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0003-000000000004', 'active'),
   ('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0003-000000000004', 'active'),
   ('00000000-0000-0000-0000-0000000000a5', '00000000-0000-0000-0003-000000000004', 'active'),
@@ -189,7 +189,7 @@ INSERT INTO public.rooms (id, course_id, created_by, name, topic, status, ai_ena
    'הכנה למבחן — עצים', 'עצי חיפוש בינאריים, AVL ועצי ערימה', 'active', true,
    now() - interval '3 days', NULL),
   ('00000000-0000-0000-0005-000000000002', '00000000-0000-0000-0003-000000000004', '00000000-0000-0000-0000-0000000000a2',
-   'תרגול גבולות', 'גבולות של פונקציות וכלל לופיטל', 'archived', true,
+   'תרגול גבולות', 'גבולות של פונקציות וכלל לופיטל', 'closed', true,
    now() - interval '35 days', now() - interval '20 days')
 ON CONFLICT (id) DO NOTHING;
 
@@ -250,7 +250,7 @@ INSERT INTO public.messages (id, room_id, sender_id, sender_type, content, statu
 ON CONFLICT (id) DO NOTHING;
 
 -- -----------------------------------------------------------------------------
--- Messages (archived room — history, read-only)
+-- Messages (closed room — history, read-only)
 -- -----------------------------------------------------------------------------
 INSERT INTO public.messages (id, room_id, sender_id, sender_type, content, status, created_at) VALUES
   ('00000000-0000-0000-0006-000000000011', '00000000-0000-0000-0005-000000000002', '00000000-0000-0000-0000-0000000000a2',

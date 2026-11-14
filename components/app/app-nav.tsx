@@ -9,7 +9,6 @@ import {
   ChevronDownIcon,
   HouseIcon,
   LogOutIcon,
-  MenuIcon,
   MessageSquareTextIcon,
   SearchIcon,
   ShieldCheckIcon,
@@ -32,19 +31,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { signOutAndRedirect } from "@/lib/auth/session-actions";
 
-type NavLink = { href: string; label: string; icon: LucideIcon };
+type NavLink = { href: string; label: string; short: string; icon: LucideIcon };
 
 // The Figma bar has five links; profile settings, "ניהול" (super admin) and
 // the active room live in the user menu.
-const NAV_LINKS: NavLink[] = [
-  { href: "/dashboard", label: "בית", icon: HouseIcon },
-  { href: "/courses", label: "קורסים", icon: BookOpenIcon },
-  { href: "/rooms", label: "חדרי לימוד", icon: UsersIcon },
-  { href: "/students", label: "סטודנטים", icon: UserSearchIcon },
-  { href: "/analytics", label: "ההתקדמות שלי", icon: ChartColumnIcon },
+// `short` is the label under the icon in the phone tab bar.
+export const NAV_LINKS: NavLink[] = [
+  { href: "/dashboard", label: "בית", short: "בית", icon: HouseIcon },
+  { href: "/courses", label: "קורסים", short: "קורסים", icon: BookOpenIcon },
+  { href: "/rooms", label: "חדרי לימוד", short: "חדרים", icon: UsersIcon },
+  { href: "/students", label: "סטודנטים", short: "סטודנטים", icon: UserSearchIcon },
+  { href: "/analytics", label: "ההתקדמות שלי", short: "התקדמות", icon: ChartColumnIcon },
 ];
 
-function isLinkActive(pathname: string, href: string): boolean {
+export function isLinkActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -121,7 +121,8 @@ function SearchBox({ className }: { className?: string }) {
 
 // Top bar per the Figma (07.11.2026): wordmark logo, five plain links (the
 // active one tinted), a search field, then the user menu, messages and bell.
-// lg+: links (icons only below 1400px); xl+: search. Below lg: hamburger.
+// lg+: links (icons only below 1400px); xl+: search. Below lg the five links
+// move to the bottom tab bar (bottom-tab-bar.tsx, client QA 11.2026).
 export function AppNav(props: ShellProps) {
   const pathname = usePathname();
   const firstName = props.fullName.trim().split(/\s+/)[0] || props.fullName;
@@ -240,32 +241,6 @@ export function AppNav(props: ShellProps) {
             active={isLinkActive(pathname, "/notifications")}
             icon={BellIcon}
           />
-
-          <DropdownMenu dir="rtl">
-            <DropdownMenuTrigger
-              aria-label="תפריט ניווט"
-              className="relative flex size-10 items-center justify-center rounded-xl text-foreground hover:bg-muted lg:hidden"
-            >
-              <MenuIcon className="size-6" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60">
-              {NAV_LINKS.map((link) => {
-                const active = isLinkActive(pathname, link.href);
-                return (
-                  <DropdownMenuItem key={link.href} asChild>
-                    <Link
-                      href={link.href}
-                      aria-current={active ? "page" : undefined}
-                      className={cn(active && "bg-primary-soft font-semibold text-primary")}
-                    >
-                      <link.icon />
-                      <span className="grow">{link.label}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
     </header>

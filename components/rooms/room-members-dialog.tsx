@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { Pill } from "@/components/ui/pill";
 import {
@@ -22,28 +21,42 @@ import {
   leaveRoomAction,
   removeRoomMember,
   revokeRoomInvitation,
-  setRoomAiEnabled,
-  setRoomStatusAction,
 } from "@/lib/rooms/actions";
+import { filterPeople } from "@/lib/ui/people";
+import { NoPeopleFound, PeopleSearchInput } from "@/components/ui/people-search-input";
 import { shortDateHe } from "@/lib/ui/format";
 import type { RoomPageData } from "@/lib/rooms/queries";
 
+// The owner leaving deletes the room and everything in it, for everyone
+// (20261112000003_owner_leave_deletes_room.sql).
+export const LEAVE_CONFIRM_OWNER =
+  "את/ה יוצר/ת החדר. עזיבה תמחק את החדר ואת כל התוכן שלו (הודעות, תרגילים, מפגשים) לכל המשתתפים. אי אפשר לבטל.";
+
 // "משתתפים" panel of a room (SPEC §4.5-4.6): who is in, who is connected, the
-// pending invitations, inviting 1-3 classmates of the course, and — for the
-// owner — the AI toggle, archive/close. Everyone can leave.
+// pending invitations, inviting 1-3 classmates of the course. Everyone can
+// leave. The room's settings (AI, open/closed, close) live in the ⚙ dialog
+// (room-settings-dialog.tsx, client QA 12.11.2026).
 export function RoomMembersDialog({
   data,
   currentUserId,
   onlineUserIds,
   trigger,
+  open: openProp,
+  onOpenChange,
 }: {
   data: RoomPageData;
   currentUserId: string;
   onlineUserIds: string[];
-  /** Replaces the default "משתתפים" button. */
-  trigger?: React.ReactNode;
+  /** Replaces the default "משתתפים" button; null = no trigger (controlled). */
+  trigger?: React.ReactNode | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = onOpenChange ?? setOpenState;
+  const [query, setQuery] = useState("");
+  const candidates = filterPeople(data.inviteCandidates, query, (c) => [c.name]);
   const [selected, setSelected] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
   const { room, isOwner, isMember } = data;
@@ -84,15 +97,17 @@ export function RoomMembersDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button variant="quiet" size="chip" aria-label="משתתפים והזמנות">
-            <UsersIcon aria-hidden />
-            <span className="max-sm:hidden">משתתפים</span>
-            <span className="rounded-full bg-muted px-1.5 text-xs">{activeMembers.length}/4</span>
-          </Button>
-        )}
-      </DialogTrigger>
+      {trigger !== null && (
+        <DialogTrigger asChild>
+          {trigger ?? (
+            <Button variant="quiet" size="chip" aria-label="משתתפים והזמנות">
+              <UsersIcon aria-hidden />
+              <span className="max-sm:hidden">משתתפים</span>
+              <span className="rounded-full bg-muted px-1.5 text-xs">{activeMembers.length}/4</span>
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold">משתתפים בחדר</DialogTitle>
@@ -188,8 +203,12 @@ export function RoomMembersDialog({
                 <p className="text-xs text-muted-foreground">
                   אפשר לבחור עד {maxSelect}. ההזמנה בתוקף 7 ימים.
                 </p>
+                {data.inviteCandidates.length > 5 && (
+                  <PeopleSearchInput value={query} onChange={setQuery} />
+                )}
+                {candidates.length === 0 && <NoPeopleFound query={query} />}
                 <ul className="flex max-h-56 flex-col gap-0.5 overflow-y-auto">
-                  {data.inviteCandidates.map((c) => {
+                  {candidates.map((c) => {
                     const checked = selected.includes(c.id);
                     const disabled = !checked && selected.length >= maxSelect;
                     return (
@@ -230,54 +249,6 @@ export function RoomMembersDialog({
           </section>
         )}
 
-        {isOwner && isActive && (
-          <section className="flex flex-col gap-3 border-t border-divider pt-3">
-            <h3 className="text-sm font-bold">הגדרות החדר</h3>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex flex-col">
-                <span id="room-ai-toggle" className="text-sm font-semibold">
-                  עוזר AI בחדר
-                </span>
-                {!data.globalAiEnabled && (
-                  <span className="text-xs text-muted-foreground">העוזר כבוי כרגע בכל המערכת</span>
-                )}
-              </div>
-              <Switch
-                checked={room.ai_enabled}
-                disabled={pending}
-                onCheckedChange={(v) => run(() => setRoomAiEnabled(room.id, v))}
-                aria-labelledby="room-ai-toggle"
-              />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="quiet"
-                size="chip"
-                disabled={pending}
-                onClick={() => {
-                  if (confirm("לארכב את החדר? הוא יישאר גלוי לקריאה בלבד.")) {
-                    run(() => setRoomStatusAction(room.id, "archived"), "החדר אורכב");
-                  }
-                }}
-              >
-                ארכוב החדר
-              </Button>
-              <Button
-                variant="danger"
-                size="chip"
-                disabled={pending}
-                onClick={() => {
-                  if (confirm("לסגור את החדר? חדר סגור לא נפתח מחדש.")) {
-                    run(() => setRoomStatusAction(room.id, "closed"), "החדר נסגר");
-                  }
-                }}
-              >
-                סגירת החדר
-              </Button>
-            </div>
-          </section>
-        )}
-
         {isMember && (
           <div className="border-t border-divider pt-3">
             <Button
@@ -286,7 +257,10 @@ export function RoomMembersDialog({
               className="text-destructive"
               disabled={pending}
               onClick={() => {
-                if (confirm("לעזוב את החדר? לא תהיה לך גישה להיסטוריה שלו.")) {
+                const message = isOwner
+                  ? LEAVE_CONFIRM_OWNER
+                  : "לעזוב את החדר? לא תהיה לך גישה להיסטוריה שלו.";
+                if (confirm(message)) {
                   run(() => leaveRoomAction(room.id));
                 }
               }}

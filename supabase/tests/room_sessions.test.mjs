@@ -20,7 +20,7 @@ async function fresh(t) {
   return db;
 }
 
-// R1 (active): a1 creator + a2 + a3. a4 is not a member. R2 is archived.
+// R1 (active): a1 creator + a2 + a3. a4 is not a member. R2 is closed.
 const inDays = (d, h = 18) =>
   `(date_trunc('day', now()) + interval '${d} days' + interval '${h} hours')`;
 
@@ -136,7 +136,7 @@ test("sessions: one time schedules at once; past times, 6 options and read-only 
       "permission denied",
     );
   });
-  // R2 is archived: nobody can plan there until it is reactivated.
+  // R2 is closed: nobody can plan there.
   await db.asUser(U.a2, (tx) =>
     tx.expectError(
       `select public.propose_room_session('${ROOM.r2}', array[${inDays(1)}]::timestamptz[], 60, null)`,

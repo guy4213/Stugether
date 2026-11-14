@@ -9,23 +9,19 @@ import {
   ClockIcon,
   GraduationCapIcon,
   HeartIcon,
-  UserRoundPlusIcon,
 } from "lucide-react";
 import { cn } from "cn";
 import { PersonAvatar } from "@/components/ui/person-avatar";
+import { LastSeen } from "@/components/ui/last-seen";
 import { InviteStudentButton } from "@/components/students/invite-student-button";
 import { MessageStudentButton } from "@/components/messages/message-student-button";
+import { FriendButton } from "@/components/friends/friend-button";
+import type { MyFriendState } from "@/lib/friends/queries";
 import { yearLabel } from "@/lib/ui/labels";
+import { MATCH_SOLID, matchLevel } from "@/lib/ui/tones";
 import type { StudentCard as StudentCardData } from "@/lib/students/queries";
 
 const MAX_COURSE_CHIPS = 2;
-
-// Badge colour by match (Figma: blue high, green middle, orange low).
-function matchTone(percent: number) {
-  if (percent >= 70) return "bg-linear-to-b from-[#3b82f6] to-primary-strong";
-  if (percent >= 40) return "bg-linear-to-b from-[#4ade80] to-success";
-  return "bg-linear-to-b from-[#fb923c] to-[#ea580c]";
-}
 
 function DetailRow({
   icon: Icon,
@@ -47,14 +43,17 @@ function DetailRow({
 }
 
 // One student in the directory (Figma "כרטיסיות סטודנטים"): photo, match,
-// shared courses, and "פרטים נוספים" opening over the cards below.
+// shared courses, and "פרטים נוספים" expanding the card in place — it used to
+// open over the card below it (client QA 11.2026).
 export function StudentCard({
   student,
   myCourses,
+  friend,
 }: {
   student: StudentCardData;
   /** My active courses: "הזמנה ללמידה" works without a shared course too. */
   myCourses: { id: string; name: string }[];
+  friend?: MyFriendState;
 }) {
   const { profile, match, details } = student;
   const [open, setOpen] = useState(false);
@@ -69,10 +68,8 @@ export function StudentCard({
     <article className="relative mt-11 h-[calc(100%-2.75rem)]">
       <div
         className={cn(
-          "flex flex-col rounded-[22px] bg-card px-[30px] pb-6 shadow-card transition-shadow",
-          open
-            ? "absolute inset-x-0 top-0 z-30 shadow-[0_24px_48px_-16px_rgba(15,27,51,.35)]"
-            : "h-full",
+          "flex h-full flex-col rounded-[22px] bg-card px-[30px] pb-6 shadow-card transition-shadow",
+          open && "shadow-[0_24px_48px_-16px_rgba(15,27,51,.35)]",
         )}
       >
         <div className="-mt-11 flex flex-col items-center">
@@ -93,7 +90,7 @@ export function StudentCard({
             <span
               className={cn(
                 "z-10 -mt-3 rounded-full px-2.5 py-0.5 text-[11px] font-bold text-white shadow-soft",
-                matchTone(match.percent),
+                MATCH_SOLID[matchLevel(match.percent)],
               )}
             >
               {match.percent}% התאמה
@@ -105,6 +102,7 @@ export function StudentCard({
             </Link>
           </h3>
           <p className="text-[13px] text-foreground">{subtitle || "סטודנט/ית"}</p>
+          <LastSeen online={student.online} lastSeenAt={profile.last_seen_at} className="mt-1" />
         </div>
 
         <p className="mt-5 text-[11px] text-muted-foreground">קורסים משותפים</p>
@@ -118,22 +116,21 @@ export function StudentCard({
                   key={c.id}
                   href={`/courses/${c.id}`}
                   title={`לעמוד הקורס ${c.name}`}
-                  className="inline-flex h-[26px] max-w-[48%] items-center gap-1 rounded-full border border-success/40 bg-success-soft px-2.5 text-[11px] font-medium text-success-ink hover:border-success"
+                  className="inline-flex min-h-[26px] max-w-full items-center gap-1 rounded-[13px] border border-success/40 bg-success-soft px-2.5 py-1 text-[11px] leading-tight font-medium text-success-ink hover:border-success"
                 >
                   <CheckIcon className="size-3 shrink-0" aria-hidden />
-                  <span className="truncate underline underline-offset-2">{c.name}</span>
+                  <span className="underline underline-offset-2">{c.name}</span>
                 </Link>
               ))}
               {courses.length > MAX_COURSE_CHIPS && (
-                <span
-                  className="flex size-[26px] items-center justify-center rounded-full bg-surface-2 text-[10px] font-semibold text-muted-foreground"
-                  title={courses
-                    .slice(MAX_COURSE_CHIPS)
-                    .map((c) => c.name)
-                    .join(", ")}
+                <button
+                  type="button"
+                  onClick={() => setOpen(true)}
+                  aria-label={`עוד ${courses.length - MAX_COURSE_CHIPS} קורסים משותפים`}
+                  className="flex h-[26px] min-w-[26px] items-center justify-center rounded-full bg-surface-2 px-1.5 text-[10px] font-semibold text-muted-foreground hover:bg-primary-soft"
                 >
                   +{courses.length - MAX_COURSE_CHIPS}
-                </span>
+                </button>
               )}
             </>
           )}
@@ -155,7 +152,7 @@ export function StudentCard({
           />
         </button>
 
-        {open ? (
+        {open && (
           <div className="flex flex-col gap-4 pt-4">
             {details.sharedExtras.length > 0 && (
               <div className="rounded-[14px] bg-success-soft px-4 py-3">
@@ -174,6 +171,9 @@ export function StudentCard({
               </div>
             )}
             <ul className="flex flex-col gap-3">
+              {courses.length > MAX_COURSE_CHIPS && (
+                <DetailRow icon={CheckIcon} label="כל הקורסים המשותפים" value={list(courses)} />
+              )}
               {studies && <DetailRow icon={GraduationCapIcon} label="לימודים" value={studies} />}
               {details.studyTimes.length > 0 && (
                 <DetailRow icon={ClockIcon} label="זמינות" value={list(details.studyTimes)} />
@@ -196,29 +196,26 @@ export function StudentCard({
                 )}
             </ul>
           </div>
-        ) : (
-          // RTL: the icons sit at the start (right), "הזמנה ללמידה" at the end (left).
-          <div className="mt-auto flex items-center gap-2.5 pt-6">
-            <Link
-              href={`/students/${profile.id}#invite`}
-              aria-label={`הזמנה של ${profile.full_name} לפי קורס`}
-              title="הזמנה לפי קורס"
-              className="flex size-[38px] shrink-0 items-center justify-center rounded-[10px] bg-surface-2 text-primary hover:bg-primary-soft"
-            >
-              <UserRoundPlusIcon className="size-[18px]" aria-hidden />
-            </Link>
-            <MessageStudentButton compact studentId={profile.id} studentName={profile.full_name} />
-            <InviteStudentButton
-              compact
-              inviteeId={profile.id}
-              inviteeName={profile.full_name}
-              sharedCourses={courses}
-              myCourses={myCourses}
-              className="min-w-0 grow"
-              buttonClassName="h-[38px] w-full rounded-full border-0 bg-primary text-[13px] font-bold text-white hover:bg-primary-strong"
-            />
-          </div>
         )}
+        {/* RTL: the icons sit at the start (right), "הזמנה ללמידה" at the end (left). */}
+        <div className="mt-auto flex items-center gap-2.5 pt-6">
+          <FriendButton
+            compact
+            studentId={profile.id}
+            studentName={profile.full_name}
+            initial={friend}
+          />
+          <MessageStudentButton compact studentId={profile.id} studentName={profile.full_name} />
+          <InviteStudentButton
+            compact
+            inviteeId={profile.id}
+            inviteeName={profile.full_name}
+            sharedCourses={courses}
+            myCourses={myCourses}
+            className="min-w-0 grow"
+            buttonClassName="h-[38px] w-full rounded-full border-0 bg-primary text-[13px] font-bold text-white hover:bg-primary-strong"
+          />
+        </div>
       </div>
     </article>
   );

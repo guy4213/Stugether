@@ -196,20 +196,27 @@ export function ProfileForm({
 
         <div className="flex flex-col gap-2">
           <Label className="text-sm font-semibold">מוסד לימודים</Label>
-          <Select value={institutionId} onValueChange={handleInstitutionChange}>
-            <SelectTrigger className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none data-[size=default]:h-[50px]">
-              <SelectValue placeholder="בחר/י מוסד לימודים">
-                {institutions.find((i) => i.id === institutionId)?.name}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {institutions.map((inst) => (
-                <SelectItem key={inst.id} value={inst.id}>
-                  {inst.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* One active institution (H.I.T only, client QA 12.11.2026): nothing to pick. */}
+          {institutions.length === 1 && institutionId === institutions[0].id ? (
+            <span className="flex h-[50px] items-center rounded-[14px] border-[1.5px] border-border bg-surface-2 px-4 text-[15px]">
+              {institutions[0].name}
+            </span>
+          ) : (
+            <Select value={institutionId} onValueChange={handleInstitutionChange}>
+              <SelectTrigger className="h-[50px] w-full rounded-[14px] border-[1.5px] border-border bg-white px-4 text-[15px] text-foreground shadow-none data-[size=default]:h-[50px]">
+                <SelectValue placeholder="בחר/י מוסד לימודים">
+                  {institutions.find((i) => i.id === institutionId)?.name}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {institutions.map((inst) => (
+                  <SelectItem key={inst.id} value={inst.id}>
+                    {inst.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <div className="flex flex-col gap-2">

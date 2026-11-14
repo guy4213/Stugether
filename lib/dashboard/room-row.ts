@@ -21,7 +21,6 @@ export type RoomRowStatus =
   | { kind: "seats"; free: number }
   | { kind: "scheduled" }
   | { kind: "waiting" }
-  | { kind: "archived" }
   | { kind: "closed" }
   | null;
 
@@ -35,7 +34,6 @@ function rowStatus(
   },
   now: number,
 ): RoomRowStatus {
-  if (r.status === "archived") return { kind: "archived" };
   if (r.status === "closed") return { kind: "closed" };
   if (r.live) return { kind: "live" };
   const untilSession = r.nextSessionAt ? new Date(r.nextSessionAt).getTime() - now : null;
@@ -71,6 +69,7 @@ export function dashboardRoom({
   nextSessionAt,
   people,
   now,
+  onlineOthers = 0,
 }: {
   room: Room;
   courseName: string | null;
@@ -79,8 +78,10 @@ export function dashboardRoom({
   nextSessionAt: string | null;
   people: RoomPerson[];
   now: number;
+  /** Members other than me online now: they make the room live too. */
+  onlineOthers?: number;
 }) {
-  const live = room.status === "active" && isRoomLive(room, now);
+  const live = room.status === "active" && isRoomLive(room, now, onlineOthers);
   const memberCount = Math.max(1, people.length);
   return {
     id: room.id,

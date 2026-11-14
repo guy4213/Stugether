@@ -46,7 +46,7 @@ export interface RoomStats {
 export interface AdminRoomListItem {
   id: string;
   name: string;
-  status: "active" | "archived" | "closed";
+  status: "active" | "closed";
   course: Pick<Course, "id" | "name" | "code"> | null;
   member_count: number;
   message_count: number;
@@ -67,18 +67,86 @@ export async function getRoomStats(client: SupabaseClient): Promise<RoomStats[]>
   return data as RoomStats[];
 }
 
+export interface UsageDay {
+  day: string;
+  signups: number;
+  active_users: number;
+  room_messages: number;
+  direct_messages: number;
+  rooms_created: number;
+  ai_runs: number;
+  ai_failed: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
+export interface UsageCourse {
+  id: string;
+  name: string;
+  code: string | null;
+  rooms_created: number;
+  active_rooms: number;
+  messages: number;
+  ai_runs: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
+export interface UsageUser {
+  id: string;
+  full_name: string;
+  room_messages: number;
+  direct_messages: number;
+  ai_runs: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
+export interface UsageAiUser {
+  id: string;
+  full_name: string;
+  ai_runs: number;
+  ai_failed: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
+export interface UsageStats {
+  days: number;
+  since: string;
+  daily: UsageDay[];
+  active_users: number;
+  top_courses: UsageCourse[];
+  top_users: UsageUser[];
+  top_ai_users: UsageAiUser[];
+}
+
+// Wraps admin_usage_stats(p_days): super_admin only (NOT_ALLOWED otherwise).
+// Counts, ids and names only — never message or DM content.
+export async function getUsageStats(client: SupabaseClient, days: number): Promise<UsageStats> {
+  const { data, error } = await client.rpc("admin_usage_stats", { p_days: days });
+  if (error) throw error;
+  return data as UsageStats;
+}
+
 // Full profile rows across all users. RLS (profiles_select_own_or_admin)
 // already restricts this to an active super_admin session — call with the
 // user-scoped client, not the admin client, so an ordinary user's call
 // legitimately gets nothing beyond their own row instead of everything.
 export async function listAllUsers(
   client: SupabaseClient,
-  filters: { search?: string; institutionId?: string; departmentId?: string } = {},
+  filters: {
+    search?: string;
+    institutionId?: string;
+    departmentId?: string;
+    role?: Profile["role"];
+  } = {},
 ): Promise<Profile[]> {
   let query = client.from("profiles").select("*");
   if (filters.search) query = query.ilike("full_name", `%${filters.search}%`);
   if (filters.institutionId) query = query.eq("institution_id", filters.institutionId);
   if (filters.departmentId) query = query.eq("department_id", filters.departmentId);
+  if (filters.role) query = query.eq("role", filters.role);
 
   const { data, error } = await query.order("full_name");
   if (error) throw error;
@@ -96,6 +164,24 @@ export async function setUserActive(
   const { data, error } = await client
     .from("profiles")
     .update({ is_active: isActive })
+    .eq("id", userId)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as Profile;
+}
+
+// Grant / revoke Super Admin. Same gate as setUserActive: RLS
+// (profiles_update_super_admin) plus guard_profile_privileged_columns only let
+// an active super_admin change role — call with the user-scoped client.
+export async function setUserRole(
+  client: SupabaseClient,
+  userId: string,
+  role: Profile["role"],
+): Promise<Profile> {
+  const { data, error } = await client
+    .from("profiles")
+    .update({ role })
     .eq("id", userId)
     .select("*")
     .single();
@@ -209,7 +295,7 @@ export async function listFullCatalog(client: SupabaseClient): Promise<{
 // super_admin SELECT policy) and merges them in JS.
 export async function listAllRooms(
   client: SupabaseClient,
-  filters: { search?: string; status?: "active" | "archived" | "closed" } = {},
+  filters: { search?: string; status?: "active" | "closed" } = {},
 ): Promise<AdminRoomListItem[]> {
   let query = client.from("rooms").select("id, name, status, course:courses(id, name, code)");
   if (filters.search) query = query.ilike("name", `%${filters.search}%`);
@@ -227,7 +313,7 @@ export async function listAllRooms(
     rooms as unknown as {
       id: string;
       name: string;
-      status: "active" | "archived" | "closed";
+      status: "active" | "closed";
       course: Pick<Course, "id" | "name" | "code"> | null;
     }[]
   ).map((room) => {

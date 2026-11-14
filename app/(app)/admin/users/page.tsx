@@ -1,22 +1,32 @@
 import { FilterForm, SELECT_CLASS } from "@/components/admin/filter-form";
 import { UserActiveToggle } from "@/components/admin/user-active-toggle";
+import { UserRoleToggle } from "@/components/admin/user-role-toggle";
 import { Pill } from "@/components/ui/pill";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { getAdminUsers, requireSuperAdmin } from "@/lib/admin/queries";
 import { relativeTimeHe } from "@/lib/ui/format";
 
-// "משתמשים" (SPEC §4.9): list, search, filter by institution/department,
-// deactivate/activate.
+// "משתמשים" (SPEC §4.9): list, search, filter by institution/department/role,
+// deactivate/activate, grant/revoke Super Admin (CR 11.11.2026).
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; institutionId?: string; departmentId?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    institutionId?: string;
+    departmentId?: string;
+    role?: string;
+  }>;
 }) {
   const params = await searchParams;
   const filters = {
     search: params.q?.trim() || undefined,
     institutionId: params.institutionId || undefined,
     departmentId: params.departmentId || undefined,
+    role:
+      params.role === "student" || params.role === "super_admin"
+        ? (params.role as "student" | "super_admin")
+        : undefined,
   };
   const [admin, data] = await Promise.all([requireSuperAdmin(), getAdminUsers(filters)]);
 
@@ -48,6 +58,16 @@ export default async function AdminUsersPage({
               {d.name}
             </option>
           ))}
+        </select>
+        <select
+          name="role"
+          defaultValue={filters.role ?? ""}
+          aria-label="תפקיד"
+          className={SELECT_CLASS}
+        >
+          <option value="">כל התפקידים</option>
+          <option value="student">סטודנטים</option>
+          <option value="super_admin">אדמינים</option>
         </select>
       </FilterForm>
 
@@ -84,7 +104,14 @@ export default async function AdminUsersPage({
                   {u.lastSeenAt ? `נראה/תה ${relativeTimeHe(u.lastSeenAt)}` : "לא התחבר/ה"}
                 </span>
                 {u.id !== admin?.userId && (
-                  <UserActiveToggle userId={u.id} name={u.fullName} isActive={u.isActive} />
+                  <div className="flex items-center gap-2">
+                    <UserRoleToggle
+                      userId={u.id}
+                      name={u.fullName}
+                      isSuperAdmin={u.role === "super_admin"}
+                    />
+                    <UserActiveToggle userId={u.id} name={u.fullName} isActive={u.isActive} />
+                  </div>
                 )}
               </li>
             ))}

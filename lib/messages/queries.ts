@@ -3,16 +3,24 @@ import { createClient } from "@/lib/supabase/server";
 import {
   DIRECT_MESSAGES_PAGE,
   getConversation,
+  getConversationReadAt,
   listDirectMessages,
   listMyConversations,
 } from "@/lib/repositories/conversations";
 import { listPublicProfiles, type PublicProfile } from "@/lib/repositories/profiles";
 import { isOnline } from "@/lib/ui/people";
 import { getDemoScenario } from "@/lib/demo/state";
+import { getStudentProfileData } from "@/lib/students/queries";
 
 export interface InboxItem {
   conversationId: string;
-  other: { id: string; fullName: string; avatarPath: string | null; online: boolean };
+  other: {
+    id: string;
+    fullName: string;
+    avatarPath: string | null;
+    online: boolean;
+    lastSeenAt: string | null;
+  };
   lastMessageAt: string;
   preview: string | null;
   /** The preview is my own message ("את/ה: ..."). */
@@ -27,6 +35,7 @@ function person(id: string, profile: PublicProfile | undefined) {
     fullName: profile?.full_name ?? "משתמש/ת לא פעיל/ה",
     avatarPath: profile?.avatar_url ?? null,
     online: isOnline(profile?.last_seen_at),
+    lastSeenAt: profile?.last_seen_at ?? null,
   };
 }
 
@@ -61,18 +70,43 @@ export async function getConversationPageData(conversationId: string, userId: st
 
   const otherId =
     conversation.user_a_id === userId ? conversation.user_b_id : conversation.user_a_id;
-  const [profiles, messages] = await Promise.all([
+  const [profiles, messages, otherLastReadAt] = await Promise.all([
     listPublicProfiles(supabase, [otherId]),
     listDirectMessages(supabase, conversationId, { limit: DIRECT_MESSAGES_PAGE }),
+    getConversationReadAt(supabase, conversationId, otherId),
   ]);
 
   return {
     conversationId,
     other: person(otherId, profiles[0]),
     otherActive: profiles.length > 0,
+    /** "נקרא" under my last message (Change Request 12.11.2026). */
+    otherLastReadAt,
     messages: [...messages].reverse(),
     hasMore: messages.length === DIRECT_MESSAGES_PAGE,
   };
 }
 
 export type ConversationPageData = NonNullable<Awaited<ReturnType<typeof getConversationPageData>>>;
+
+// The partner panel beside a private chat (opened on demand): the same data as
+// the student's profile page, trimmed to what the panel shows. null = an
+// inactive account, or someone who isn't a student.
+export async function getChatPartner(userId: string, otherId: string) {
+  const data = await getStudentProfileData(userId, otherId);
+  if (!data) return null;
+  const { details, match } = data;
+  return {
+    meta: [details.department ?? details.institution, details.year].filter(Boolean).join(" · "),
+    match: match
+      ? {
+          percent: match.percent,
+          reasons: match.breakdown.filter((b) => b.matched).map((b) => b.label),
+        }
+      : null,
+    sharedCourses: data.sharedCourses.map((c) => ({ id: c.id, name: c.name })),
+    myCourses: data.myCourses.map((c) => ({ id: c.id, name: c.name })),
+  };
+}
+
+export type ChatPartner = NonNullable<Awaited<ReturnType<typeof getChatPartner>>>;

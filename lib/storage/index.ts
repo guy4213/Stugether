@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { DEMO_AVATAR_PREFIX, isDemoId } from "@/lib/demo/constants";
+import { PRESET_AVATAR_PREFIX } from "@/lib/avatars/presets";
 
 // The only module allowed to touch Supabase Storage.
 const AVATARS_BUCKET = "avatars";
@@ -94,6 +95,8 @@ export async function getRoomFileUrl(path: string): Promise<string> {
 export function getAvatarUrl(path: string): string {
   // Demo mode avatars ship with the app (public/demo/avatars).
   if (path.startsWith(DEMO_AVATAR_PREFIX)) return `/${path}`;
+  // Ready-made avatars ship with the app too (public/avatars/presets).
+  if (path.startsWith(PRESET_AVATAR_PREFIX)) return `/avatars/${path}`;
   const supabase = createClient();
   return supabase.storage.from(AVATARS_BUCKET).getPublicUrl(path).data.publicUrl;
 }

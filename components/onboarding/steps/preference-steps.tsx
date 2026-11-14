@@ -94,8 +94,8 @@ export function StudyTimesStep({
 }) {
   return (
     <StepFrame
-      title="מתי נוח לך ללמוד?"
-      subtitle="אפשר לבחור כמה"
+      title="מתי הכי נוח לך ללמוד?"
+      subtitle="אפשר לבחור כמה אפשרויות"
       footer={<ContinueButton disabled={selected.length === 0} onClick={onContinue} />}
     >
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -139,7 +139,7 @@ export function LearningStylesStep({
   return (
     <StepFrame
       title="איך את/ה הכי אוהב/ת ללמוד?"
-      subtitle={`בחרו ${MAX_LEARNING_STYLES} דרכים שהכי מתאימות לך`}
+      subtitle={`בחר/י ${MAX_LEARNING_STYLES} דרכים שהכי מתאימות לצורת הלמידה שלך`}
       footer={
         <ContinueButton disabled={selected.length !== MAX_LEARNING_STYLES} onClick={onContinue} />
       }

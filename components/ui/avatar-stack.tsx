@@ -1,18 +1,20 @@
 import { cn } from "cn";
-import { initials, personTone } from "@/lib/ui/people";
+import { getAvatarUrl } from "@/lib/storage";
+import { defaultAvatarFor } from "@/lib/avatars/presets";
+import { personTone } from "@/lib/ui/people";
 
-export type StackPerson = { id: string; name: string };
+export type StackPerson = { id: string; name: string; avatarPath?: string | null };
 
-// Overlapping initials circles with a "+N" overflow bubble (mockup: 26–36px,
+// Overlapping avatar circles with a "+N" overflow bubble (mockup: 26–36px,
 // 2–3px white border, -8/-10px overlap). In RTL the first person sits on the
-// right, like the design.
+// right, like the design. Each circle is the person's photo, or their
+// ready-made avatar (it used to be an empty tinted circle — client QA 11.2026).
 export function AvatarStack({
   people,
   max = 3,
   total,
   size = "md",
   borderClassName = "border-white",
-  showInitials = false,
   className,
 }: {
   people: StackPerson[];
@@ -20,7 +22,6 @@ export function AvatarStack({
   total?: number;
   size?: "sm" | "md" | "lg";
   borderClassName?: string;
-  showInitials?: boolean;
   className?: string;
 }) {
   const shown = people.slice(0, max);
@@ -38,14 +39,20 @@ export function AvatarStack({
       {shown.map((p) => (
         <span
           key={p.id}
+          title={p.name}
           className={cn(
-            "flex items-center justify-center rounded-full font-bold",
+            "flex items-center justify-center overflow-hidden rounded-full font-bold",
             sizeClass,
             borderClassName,
             personTone(p.id),
           )}
         >
-          {showInitials ? initials(p.name) : null}
+          {/* eslint-disable-next-line @next/next/no-img-element -- public storage URL, tiny avatar */}
+          <img
+            src={getAvatarUrl(p.avatarPath || defaultAvatarFor(p.id))}
+            alt=""
+            className="size-full object-cover"
+          />
         </span>
       ))}
       {extra > 0 && (

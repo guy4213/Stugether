@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { setUserActive, updateAppSettings } from "@/lib/repositories/admin";
+import { setUserActive, setUserRole, updateAppSettings } from "@/lib/repositories/admin";
 import {
   createCourse,
   createDepartment,
@@ -52,6 +52,25 @@ export async function setUserActiveAction(
     if (userId === adminId) throw new Error("SELF");
     await setUserActive(supabase, userId, isActive);
   });
+}
+
+// Grant / revoke Super Admin (CR 11.11.2026). Never on yourself: an admin can
+// only demote others, so at least one active admin always remains.
+export async function setUserRoleAction(
+  userId: string,
+  role: "student" | "super_admin",
+): Promise<AdminActionResult> {
+  const parsed = z
+    .object({ userId: z.string().uuid(), role: z.enum(["student", "super_admin"]) })
+    .safeParse({ userId, role });
+  if (!parsed.success) return { ok: false, error: "ערך לא תקין" };
+  const admin = await requireSuperAdmin();
+  if (admin?.userId === parsed.data.userId) {
+    return { ok: false, error: "אי אפשר לשנות את התפקיד של עצמך" };
+  }
+  return guarded(["/admin/users", "/admin", "/admin/usage"], (supabase) =>
+    setUserRole(supabase, parsed.data.userId, parsed.data.role),
+  );
 }
 
 // --- catalog -----------------------------------------------------------------
@@ -127,11 +146,12 @@ export async function updateCatalogItemAction(
 
 // --- rooms (metadata only) -----------------------------------------------------
 
-export async function archiveRoomAction(roomId: string): Promise<AdminActionResult> {
+// Moderation: close a room (read-only, final). Archiving was removed.
+export async function closeRoomAction(roomId: string): Promise<AdminActionResult> {
   return guarded(
     ["/admin/rooms", "/admin"],
-    (s) => setRoomStatus(s, roomId, "archived"),
-    "לא ניתן לארכב את החדר",
+    (s) => setRoomStatus(s, roomId, "closed"),
+    "לא ניתן לסגור את החדר",
   );
 }
 

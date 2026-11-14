@@ -25,7 +25,6 @@ import {
 import {
   cancelSessionAction,
   proposeSessionAction,
-  reactivateRoomAction,
   rsvpSessionAction,
   scheduleSessionAction,
   voteSessionAction,
@@ -86,13 +85,13 @@ export function SessionPanel({
   roomId,
   roomName,
   roomStatus,
-  isOwner,
   sessions,
 }: {
   roomId: string;
   roomName: string;
   roomStatus: string;
-  isOwner: boolean;
+  /** Unused since archiving was removed (only the owner could reactivate). */
+  isOwner?: boolean;
   sessions: RoomSessions;
 }) {
   const router = useRouter();
@@ -100,7 +99,6 @@ export function SessionPanel({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const s = sessions.current;
-  const archived = roomStatus === "archived";
 
   const act = (fn: () => Promise<SessionActionResult>, success?: string) =>
     startTransition(async () => {
@@ -120,20 +118,7 @@ export function SessionPanel({
       size="chip"
       variant="outline-primary"
       disabled={pending}
-      onClick={() => {
-        if (!archived) return setDialogOpen(true);
-        // Plan only once the room is active again.
-        startTransition(async () => {
-          const result = await reactivateRoomAction(roomId);
-          if (!result.ok) {
-            toast.error(result.error ?? "משהו השתבש");
-            return;
-          }
-          toast.success("החדר הופעל מחדש");
-          setDialogOpen(true);
-          router.refresh();
-        });
-      }}
+      onClick={() => setDialogOpen(true)}
     >
       <CalendarPlusIcon className="size-4" aria-hidden />
       {label}
@@ -295,20 +280,15 @@ export function SessionPanel({
           <span className="grow">
             <span className="block font-bold text-success-ink">רוצים ללמוד שוב ביחד?</span>
             <span className="text-[13px] text-ink-2">
-              {archived && !isOwner
-                ? "בקשו מיוצר/ת החדר להפעיל אותו מחדש ולקבוע מפגש."
-                : "קבעו מפגש נוסף עם אותה קבוצה — אפשר להציע כמה מועדים ולבחור יחד."}
+              קבעו מפגש נוסף עם אותה קבוצה — אפשר להציע כמה מועדים ולבחור יחד.
             </span>
           </span>
-          {(!archived || isOwner) &&
-            proposeButton(archived ? "להפעיל מחדש ולקבוע מפגש" : "קביעת מפגש")}
+          {proposeButton("קביעת מפגש")}
         </section>
       ) : (
-        !archived && (
-          <div className="mx-3 mb-3 flex justify-end sm:mx-0">
-            {proposeButton("קביעת מפגש עתידי")}
-          </div>
-        )
+        <div className="mx-3 mb-3 flex justify-end sm:mx-0">
+          {proposeButton("קביעת מפגש עתידי")}
+        </div>
       )}
 
       <ProposeDialog open={dialogOpen} onOpenChange={setDialogOpen} roomId={roomId} />

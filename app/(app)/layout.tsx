@@ -4,6 +4,7 @@ import { getShellData } from "@/lib/app/queries";
 import { AppNav } from "@/components/app/app-nav";
 import { PresenceHeartbeat } from "@/components/app/presence-heartbeat";
 import { LiveNotifications } from "@/components/app/live-notifications";
+import { BottomTabBar } from "@/components/app/bottom-tab-bar";
 
 // Auth guard + shared shell for the whole (app) group. A student who has not
 // finished the signup wizard is sent there first (SPEC §4.1).
@@ -21,6 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Demo mode has no real account, so nothing to listen to. */}
       <LiveNotifications userId={user.demo ? null : user.id} />
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+      <BottomTabBar />
     </div>
   );
 }

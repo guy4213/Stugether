@@ -101,74 +101,51 @@ test("fix: roommates keep seeing each other's mini profile after the shared enro
   });
 });
 
-test("fix: owner cannot reactivate a room archived by a super_admin; owner reactivation needs enrollment", async () => {
+// Archiving was removed (client QA 12.11.2026, 20261112000014): a room is
+// active or closed, and closed is final — for the owner and a super_admin alike.
+test("fix: closing is final; 'archived' is no longer a status; an admin close is flagged", async () => {
   await db.asOwner(async (tx) => {
+    await become(tx, U.a1);
+    await tx.expectError(
+      "select public.set_room_status($1, 'archived')",
+      [ROOM.r1],
+      "INVALID_ARGUMENT",
+    );
+
     await become(tx, U.admin);
-    await tx.query("select public.set_room_status($1, 'archived')", [ROOM.r1]);
+    await tx.query("select public.set_room_status($1, 'closed')", [ROOM.r1]);
     await become(tx, "owner");
-    let row = await tx.one(
-      "select archived_by::text, archived_by_admin from public.rooms where id = $1",
+    const row = await tx.one(
+      "select status, archived_by::text, archived_by_admin, archived_at is not null as at from public.rooms where id = $1",
       [ROOM.r1],
     );
-    assert.deepEqual(row, { archived_by: U.admin, archived_by_admin: true });
+    assert.deepEqual(row, {
+      status: "closed",
+      archived_by: U.admin,
+      archived_by_admin: true,
+      at: true,
+    });
 
     await become(tx, U.a1);
     await tx.expectError(
       "select public.set_room_status($1, 'active')",
       [ROOM.r1],
-      "ROOM_ARCHIVED_BY_ADMIN",
+      "INVALID_STATUS_TRANSITION",
     );
-    const forged = await tx
-      .query("update public.rooms set archived_by_admin = false where id = $1", [ROOM.r1])
-      .catch((e) => e);
-    if (forged instanceof Error)
-      assert.match(forged.message, /permission denied|row-level security/i);
-    else assert.equal(forged.affectedRows ?? 0, 0);
-    await become(tx, "owner");
-    assert.equal(
-      (await tx.one("select status from public.rooms where id = $1", [ROOM.r1])).status,
-      "archived",
-    );
-
-    // Admin may reactivate; flags are cleared.
     await become(tx, U.admin);
-    await tx.query("select public.set_room_status($1, 'active')", [ROOM.r1]);
-    await become(tx, "owner");
-    row = await tx.one(
-      "select status, archived_by, archived_by_admin from public.rooms where id = $1",
+    await tx.expectError(
+      "select public.set_room_status($1, 'active')",
       [ROOM.r1],
+      "INVALID_STATUS_TRANSITION",
     );
-    assert.deepEqual(row, { status: "active", archived_by: null, archived_by_admin: false });
 
-    // Owner archive -> owner reactivate is fine.
-    await become(tx, U.a1);
-    await tx.query("select public.set_room_status($1, 'archived')", [ROOM.r1]);
+    // The status CHECK refuses the old value even on a direct write.
     await become(tx, "owner");
-    row = await tx.one(
-      "select archived_by::text, archived_by_admin from public.rooms where id = $1",
-      [ROOM.r1],
+    await tx.expectError(
+      "update public.rooms set status = 'archived' where id = $1",
+      [ROOM.r2],
+      "rooms_status_check",
     );
-    assert.deepEqual(row, { archived_by: U.a1, archived_by_admin: false });
-    await become(tx, U.a1);
-    await tx.query("select public.set_room_status($1, 'active')", [ROOM.r1]);
-
-    // Owner no longer enrolled -> cannot reactivate.
-    await tx.query("select public.set_room_status($1, 'archived')", [ROOM.r1]);
-    await become(tx, "owner");
-    await tx.query(
-      "update public.enrollments set status = 'archived' where user_id = $1 and course_id = $2",
-      [U.a1, COURSE.cs201],
-    );
-    await become(tx, U.a1);
-    await tx.expectError("select public.set_room_status($1, 'active')", [ROOM.r1], "NOT_ALLOWED");
-
-    // Admin archiving via direct UPDATE (policy path) is also flagged.
-    await become(tx, U.admin);
-    await tx.query("update public.rooms set status = 'active' where id = $1", [ROOM.r1]);
-    await tx.query("update public.rooms set status = 'archived' where id = $1", [ROOM.r1]);
-    await become(tx, "owner");
-    row = await tx.one("select archived_by_admin from public.rooms where id = $1", [ROOM.r1]);
-    assert.equal(row.archived_by_admin, true);
   });
 });
 
@@ -193,6 +170,7 @@ test("fix: rooms SELECT — insert().select() works, but a creator who left lose
       "select name, topic, status, last_message_at from public.rooms where id = $1",
       [ROOM.r1],
     );
+    // The creator is the owner here, so leaving deletes the room altogether.
     assert.equal(after.rows.length, 0, "creator who left must not see the room anymore");
   });
 });
@@ -296,7 +274,7 @@ test("fix: public.messages is in the supabase_realtime publication", async () =>
   assert.equal(r.rows.length, 1);
 });
 
-test("fix: update_room — owner renames / toggles AI; member, non-member and archived room are refused", async () => {
+test("fix: update_room — owner renames / toggles AI; member, non-member and closed room are refused", async () => {
   await db.asOwner(async (tx) => {
     await become(tx, U.a1);
     await tx.query("select public.update_room($1, $2, $3, $4)", [
@@ -336,7 +314,7 @@ test("fix: update_room — owner renames / toggles AI; member, non-member and ar
       [ROOM.r1],
       "NOT_ALLOWED",
     );
-    await become(tx, U.a2); // owner of archived R2
+    await become(tx, U.a2); // owner of closed R2
     await tx.expectError(
       "select public.update_room($1, 'x', null, null)",
       [ROOM.r2],
@@ -438,7 +416,8 @@ test("fix: deactivating a profile frees its room seats, hands off ownership and 
     await tx.query("select public.remove_room_member($1, $2)", [ROOM.r1, U.a3]);
   });
 
-  // Mechanism: leave_room hand-off also skips inactive profiles.
+  // Mechanism: the hand-off also skips inactive profiles. (Only deactivation
+  // hands off now; the owner leaving deletes the room — 20261112000003.)
   await db.asOwner(async (tx) => {
     // Make a2 inactive without the trigger path to simulate a legacy row.
     await tx.exec(
@@ -448,8 +427,8 @@ test("fix: deactivating a profile frees its room seats, hands off ownership and 
     await tx.exec(
       "alter table public.profiles enable trigger profiles_release_rooms_on_deactivation",
     );
-    await become(tx, U.a1);
-    await tx.query("select public.leave_room($1)", [ROOM.r1]);
+    await become(tx, U.admin);
+    await tx.query("update public.profiles set is_active = false where id = $1", [U.a1]);
     await become(tx, "owner");
     const owner = await tx.one(
       "select user_id::text from public.room_members where room_id = $1 and role = 'owner' and left_at is null",

@@ -67,10 +67,10 @@ export default async function CoursesPage({
             />
             <div className="relative max-w-[858px] grow">
               <h1 className="text-[30px] leading-[1.1] font-extrabold text-white sm:text-[40px]">
-                מצאו את הקורס המתאים לכם
+                מצאו את הקורס שלכם
               </h1>
               <p className="mt-2 text-[17px] text-white">
-                מצאו סטודנטים מהקורס שלכם והתחילו ללמוד יחד.
+                חפשו קורס, הוסיפו אותו לקורסים שלכם ומצאו סטודנטים ללמוד איתם.
               </p>
               {data.institutionId && (
                 <div className="mt-5">

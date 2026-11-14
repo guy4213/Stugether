@@ -11,7 +11,11 @@ export type NotificationType =
   | "room_join_decided"
   | "session_proposed"
   | "session_scheduled"
-  | "direct_message";
+  | "direct_message"
+  | "room_deleted"
+  // Friends (20261112000010_friendships.sql).
+  | "friend_request"
+  | "friend_accepted";
 
 export type NotificationCategory = "invitations" | "rooms" | "messages" | "courses" | "system";
 
@@ -28,6 +32,8 @@ export interface AppNotification {
   request_id: string | null;
   /** direct_message: the private chat it points to. */
   conversation_id: string | null;
+  /** friend_request / friend_accepted (optional: demo rows don't set it). */
+  friendship_id?: string | null;
   title: string;
   body: string | null;
   read_at: string | null;

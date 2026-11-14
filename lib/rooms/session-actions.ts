@@ -10,7 +10,6 @@ import {
   scheduleRoomSession,
   voteRoomSession,
 } from "@/lib/repositories/sessions";
-import { setRoomStatus } from "@/lib/repositories/rooms";
 import { getCurrentUser } from "@/lib/auth/session";
 import { DEMO_READ_ONLY } from "@/lib/demo/constants";
 
@@ -91,10 +90,4 @@ export async function rsvpSessionAction(
 
 export async function cancelSessionAction(roomId: string, sessionId: string) {
   return run(roomId, (supabase) => cancelRoomSession(supabase, sessionId));
-}
-
-// "ללמוד שוב ביחד" in an archived room: the owner reactivates it first
-// (set_room_status keeps its rules: not after admin moderation, owner enrolled).
-export async function reactivateRoomAction(roomId: string): Promise<SessionActionResult> {
-  return run(roomId, (supabase) => setRoomStatus(supabase, roomId, "active"));
 }

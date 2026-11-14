@@ -195,8 +195,9 @@ export function CreateRoomForm({
       <DialogContent className="max-h-[calc(100dvh-2rem)] gap-5 overflow-y-auto rounded-[24px] p-6 sm:max-w-[460px]">
         <DialogHeader>
           <DialogTitle className="text-[22px] font-extrabold">חדר לימוד חדש</DialogTitle>
-          <DialogDescription className="sr-only">
-            עד 4 משתתפים, עם עוזר AI בתוך החדר.
+          <DialogDescription className="rounded-[14px] bg-primary-tint px-3.5 py-2.5 text-[13px] leading-snug text-primary-strong">
+            לא חייבים לחכות לאחרים: אפשר להתחיל ללמוד לבד עם העוזר, ושותפים יצטרפו כשיענו להזמנה (עד
+            4 משתתפים).
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

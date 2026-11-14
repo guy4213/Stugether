@@ -25,7 +25,7 @@ export function HeroSearch() {
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="חיפוש קורס, נושא או מוסד…"
+        placeholder="חיפוש קורס לפי שם או קוד…"
         aria-label="חיפוש קורס, נושא או מוסד"
         className="h-full min-w-0 grow bg-transparent px-[22px] text-[17px] text-foreground outline-none placeholder:text-muted-foreground"
       />

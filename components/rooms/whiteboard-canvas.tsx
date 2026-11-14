@@ -81,6 +81,13 @@ export function WhiteboardCanvas({
   const drawing = useRef<[number, number][] | null>(null);
   const [textAt, setTextAt] = useState<{ x: number; y: number } | null>(null);
   const [text, setText] = useState("");
+  // The text box is always mounted while the text tool is on, so a tap can
+  // focus it synchronously — iPad / Android only open the keyboard for a
+  // focus() made inside the tap itself (client QA 12.11.2026: "T" did nothing
+  // on a tablet). openedAt ignores the blur the same tap causes right after.
+  const textRef = useRef<HTMLInputElement>(null);
+  const openedAt = useRef(0);
+  const textDown = useRef<[number, number] | null>(null);
 
   // Track the parent's full scroll size.
   useEffect(() => {
@@ -137,9 +144,10 @@ export function WhiteboardCanvas({
   function onPointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!tool || disabled || e.button !== 0) return;
     if (tool === "text") {
-      const [x, y] = toPoint(e);
-      setTextAt({ x, y });
-      setText("");
+      // No mouse-compat events / focus change after this touch.
+      e.preventDefault();
+      if (textAt && text.trim()) commitText();
+      textDown.current = toPoint(e);
       return;
     }
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -154,6 +162,22 @@ export function WhiteboardCanvas({
   }
 
   function onPointerUp() {
+    if (tool === "text" && textDown.current) {
+      const [x, y] = textDown.current;
+      textDown.current = null;
+      const input = textRef.current;
+      if (input) {
+        // Place and focus now, inside the gesture; React state follows.
+        input.style.top = `${y * size.w}px`;
+        input.style.right = `${size.w - x * size.w}px`;
+        input.value = "";
+        openedAt.current = Date.now();
+        input.focus({ preventScroll: true });
+      }
+      setTextAt({ x, y });
+      setText("");
+      return;
+    }
     const points = drawing.current;
     drawing.current = null;
     if (!points || !tool || tool === "text") return;
@@ -193,23 +217,45 @@ export function WhiteboardCanvas({
             : "pointer-events-none absolute inset-x-0 top-0 z-10"
         }
       />
-      {textAt && (
+      {tool === "text" && !disabled && (
         <input
-          autoFocus
+          ref={textRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onBlur={commitText}
+          onBlur={(e) => {
+            // The tap that opened the box can still blur it a moment later.
+            if (Date.now() - openedAt.current < 400 && !text) {
+              e.currentTarget.focus({ preventScroll: true });
+              return;
+            }
+            commitText();
+          }}
+          tabIndex={textAt ? 0 : -1}
+          aria-hidden={!textAt}
+          enterKeyHint="done"
           onKeyDown={(e) => {
-            if (e.key === "Enter") commitText();
+            if (e.key === "Enter") {
+              commitText();
+              e.currentTarget.blur(); // closes the on-screen keyboard
+            }
             if (e.key === "Escape") {
               setTextAt(null);
               setText("");
+              e.currentTarget.blur();
             }
           }}
           aria-label="טקסט על הלוח"
           placeholder="כתבו כאן..."
-          style={{ top: textAt.y * size.w, right: size.w - textAt.x * size.w, color }}
-          className="absolute z-20 w-56 rounded-md border border-primary-line bg-white/90 px-2 py-1 text-base font-semibold shadow-soft outline-none"
+          style={
+            textAt
+              ? { top: textAt.y * size.w, right: size.w - textAt.x * size.w, color }
+              : { top: 0, right: 0, color }
+          }
+          className={
+            textAt
+              ? "absolute z-20 w-56 max-w-[80%] rounded-md border border-primary-line bg-white/90 px-2 py-1 text-base font-semibold shadow-soft outline-none"
+              : "pointer-events-none absolute z-20 w-px opacity-0"
+          }
         />
       )}
     </>

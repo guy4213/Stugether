@@ -8,6 +8,7 @@ import {
   getAiUsageSummary,
   getAppSettings,
   getGlobalStats,
+  getUsageStats,
   listAllRooms,
   listAllUsers,
   listFullCatalog,
@@ -58,6 +59,7 @@ export async function getAdminUsers(filters: {
   search?: string;
   institutionId?: string;
   departmentId?: string;
+  role?: "student" | "super_admin";
 }) {
   await assertSuperAdmin();
   const supabase = await createClient();
@@ -92,10 +94,7 @@ export async function getAdminCatalog() {
   return listFullCatalog(supabase);
 }
 
-export async function getAdminRooms(filters: {
-  search?: string;
-  status?: "active" | "archived" | "closed";
-}) {
+export async function getAdminRooms(filters: { search?: string; status?: "active" | "closed" }) {
   await assertSuperAdmin();
   const supabase = await createClient();
   return listAllRooms(supabase, filters);
@@ -108,6 +107,81 @@ function pricePerMillion(name: string, fallback: number): number {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
+function estimateCostUsd(promptTokens: number, completionTokens: number): number {
+  const inputRate = pricePerMillion("AI_PRICE_INPUT_PER_MTOK_USD", 0.3);
+  const outputRate = pricePerMillion("AI_PRICE_OUTPUT_PER_MTOK_USD", 2.5);
+  return (promptTokens / 1_000_000) * inputRate + (completionTokens / 1_000_000) * outputRate;
+}
+
+export const USAGE_PERIODS = [7, 30, 90] as const;
+export type UsagePeriod = (typeof USAGE_PERIODS)[number];
+
+// "שימוש" (SPEC §4.9, CR 11.11.2026): daily series, period totals, top
+// courses / users / AI consumers — counts only (admin_usage_stats), with the
+// estimated AI cost added per row.
+export async function getAdminUsage(days: UsagePeriod) {
+  await assertSuperAdmin();
+  const supabase = await createClient();
+  const stats = await getUsageStats(supabase, days);
+  const n = (v: unknown) => Number(v ?? 0);
+
+  const daily = stats.daily.map((d) => ({
+    day: d.day,
+    signups: n(d.signups),
+    activeUsers: n(d.active_users),
+    roomMessages: n(d.room_messages),
+    directMessages: n(d.direct_messages),
+    roomsCreated: n(d.rooms_created),
+    aiRuns: n(d.ai_runs),
+    aiFailed: n(d.ai_failed),
+    tokens: n(d.prompt_tokens) + n(d.completion_tokens),
+    costUsd: estimateCostUsd(n(d.prompt_tokens), n(d.completion_tokens)),
+  }));
+  const total = (pick: (d: (typeof daily)[number]) => number) =>
+    daily.reduce((sum, d) => sum + pick(d), 0);
+
+  return {
+    days: stats.days,
+    daily,
+    totals: {
+      activeUsers: n(stats.active_users),
+      signups: total((d) => d.signups),
+      roomMessages: total((d) => d.roomMessages),
+      directMessages: total((d) => d.directMessages),
+      roomsCreated: total((d) => d.roomsCreated),
+      aiRuns: total((d) => d.aiRuns),
+      aiFailed: total((d) => d.aiFailed),
+      tokens: total((d) => d.tokens),
+      costUsd: total((d) => d.costUsd),
+    },
+    topCourses: stats.top_courses.map((c) => ({
+      id: c.id,
+      name: c.name,
+      code: c.code,
+      roomsCreated: n(c.rooms_created),
+      activeRooms: n(c.active_rooms),
+      messages: n(c.messages),
+      aiRuns: n(c.ai_runs),
+      costUsd: estimateCostUsd(n(c.prompt_tokens), n(c.completion_tokens)),
+    })),
+    topUsers: stats.top_users.map((u) => ({
+      id: u.id,
+      fullName: u.full_name,
+      roomMessages: n(u.room_messages),
+      directMessages: n(u.direct_messages),
+      aiRuns: n(u.ai_runs),
+    })),
+    topAiUsers: stats.top_ai_users.map((u) => ({
+      id: u.id,
+      fullName: u.full_name,
+      aiRuns: n(u.ai_runs),
+      aiFailed: n(u.ai_failed),
+      tokens: n(u.prompt_tokens) + n(u.completion_tokens),
+      costUsd: estimateCostUsd(n(u.prompt_tokens), n(u.completion_tokens)),
+    })),
+  };
+}
+
 export async function getAdminAi() {
   await assertSuperAdmin();
   const supabase = await createClient();
@@ -117,10 +191,6 @@ export async function getAdminAi() {
     getAiUsageSummary(supabase, since30),
     listRecentAiFailures(supabase, 10),
   ]);
-  const inputRate = pricePerMillion("AI_PRICE_INPUT_PER_MTOK_USD", 0.3);
-  const outputRate = pricePerMillion("AI_PRICE_OUTPUT_PER_MTOK_USD", 2.5);
-  const estimatedCostUsd =
-    (usage.promptTokens / 1_000_000) * inputRate +
-    (usage.completionTokens / 1_000_000) * outputRate;
+  const estimatedCostUsd = estimateCostUsd(usage.promptTokens, usage.completionTokens);
   return { settings, usage, failures, estimatedCostUsd };
 }

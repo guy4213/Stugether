@@ -4,10 +4,10 @@
 
 export const U = {
   a1: "00000000-0000-0000-0000-0000000000a1", // noa: owner R1
-  a2: "00000000-0000-0000-0000-0000000000a2", // itai: member R1, owner R2 (archived)
+  a2: "00000000-0000-0000-0000-0000000000a2", // itai: member R1, owner R2 (closed)
   a3: "00000000-0000-0000-0000-0000000000a3", // maya: member R1
   a4: "00000000-0000-0000-0000-0000000000a4", // yonatan: CS-201, NOT member of R1; invited (I1)
-  a5: "00000000-0000-0000-0000-0000000000a5", // shira: member R2 (archived); expired invite I2 to R1
+  a5: "00000000-0000-0000-0000-0000000000a5", // shira: member R2 (closed); expired invite I2 to R1
   admin: "00000000-0000-0000-0000-0000000000ad",
 };
 
@@ -19,7 +19,7 @@ export const COURSE = {
 
 export const ROOM = {
   r1: "00000000-0000-0000-0005-000000000001", // active, CS-201, a1 owner + a2 + a3
-  r2: "00000000-0000-0000-0005-000000000002", // archived, MATH-110, a2 owner + a5
+  r2: "00000000-0000-0000-0005-000000000002", // closed, MATH-110, a2 owner + a5
 };
 
 export const MSG = {

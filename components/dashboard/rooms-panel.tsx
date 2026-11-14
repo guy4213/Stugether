@@ -46,9 +46,7 @@ function StatusPill({ status }: { status: RoomRowStatus }) {
     case "scheduled":
       return <span className={cn(PILL, "bg-warning-soft text-warning-ink")}>ממתין להתחלה</span>;
     case "waiting":
-      return <span className={cn(PILL, "bg-surface-2 text-muted-foreground")}>ממתין למשתתפים</span>;
-    case "archived":
-      return <span className={cn(PILL, "bg-surface-2 text-muted-foreground")}>מאורכב</span>;
+      return <span className={cn(PILL, "bg-primary-tint text-primary-strong")}>לומד/ת לבד</span>;
     case "closed":
       return <span className={cn(PILL, "bg-surface-2 text-muted-foreground")}>סגור</span>;
   }
@@ -130,10 +128,7 @@ function RoomRow({ room }: { room: DashboardRoom }) {
         <span className="flex items-center justify-end gap-1.5">
           <RowMenu
             label={`אפשרויות לחדר ${room.name}`}
-            items={[
-              { label: "כניסה לחדר", href },
-              { label: "לדף הקורס", href: `/courses/${room.courseId}` },
-            ]}
+            items={[{ label: "לדף הקורס", href: `/courses/${room.courseId}` }]}
           />
           <Button
             asChild
@@ -142,7 +137,9 @@ function RoomRow({ room }: { room: DashboardRoom }) {
             className="min-w-[112px] rounded-[10px]"
           >
             <Link prefetch={false} href={href}>
-              {room.live ? "הצטרפות" : room.nextSessionAt ? "פרטי המפגש" : "כניסה לחדר"}
+              {/* Every row is a room I'm already in, so it is always "entering" it
+                (client QA: "הצטרפות" vs "כניסה לחדר" were the same link). */}
+              {room.nextSessionAt && !room.live ? "פרטי המפגש" : "כניסה לחדר"}
             </Link>
           </Button>
         </span>
@@ -202,7 +199,7 @@ export function RoomsPanel({
         <div className="flex flex-1 flex-col items-center justify-center rounded-[20px] border-2 border-dashed border-switch-off bg-surface-2 p-6 text-center">
           <p className="font-bold">עוד אין לך חדרי לימוד</p>
           <p className="text-sm text-muted-foreground">
-            פתחו חדר בקורס והזמינו עד 3 חברים ללמוד יחד עם העוזר.
+            פתחו חדר בקורס ותתחילו ללמוד, גם לבד עם העוזר. אפשר להזמין עד 3 חברים בכל שלב.
           </p>
         </div>
       ) : (

@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { acceptInvitation, declineInvitation } from "@/lib/repositories/invitations";
+import {
+  acceptInvitation,
+  declineInvitation,
+  listPendingInvitations,
+  type PendingInvitation,
+} from "@/lib/repositories/invitations";
 import {
   markNotificationsRead,
   setNotificationPreference,
@@ -116,4 +121,19 @@ export async function updateNotificationPreference(
   }
   revalidatePath("/notifications");
   return { ok: true };
+}
+
+// The invitation pop-up (client QA 12.11.2026): my pending, unexpired room
+// invitations, newest first — for the dialog that opens when one arrives
+// live, or on the first page of a visit.
+export async function listMyPendingInvitationsAction(): Promise<PendingInvitation[]> {
+  const user = await getCurrentUser();
+  if (!user || user.demo) return [];
+  const supabase = await createClient();
+  try {
+    const rows = await listPendingInvitations(supabase);
+    return [...rows].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  } catch {
+    return [];
+  }
 }
